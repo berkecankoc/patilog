@@ -1,10 +1,12 @@
+import 'package:equatable/equatable.dart';
+
 enum PetSpecies { dog, cat, bird, other }
 
 enum PetSex { male, female, unknown }
 
 enum ReproductiveStatus { intact, sterilized, unknown }
 
-class Pet {
+class Pet extends Equatable {
   final String id;
   final String name;
   final PetSpecies species;
@@ -29,4 +31,18 @@ class Pet {
     this.microchipId,
     this.imageUrl,
   });
+
+  @override
+  List<Object?> get props => [
+    id,
+    name,
+    species,
+    sex,
+    reproductiveStatus,
+    breed,
+    birthDate,
+    weight,
+    microchipId,
+    imageUrl,
+  ];
 }
