@@ -32,6 +32,31 @@ class Pet extends Equatable {
     this.imageUrl,
   });
 
+  Pet copyWith(
+    String? name,
+    PetSpecies? species,
+    PetSex? sex,
+    ReproductiveStatus? reproductiveStatus,
+    String? breed,
+    DateTime? birthDate,
+    double? weight,
+    String? microchipId,
+    String? imageUrl,
+  ) {
+    return Pet(
+      id: id,
+      name: name ?? this.name,
+      species: species ?? this.species,
+      sex: sex ?? this.sex,
+      reproductiveStatus: reproductiveStatus ?? this.reproductiveStatus,
+      breed: breed ?? this.breed,
+      birthDate: birthDate ?? this.birthDate,
+      weight: weight ?? this.weight,
+      microchipId: microchipId ?? this.microchipId,
+      imageUrl: imageUrl ?? this.imageUrl,
+    );
+  }
+
   @override
   List<Object?> get props => [
     id,

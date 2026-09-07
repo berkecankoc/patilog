@@ -28,7 +28,7 @@ final class CreatePetParams {
   });
 }
 
-final class CreatePet {
+class CreatePet {
   final PetRepository repository;
   final IdGenerator idGenerator;
 
