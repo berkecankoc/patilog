@@ -177,15 +177,12 @@ void main() {
       ).thenAnswer((_) async => const Success(null));
       when(
         () => repository.getPets(),
-      ).thenAnswer((_) async => const Success([pet]));
+      ).thenAnswer((_) async => const Success([]));
 
       return PetCubit(repository, createPet);
     },
     act: (cubit) => cubit.deletePet(pet.id),
-    expect: () => [
-      const PetLoading(),
-      const PetsLoaded([pet]),
-    ],
+    expect: () => [const PetLoading(), const PetsLoaded([])],
     verify: (_) {
       verify(() => repository.deletePet(pet.id)).called(1);
       verify(() => repository.getPets()).called(1);
