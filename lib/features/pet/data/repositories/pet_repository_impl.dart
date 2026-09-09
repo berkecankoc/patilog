@@ -35,8 +35,8 @@ final class PetRepositoryImpl implements PetRepository {
   @override
   Future<Result<Pet>> getPetById(String id) async {
     try {
-      final pet = await localDataSource.getPetById(id);
-      return Success(pet);
+      final model = await localDataSource.getPetById(id);
+      return Success(model.toEntity());
     } on LocalDataSourceException {
       return const Error(LocalDatabaseFailure('Failed to get pet'));
     } on LocalDataNotFoundException {
@@ -47,7 +47,8 @@ final class PetRepositoryImpl implements PetRepository {
   @override
   Future<Result<List<Pet>>> getPets() async {
     try {
-      final pets = await localDataSource.getPets();
+      final models = await localDataSource.getPets();
+      final pets = models.map((model) => model.toEntity()).toList();
       return Success(pets);
     } on LocalDataSourceException {
       return const Error(LocalDatabaseFailure('Failed to get pets'));

@@ -65,6 +65,12 @@ void main() {
     expect(result, model);
   });
 
+  test('maps PetModel to Pet', () {
+    final result = model.toEntity();
+
+    expect(result, entity);
+  });
+
   test('maps Pet to PetModel', () {
     final result = PetModel.fromEntity(entity);
 
