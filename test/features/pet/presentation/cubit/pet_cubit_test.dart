@@ -37,172 +37,191 @@ void main() {
     createPet = MockCreatePet();
   });
 
-  blocTest<PetCubit, PetState>(
-    'emits PetLoading and PetsLoaded when loadPets succeeds',
-    build: () {
-      when(
-        () => repository.getPets(),
-      ).thenAnswer((_) async => const Success([pet]));
+  group('loadPets', () {
+    blocTest<PetCubit, PetState>(
+      'emits PetLoading and PetsLoaded when repository succeeds',
+      build: () {
+        when(
+          () => repository.getPets(),
+        ).thenAnswer((_) async => const Success([pet]));
 
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.loadPets(),
-    expect: () => [
-      const PetLoading(),
-      const PetsLoaded([pet]),
-    ],
-  );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.loadPets(),
+      expect: () => [
+        const PetLoading(),
+        const PetsLoaded([pet]),
+      ],
+    );
 
-  blocTest<PetCubit, PetState>(
-    'emits PetLoading and PetError when loadPets fails',
-    build: () {
-      when(() => repository.getPets()).thenAnswer(
-        (_) async => const Error(LocalDatabaseFailure('Failed to get pets')),
-      );
+    blocTest<PetCubit, PetState>(
+      'emits PetLoading and PetError when repository fails',
+      build: () {
+        when(() => repository.getPets()).thenAnswer(
+          (_) async => const Error(LocalDatabaseFailure('Failed to get pets')),
+        );
 
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.loadPets(),
-    expect: () => [const PetLoading(), const PetError('Failed to get pets')],
-  );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.loadPets(),
+      expect: () => [const PetLoading(), const PetError('Failed to get pets')],
+    );
+  });
 
-  blocTest<PetCubit, PetState>(
-    'emits PetLoading and PetLoaded when getPetById succeeds',
-    build: () {
-      when(
-        () => repository.getPetById('pet-1'),
-      ).thenAnswer((_) async => const Success(pet));
+  group('getPetById', () {
+    blocTest<PetCubit, PetState>(
+      'emits PetLoading and PetLoaded when repository succeeds',
+      build: () {
+        when(
+          () => repository.getPetById('pet-1'),
+        ).thenAnswer((_) async => const Success(pet));
 
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.getPetById('pet-1'),
-    expect: () => [const PetLoading(), const PetLoaded(pet)],
-  );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.getPetById('pet-1'),
+      expect: () => [const PetLoading(), const PetLoaded(pet)],
+    );
 
-  blocTest<PetCubit, PetState>(
-    'emits PetLoading and PetError when getPetById fails.',
-    build: () {
-      when(
-        () => repository.getPetById('pet-1'),
-      ).thenAnswer((_) async => const Error(NotFoundFailure('Pet not found')));
+    blocTest<PetCubit, PetState>(
+      'emits PetLoading and PetError when repository fails.',
+      build: () {
+        when(() => repository.getPetById('pet-1')).thenAnswer(
+          (_) async => const Error(NotFoundFailure('Pet not found')),
+        );
 
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.getPetById('pet-1'),
-    expect: () => [const PetLoading(), const PetError('Pet not found')],
-  );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.getPetById('pet-1'),
+      expect: () => [const PetLoading(), const PetError('Pet not found')],
+    );
+  });
+  group('createPet', () {
+    blocTest<PetCubit, PetState>(
+      'emits PetLoading and PetsLoaded when repository succeeds',
+      build: () {
+        when(
+          () => createPet(params),
+        ).thenAnswer((_) async => const Success(null));
+        when(
+          () => repository.getPets(),
+        ).thenAnswer((_) async => const Success([pet]));
 
-  blocTest<PetCubit, PetState>(
-    'emits PetLoading and PetsLoaded when createPet succeeds',
-    build: () {
-      when(
-        () => createPet(params),
-      ).thenAnswer((_) async => const Success(null));
-      when(
-        () => repository.getPets(),
-      ).thenAnswer((_) async => const Success([pet]));
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.createPet(params),
+      expect: () => [
+        const PetLoading(),
+        const PetsLoaded([pet]),
+      ],
+      verify: (_) {
+        verify(() => createPet(params)).called(1);
+        verify(() => repository.getPets()).called(1);
+      },
+    );
 
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.createPet(params),
-    expect: () => [
-      const PetLoading(),
-      const PetsLoaded([pet]),
-    ],
-    verify: (_) {
-      verify(() => createPet(params)).called(1);
-      verify(() => repository.getPets()).called(1);
-    },
-  );
+    blocTest<PetCubit, PetState>(
+      'emits PetLoading and PetError when repository fails',
+      build: () {
+        when(() => createPet(params)).thenAnswer(
+          (_) async =>
+              const Error(LocalDatabaseFailure('Failed to create pet')),
+        );
 
-  blocTest<PetCubit, PetState>(
-    'emits PetLoading and PetError when createPet fails',
-    build: () {
-      when(() => createPet(params)).thenAnswer(
-        (_) async => const Error(LocalDatabaseFailure('Failed to create pet')),
-      );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.createPet(params),
+      expect: () => [
+        const PetLoading(),
+        const PetError('Failed to create pet'),
+      ],
+      verify: (_) {
+        verify(() => createPet(params)).called(1);
+        verifyNever(() => repository.getPets());
+      },
+    );
+  });
+  group('updatePet', () {
+    blocTest<PetCubit, PetState>(
+      'emits PetLoading and PetLoaded when repository succeeds',
+      build: () {
+        when(
+          () => repository.updatePet(pet),
+        ).thenAnswer((_) async => const Success(null));
+        when(
+          () => repository.getPetById(pet.id),
+        ).thenAnswer((_) async => const Success(pet));
 
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.createPet(params),
-    expect: () => [const PetLoading(), const PetError('Failed to create pet')],
-    verify: (_) {
-      verify(() => createPet(params)).called(1);
-      verifyNever(() => repository.getPets());
-    },
-  );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.updatePet(pet),
+      expect: () => [const PetLoading(), const PetLoaded(pet)],
+      verify: (_) {
+        verify(() => repository.updatePet(pet)).called(1);
+        verify(() => repository.getPetById(pet.id)).called(1);
+      },
+    );
 
-  blocTest<PetCubit, PetState>(
-    'emits PetLoading and PetLoaded when updatePet succeeds',
-    build: () {
-      when(
-        () => repository.updatePet(pet),
-      ).thenAnswer((_) async => const Success(null));
-      when(
-        () => repository.getPetById(pet.id),
-      ).thenAnswer((_) async => const Success(pet));
+    blocTest<PetCubit, PetState>(
+      'emits PetLoading and PetError when repository fails',
+      build: () {
+        when(() => repository.updatePet(pet)).thenAnswer(
+          (_) async =>
+              const Error(LocalDatabaseFailure('Failed to update pet')),
+        );
 
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.updatePet(pet),
-    expect: () => [const PetLoading(), const PetLoaded(pet)],
-    verify: (_) {
-      verify(() => repository.updatePet(pet)).called(1);
-      verify(() => repository.getPetById(pet.id)).called(1);
-    },
-  );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.updatePet(pet),
+      expect: () => [
+        const PetLoading(),
+        const PetError('Failed to update pet'),
+      ],
+      verify: (_) {
+        verify(() => repository.updatePet(pet)).called(1);
+        verifyNever(() => repository.getPetById(pet.id));
+      },
+    );
+  });
+  group('deletePet', () {
+    blocTest<PetCubit, PetState>(
+      'emits  PetLoading and PetsLoaded when repository succeeds',
+      build: () {
+        when(
+          () => repository.deletePet(pet.id),
+        ).thenAnswer((_) async => const Success(null));
+        when(
+          () => repository.getPets(),
+        ).thenAnswer((_) async => const Success([]));
 
-  blocTest<PetCubit, PetState>(
-    'emits PetLoading and PetError when updatePet fails',
-    build: () {
-      when(() => repository.updatePet(pet)).thenAnswer(
-        (_) async => const Error(LocalDatabaseFailure('Failed to update pet')),
-      );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.deletePet(pet.id),
+      expect: () => [const PetLoading(), const PetsLoaded([])],
+      verify: (_) {
+        verify(() => repository.deletePet(pet.id)).called(1);
+        verify(() => repository.getPets()).called(1);
+      },
+    );
 
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.updatePet(pet),
-    expect: () => [const PetLoading(), const PetError('Failed to update pet')],
-    verify: (_) {
-      verify(() => repository.updatePet(pet)).called(1);
-      verifyNever(() => repository.getPetById(pet.id));
-    },
-  );
+    blocTest<PetCubit, PetState>(
+      'emits  PetLoading and PetError when repository fails',
+      build: () {
+        when(() => repository.deletePet(pet.id)).thenAnswer(
+          (_) async =>
+              const Error(LocalDatabaseFailure('Failed to delete pet')),
+        );
 
-  blocTest<PetCubit, PetState>(
-    'emits  PetLoading and PetsLoaded when deletePet succeeds',
-    build: () {
-      when(
-        () => repository.deletePet(pet.id),
-      ).thenAnswer((_) async => const Success(null));
-      when(
-        () => repository.getPets(),
-      ).thenAnswer((_) async => const Success([]));
-
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.deletePet(pet.id),
-    expect: () => [const PetLoading(), const PetsLoaded([])],
-    verify: (_) {
-      verify(() => repository.deletePet(pet.id)).called(1);
-      verify(() => repository.getPets()).called(1);
-    },
-  );
-
-  blocTest<PetCubit, PetState>(
-    'emits  PetLoading and PetError when deletePet fails',
-    build: () {
-      when(() => repository.deletePet(pet.id)).thenAnswer(
-        (_) async => const Error(LocalDatabaseFailure('Failed to delete pet')),
-      );
-
-      return PetCubit(repository, createPet);
-    },
-    act: (cubit) => cubit.deletePet(pet.id),
-    expect: () => [const PetLoading(), const PetError('Failed to delete pet')],
-    verify: (_) {
-      verify(() => repository.deletePet(pet.id)).called(1);
-      verifyNever(() => repository.getPets());
-    },
-  );
+        return PetCubit(repository, createPet);
+      },
+      act: (cubit) => cubit.deletePet(pet.id),
+      expect: () => [
+        const PetLoading(),
+        const PetError('Failed to delete pet'),
+      ],
+      verify: (_) {
+        verify(() => repository.deletePet(pet.id)).called(1);
+        verifyNever(() => repository.getPets());
+      },
+    );
+  });
 }
