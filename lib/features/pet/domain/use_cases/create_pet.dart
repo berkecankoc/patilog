@@ -13,7 +13,7 @@ final class CreatePetParams {
   final DateTime? birthDate;
   final double? weight;
   final String? microchipId;
-  final String? imageUrl;
+  final String? imagePath;
 
   const CreatePetParams({
     required this.name,
@@ -24,7 +24,7 @@ final class CreatePetParams {
     this.birthDate,
     this.weight,
     this.microchipId,
-    this.imageUrl,
+    this.imagePath,
   });
 }
 
@@ -45,7 +45,7 @@ class CreatePet {
       birthDate: params.birthDate,
       weight: params.weight,
       microchipId: params.microchipId,
-      imageUrl: params.imageUrl,
+      imagePath: params.imagePath,
     );
 
     return repository.createPet(pet);

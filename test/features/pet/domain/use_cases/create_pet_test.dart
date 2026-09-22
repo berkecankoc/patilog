@@ -25,7 +25,7 @@ void main() {
     birthDate: DateTime(2022, 7, 11),
     weight: 5.4,
     microchipId: '123456789',
-    imageUrl: 'fluffy.jpg',
+    imagePath: 'fluffy.jpg',
   );
 
   final expectedPet = Pet(
@@ -38,7 +38,7 @@ void main() {
     birthDate: DateTime(2022, 7, 11),
     weight: 5.4,
     microchipId: '123456789',
-    imageUrl: 'fluffy.jpg',
+    imagePath: 'fluffy.jpg',
   );
 
   setUp(() {

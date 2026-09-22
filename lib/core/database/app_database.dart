@@ -18,6 +18,7 @@ Future<Database> openAppDatabase() async {
     },
 
     onCreate: (db, version) async {
+      // Client-generated TEXT IDs support both offline creation and future multi-device sync.
       await db.execute('''
         CREATE TABLE ${DatabaseTables.pets} (
           id TEXT PRIMARY KEY,
@@ -29,7 +30,7 @@ Future<Database> openAppDatabase() async {
           birth_date TEXT,
           weight REAL,
           microchip_id TEXT,
-          image_url TEXT
+          image_path TEXT
         )
       ''');
     },

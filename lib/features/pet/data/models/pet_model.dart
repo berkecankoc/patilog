@@ -12,7 +12,7 @@ class PetModel extends Equatable {
   final DateTime? birthDate;
   final double? weight;
   final String? microchipId;
-  final String? imageUrl;
+  final String? imagePath;
 
   const PetModel({
     required this.id,
@@ -24,7 +24,7 @@ class PetModel extends Equatable {
     this.birthDate,
     this.weight,
     this.microchipId,
-    this.imageUrl,
+    this.imagePath,
   });
 
   factory PetModel.fromJson(Map<String, dynamic> json) => PetModel(
@@ -39,7 +39,7 @@ class PetModel extends Equatable {
     birthDate: _parseDate(json['birth_date']),
     weight: (json['weight'] as num?)?.toDouble(),
     microchipId: json['microchip_id'] as String?,
-    imageUrl: json['image_url'] as String?,
+    imagePath: json['image_path'] as String?,
   );
 
   factory PetModel.fromEntity(Pet pet) => PetModel(
@@ -52,7 +52,7 @@ class PetModel extends Equatable {
     birthDate: pet.birthDate,
     weight: pet.weight,
     microchipId: pet.microchipId,
-    imageUrl: pet.imageUrl,
+    imagePath: pet.imagePath,
   );
 
   Map<String, dynamic> toJson() => {
@@ -65,7 +65,7 @@ class PetModel extends Equatable {
     'birth_date': _formatDate(birthDate),
     'weight': weight,
     'microchip_id': microchipId,
-    'image_url': imageUrl,
+    'image_path': imagePath,
   };
 
   Pet toEntity() {
@@ -79,7 +79,7 @@ class PetModel extends Equatable {
       birthDate: birthDate,
       weight: weight,
       microchipId: microchipId,
-      imageUrl: imageUrl,
+      imagePath: imagePath,
     );
   }
 
@@ -110,6 +110,6 @@ class PetModel extends Equatable {
     birthDate,
     weight,
     microchipId,
-    imageUrl,
+    imagePath,
   ];
 }

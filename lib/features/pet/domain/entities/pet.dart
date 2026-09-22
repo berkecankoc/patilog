@@ -17,7 +17,7 @@ class Pet extends Equatable {
   final DateTime? birthDate;
   final double? weight;
   final String? microchipId;
-  final String? imageUrl;
+  final String? imagePath;
 
   const Pet({
     required this.id,
@@ -29,10 +29,10 @@ class Pet extends Equatable {
     this.birthDate,
     this.weight,
     this.microchipId,
-    this.imageUrl,
+    this.imagePath,
   });
 
-  Pet copyWith(
+  Pet copyWith({
     String? name,
     PetSpecies? species,
     PetSex? sex,
@@ -41,8 +41,8 @@ class Pet extends Equatable {
     DateTime? birthDate,
     double? weight,
     String? microchipId,
-    String? imageUrl,
-  ) {
+    String? imagePath,
+  }) {
     return Pet(
       id: id,
       name: name ?? this.name,
@@ -53,7 +53,7 @@ class Pet extends Equatable {
       birthDate: birthDate ?? this.birthDate,
       weight: weight ?? this.weight,
       microchipId: microchipId ?? this.microchipId,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imagePath: imagePath ?? this.imagePath,
     );
   }
 
@@ -68,6 +68,6 @@ class Pet extends Equatable {
     birthDate,
     weight,
     microchipId,
-    imageUrl,
+    imagePath,
   ];
 }

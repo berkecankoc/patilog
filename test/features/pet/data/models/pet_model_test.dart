@@ -13,7 +13,7 @@ void main() {
     birthDate: DateTime(2022, 7, 11),
     weight: 5.4,
     microchipId: '123456789',
-    imageUrl: 'fluffy.jpg',
+    imagePath: 'fluffy.jpg',
   );
 
   final entity = Pet(
@@ -26,7 +26,7 @@ void main() {
     birthDate: DateTime(2022, 7, 11),
     weight: 5.4,
     microchipId: '123456789',
-    imageUrl: 'fluffy.jpg',
+    imagePath: 'fluffy.jpg',
   );
 
   test('serializes PetModel to JSON', () {
@@ -42,7 +42,7 @@ void main() {
       'birth_date': '2022-07-11',
       'weight': 5.4,
       'microchip_id': '123456789',
-      'image_url': 'fluffy.jpg',
+      'image_path': 'fluffy.jpg',
     });
   });
 
@@ -57,7 +57,7 @@ void main() {
       'birth_date': '2022-07-11',
       'weight': 5.4,
       'microchip_id': '123456789',
-      'image_url': 'fluffy.jpg',
+      'image_path': 'fluffy.jpg',
     };
 
     final result = PetModel.fromJson(json);
@@ -88,14 +88,14 @@ void main() {
       'birth_date': null,
       'weight': null,
       'microchip_id': null,
-      'image_url': null,
+      'image_path': null,
     });
 
     expect(result.breed, isNull);
     expect(result.birthDate, isNull);
     expect(result.weight, isNull);
     expect(result.microchipId, isNull);
-    expect(result.imageUrl, isNull);
+    expect(result.imagePath, isNull);
   });
 
   test('converts numeric weight to double', () {
@@ -109,7 +109,7 @@ void main() {
       'birth_date': null,
       'weight': 5,
       'microchip_id': null,
-      'image_url': null,
+      'image_path': null,
     });
     expect(result.weight, 5.0);
   });
