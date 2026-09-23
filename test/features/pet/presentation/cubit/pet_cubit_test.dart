@@ -97,25 +97,18 @@ void main() {
   });
   group('createPet', () {
     blocTest<PetCubit, PetState>(
-      'emits PetLoading and PetsLoaded when repository succeeds',
+      'emits PetLoading and PetCreated when repository succeeds',
       build: () {
         when(
           () => createPet(params),
         ).thenAnswer((_) async => const Success(null));
-        when(
-          () => repository.getPets(),
-        ).thenAnswer((_) async => const Success([pet]));
 
         return PetCubit(repository, createPet);
       },
       act: (cubit) => cubit.createPet(params),
-      expect: () => [
-        const PetLoading(),
-        const PetsLoaded([pet]),
-      ],
+      expect: () => [const PetLoading(), const PetCreated()],
       verify: (_) {
         verify(() => createPet(params)).called(1);
-        verify(() => repository.getPets()).called(1);
       },
     );
 
@@ -136,28 +129,23 @@ void main() {
       ],
       verify: (_) {
         verify(() => createPet(params)).called(1);
-        verifyNever(() => repository.getPets());
       },
     );
   });
   group('updatePet', () {
     blocTest<PetCubit, PetState>(
-      'emits PetLoading and PetLoaded when repository succeeds',
+      'emits PetLoading and PetUpdated when repository succeeds',
       build: () {
         when(
           () => repository.updatePet(pet),
         ).thenAnswer((_) async => const Success(null));
-        when(
-          () => repository.getPetById(pet.id),
-        ).thenAnswer((_) async => const Success(pet));
 
         return PetCubit(repository, createPet);
       },
       act: (cubit) => cubit.updatePet(pet),
-      expect: () => [const PetLoading(), const PetLoaded(pet)],
+      expect: () => [const PetLoading(), const PetUpdated()],
       verify: (_) {
         verify(() => repository.updatePet(pet)).called(1);
-        verify(() => repository.getPetById(pet.id)).called(1);
       },
     );
 
@@ -178,7 +166,6 @@ void main() {
       ],
       verify: (_) {
         verify(() => repository.updatePet(pet)).called(1);
-        verifyNever(() => repository.getPetById(pet.id));
       },
     );
   });

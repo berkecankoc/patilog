@@ -37,6 +37,20 @@ final class PetsLoaded extends PetState {
   List<Object?> get props => [pets];
 }
 
+final class PetCreated extends PetState {
+  const PetCreated();
+
+  @override
+  List<Object?> get props => [];
+}
+
+final class PetUpdated extends PetState {
+  const PetUpdated();
+
+  @override
+  List<Object?> get props => [];
+}
+
 final class PetError extends PetState {
   final String message;
 

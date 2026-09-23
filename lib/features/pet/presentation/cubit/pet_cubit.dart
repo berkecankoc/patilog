@@ -44,7 +44,7 @@ final class PetCubit extends Cubit<PetState> {
 
     switch (result) {
       case Success<void>():
-        await loadPets();
+        emit(const PetCreated());
       case Error<void>():
         emit(PetError(result.failure.message));
     }
@@ -57,7 +57,7 @@ final class PetCubit extends Cubit<PetState> {
 
     switch (result) {
       case Success<void>():
-        await getPetById(pet.id);
+        emit(const PetUpdated());
       case Error<void>():
         emit(PetError(result.failure.message));
     }
