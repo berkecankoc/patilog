@@ -1,6 +1,6 @@
 import 'package:petlytics/core/error/exception.dart';
 import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/error/result.dart';
+import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';

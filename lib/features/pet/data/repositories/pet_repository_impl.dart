@@ -1,6 +1,6 @@
 import 'package:petlytics/core/error/exception.dart';
 import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/error/result.dart';
+import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/features/pet/data/data_sources/pet_local_data_source.dart';
 import 'package:petlytics/features/pet/data/models/pet_model.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';

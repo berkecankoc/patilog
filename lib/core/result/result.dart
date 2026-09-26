@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'failure.dart';
+import 'package:petlytics/core/error/failure.dart';
 
 sealed class Result<T> extends Equatable {
   const Result();
