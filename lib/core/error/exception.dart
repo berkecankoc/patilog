@@ -9,3 +9,7 @@ final class LocalDataSourceException extends AppException {
 final class LocalDataNotFoundException extends AppException {
   const LocalDataNotFoundException();
 }
+
+final class ImageStorageException extends AppException {
+  const ImageStorageException();
+}

@@ -15,3 +15,7 @@ final class LocalDatabaseFailure extends Failure {
 final class NotFoundFailure extends Failure {
   const NotFoundFailure(super.message);
 }
+
+final class ImageStorageFailure extends Failure {
+  const ImageStorageFailure(super.message);
+}
