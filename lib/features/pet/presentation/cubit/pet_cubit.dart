@@ -3,13 +3,16 @@ import 'package:petlytics/core/error/result.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
 
 final class PetCubit extends Cubit<PetState> {
   final PetRepository repository;
   final CreatePet _createPet;
+  final UpdatePet _updatePet;
 
-  PetCubit(this.repository, this._createPet) : super(const PetInitial());
+  PetCubit(this.repository, this._createPet, this._updatePet)
+    : super(const PetInitial());
 
   Future<void> loadPets() async {
     emit(const PetLoading());
@@ -50,10 +53,10 @@ final class PetCubit extends Cubit<PetState> {
     }
   }
 
-  Future<void> updatePet(Pet pet) async {
+  Future<void> updatePet(Pet pet, UpdatePetParams params) async {
     emit(const PetLoading());
 
-    final result = await repository.updatePet(pet);
+    final result = await _updatePet(pet, params);
 
     switch (result) {
       case Success<void>():

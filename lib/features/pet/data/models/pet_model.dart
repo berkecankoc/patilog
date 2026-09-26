@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 
-class PetModel extends Equatable {
+final class PetModel extends Equatable {
   final String id;
   final String name;
   final PetSpecies species;

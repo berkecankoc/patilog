@@ -6,7 +6,7 @@ enum PetSex { male, female, unknown }
 
 enum ReproductiveStatus { intact, sterilized, unknown }
 
-class Pet extends Equatable {
+final class Pet extends Equatable {
   final String id;
   final String name;
   final PetSpecies species;

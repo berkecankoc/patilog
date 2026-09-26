@@ -2,10 +2,13 @@ import 'package:get_it/get_it.dart';
 import 'package:petlytics/core/database/app_database.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/services/uuid_generator.dart';
+import 'package:petlytics/core/storage/image_storage.dart';
+import 'package:petlytics/core/storage/local_image_storage.dart';
 import 'package:petlytics/features/pet/data/data_sources/pet_local_data_source.dart';
 import 'package:petlytics/features/pet/data/repositories/pet_repository_impl.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -18,6 +21,10 @@ Future<void> setupDependencies() async {
 
   getIt.registerLazySingleton<IdGenerator>(() => UuidGenerator());
 
+  getIt.registerLazySingleton<ImageStorage>(
+    () => LocalImageStorage(getIt<IdGenerator>()),
+  );
+
   getIt.registerLazySingleton<PetLocalDataSource>(
     () => PetLocalDataSourceImpl(getIt<Database>()),
   );
@@ -27,10 +34,22 @@ Future<void> setupDependencies() async {
   );
 
   getIt.registerLazySingleton<CreatePet>(
-    () => CreatePet(getIt<PetRepository>(), getIt<IdGenerator>()),
+    () => CreatePet(
+      getIt<PetRepository>(),
+      getIt<IdGenerator>(),
+      getIt<ImageStorage>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<UpdatePet>(
+    () => UpdatePet(getIt<PetRepository>(), getIt<ImageStorage>()),
   );
 
   getIt.registerFactory<PetCubit>(
-    () => PetCubit(getIt<PetRepository>(), getIt<CreatePet>()),
+    () => PetCubit(
+      getIt<PetRepository>(),
+      getIt<CreatePet>(),
+      getIt<UpdatePet>(),
+    ),
   );
 }

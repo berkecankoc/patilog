@@ -1,5 +1,8 @@
+import 'package:petlytics/core/error/exception.dart';
+import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/error/result.dart';
 import 'package:petlytics/core/services/id_generator.dart';
+import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 
@@ -13,7 +16,7 @@ final class CreatePetParams {
   final DateTime? birthDate;
   final double? weight;
   final String? microchipId;
-  final String? imagePath;
+  final String? sourceImagePath;
 
   const CreatePetParams({
     required this.name,
@@ -24,17 +27,28 @@ final class CreatePetParams {
     this.birthDate,
     this.weight,
     this.microchipId,
-    this.imagePath,
+    this.sourceImagePath,
   });
 }
 
 class CreatePet {
   final PetRepository repository;
   final IdGenerator idGenerator;
+  final ImageStorage imageStorage;
 
-  const CreatePet(this.repository, this.idGenerator);
+  const CreatePet(this.repository, this.idGenerator, this.imageStorage);
 
-  Future<Result<void>> call(CreatePetParams params) {
+  Future<Result<void>> call(CreatePetParams params) async {
+    String? savedImagePath;
+
+    if (params.sourceImagePath != null) {
+      try {
+        savedImagePath = await imageStorage.save(params.sourceImagePath!);
+      } on ImageStorageException {
+        return Error(ImageStorageFailure('Failed to save new image'));
+      }
+    }
+
     final pet = Pet(
       id: idGenerator.generate(),
       name: params.name,
@@ -45,9 +59,24 @@ class CreatePet {
       birthDate: params.birthDate,
       weight: params.weight,
       microchipId: params.microchipId,
-      imagePath: params.imagePath,
+      imagePath: savedImagePath,
     );
 
-    return repository.createPet(pet);
+    final result = await repository.createPet(pet);
+
+    if (result case Error<void>()) {
+      // If pet creation fails after saving an image,
+      // delete the newly saved image.
+      if (savedImagePath != null) {
+        try {
+          await imageStorage.delete(savedImagePath);
+        } catch (_) {
+          // Best-effort cleanup: preserve the original repository failure
+          // if deleting the newly saved image also fails.
+        }
+      }
+    }
+
+    return result;
   }
 }
