@@ -11,25 +11,28 @@ final class LocalImageStorage implements ImageStorage {
   const LocalImageStorage(this._idGenerator);
 
   @override
+  Future<String> resolvePath(String storedPath) async {
+    try {
+      final documents = await getApplicationDocumentsDirectory();
+      return p.join(documents.path, 'pet_images', p.basename(storedPath));
+    } catch (_) {
+      throw ImageStorageException();
+    }
+  }
+
+  @override
   Future<String> save(String sourcePath) async {
     try {
-      final documentDirectory = await getApplicationDocumentsDirectory();
-
-      final imageDirectory = Directory(
-        p.join(documentDirectory.path, 'pet_images'),
-      );
-
-      await imageDirectory.create(recursive: true);
-
       final extension = p.extension(sourcePath);
       final fileName =
           '${_idGenerator.generate()}${extension.isEmpty ? '.jpg' : extension}';
 
-      final destinationPath = p.join(imageDirectory.path, fileName);
+      final destinationPath = await resolvePath(fileName);
+      await File(destinationPath).parent.create(recursive: true);
 
-      final savedFile = await File(sourcePath).copy(destinationPath);
+      await File(sourcePath).copy(destinationPath);
 
-      return savedFile.path;
+      return fileName;
     } catch (_) {
       throw ImageStorageException();
     }
@@ -38,7 +41,7 @@ final class LocalImageStorage implements ImageStorage {
   @override
   Future<void> delete(String path) async {
     try {
-      final file = File(path);
+      final file = File(await resolvePath(path));
 
       if (await file.exists()) {
         await file.delete();

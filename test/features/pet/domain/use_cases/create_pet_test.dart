@@ -22,7 +22,7 @@ void main() {
   late CreatePet createPet;
 
   const sourceImagePath = '/picker/fluffy.jpg';
-  const savedImagePath = '/documents/pet_images/fluffy-persisted.jpg';
+  const savedImagePath = 'fluffy-persisted.jpg';
 
   final params = CreatePetParams(
     name: 'Fluffy',

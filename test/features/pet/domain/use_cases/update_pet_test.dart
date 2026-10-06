@@ -17,9 +17,9 @@ void main() {
   late MockImageStorage imageStorage;
   late UpdatePet updatePet;
 
-  const oldImagePath = '/documents/pet_images/old.jpg';
+  const oldImagePath = 'old.jpg';
   const sourceNewImagePath = '/picker/new.jpg';
-  const savedNewImagePath = '/documents/pet_images/new.jpg';
+  const savedNewImagePath = 'new.jpg';
 
   const pet = Pet(
     id: 'pet-1',
