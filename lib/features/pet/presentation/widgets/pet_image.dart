@@ -6,6 +6,8 @@ import 'package:petlytics/core/storage/image_storage.dart';
 
 class PetImage extends StatefulWidget {
   final String? imagePath;
+
+  /// Resolves a stored reference when true; previews a selected file when false.
   final bool isStored;
   final double size;
   final Widget Function(Widget? photo) builder;

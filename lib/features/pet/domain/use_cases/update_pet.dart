@@ -15,6 +15,9 @@ final class UpdatePetParams {
   final DateTime? birthDate;
   final double? weight;
   final String? microchipId;
+
+  /// Null removes the photo, the current [Pet.imagePath] keeps it,
+  /// and a new source file path replaces it.
   final String? sourceImagePath;
 
   const UpdatePetParams({

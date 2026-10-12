@@ -170,6 +170,7 @@ class _PetListItem extends StatelessWidget {
         onTap: () async {
           await context.push(AppRoutes.petDetail(pet.id));
           if (context.mounted) {
+            // The detail route has its own Cubit, so reload edits into this list.
             await context.read<PetCubit>().loadPets();
           }
         },

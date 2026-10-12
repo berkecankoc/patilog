@@ -14,6 +14,7 @@ final class LocalImageStorage implements ImageStorage {
   Future<String> resolvePath(String storedPath) async {
     try {
       final documents = await getApplicationDocumentsDirectory();
+      // App container paths can change; reuse only the filename from old paths.
       return p.join(documents.path, 'pet_images', p.basename(storedPath));
     } catch (_) {
       throw ImageStorageException();

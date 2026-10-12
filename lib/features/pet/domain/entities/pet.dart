@@ -17,6 +17,8 @@ final class Pet extends Equatable {
   final DateTime? birthDate;
   final double? weight;
   final String? microchipId;
+
+  /// Stored photo filename; older records may contain an absolute path.
   final String? imagePath;
 
   const Pet({
