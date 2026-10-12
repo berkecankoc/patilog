@@ -5,7 +5,15 @@ import 'package:flutter/material.dart';
 /// The actual color values depend on the active brightness.
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
+  static const brandPrimary = Color(0xFFFF4500);
+
   final Color primary;
+  final Color onPrimary;
+  final Color actionForeground;
+  final Color surface;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color border;
   final Color background;
   final Color success;
   final Color onSuccess;
@@ -16,6 +24,12 @@ class AppColors extends ThemeExtension<AppColors> {
 
   const AppColors({
     required this.primary,
+    required this.onPrimary,
+    required this.actionForeground,
+    required this.surface,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.border,
     required this.background,
     required this.success,
     required this.onSuccess,
@@ -26,30 +40,48 @@ class AppColors extends ThemeExtension<AppColors> {
   });
 
   static const light = AppColors(
-    primary: Color(0xFFFF4500), // H16  S100 B100
-    background: Color(0xFFFCF7F5), // H16  S3   B99
-    success: Color(0xFF00FF5E), // H142 S100 B100
-    onSuccess: Color(0xFF082610), // H142 S80  B15
-    warning: Color(0xFFFFBF00), // H45  S100 B100
-    onWarning: Color(0xFF261F08), // H45  S80  B15
-    danger: Color(0xFFFF1100), // H4   S100 B100
+    primary: brandPrimary,
+    onPrimary: Color(0xFF1D0502),
+    actionForeground: Color(0xFFC03304),
+    background: Color(0xFFFEFBFA),
+    surface: Color(0xFFFFFFFF),
+    textPrimary: Color(0xFF262322),
+    textSecondary: Color(0xFF5B5452),
+    border: Color(0xFF786F6D),
+    success: Color(0xFF10642D),
+    onSuccess: Color(0xFFFFFFFF),
+    warning: Color(0xFFF59E0B),
+    onWarning: Color(0xFF462A02),
+    danger: Color(0xFFB43332),
     onDanger: Color(0xFFFFFFFF),
   );
 
   static const dark = AppColors(
-    primary: Color(0xFFFF4500),
-    background: Color(0xFF171414), // H16  S15  B9
-    success: Color(0xFF00FF5E),
-    onSuccess: Color(0xFF082610),
-    warning: Color(0xFFFFBF00),
-    onWarning: Color(0xFF261F08),
-    danger: Color(0xFFFF1100),
-    onDanger: Color(0xFFFFFFFF),
+    primary: brandPrimary,
+    onPrimary: Color(0xFF1D0502),
+    actionForeground: Color(0xFFFFAC96),
+    background: Color(0xFF141110),
+    surface: Color(0xFF262322),
+    textPrimary: Color(0xFFFAF8F7),
+    textSecondary: Color(0xFFB7B1B0),
+    border: Color(0xFF978F8E),
+    success: Color(0xFF96E4A6),
+    onSuccess: Color(0xFF073817),
+    warning: Color(0xFFFFCB8F),
+    onWarning: Color(0xFF462A02),
+    danger: Color(0xFFFFA59C),
+    onDanger: Color(0xFF4A1312),
   );
 
   @override
   AppColors copyWith({
     Color? primary,
+    Color? onPrimary,
+    Color? actionForeground,
+    Color? surface,
+    Color? textPrimary,
+    Color? textSecondary,
+    Color? border,
     Color? background,
     Color? success,
     Color? onSuccess,
@@ -60,6 +92,12 @@ class AppColors extends ThemeExtension<AppColors> {
   }) {
     return AppColors(
       primary: primary ?? this.primary,
+      onPrimary: onPrimary ?? this.onPrimary,
+      actionForeground: actionForeground ?? this.actionForeground,
+      surface: surface ?? this.surface,
+      textPrimary: textPrimary ?? this.textPrimary,
+      textSecondary: textSecondary ?? this.textSecondary,
+      border: border ?? this.border,
       background: background ?? this.background,
       success: success ?? this.success,
       onSuccess: onSuccess ?? this.onSuccess,
@@ -75,6 +113,16 @@ class AppColors extends ThemeExtension<AppColors> {
     if (other is! AppColors) return this;
     return AppColors(
       primary: Color.lerp(primary, other.primary, t)!,
+      onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
+      actionForeground: Color.lerp(
+        actionForeground,
+        other.actionForeground,
+        t,
+      )!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
+      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
+      border: Color.lerp(border, other.border, t)!,
       background: Color.lerp(background, other.background, t)!,
       success: Color.lerp(success, other.success, t)!,
       onSuccess: Color.lerp(onSuccess, other.onSuccess, t)!,

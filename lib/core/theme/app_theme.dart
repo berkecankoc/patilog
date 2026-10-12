@@ -15,15 +15,39 @@ class AppTheme {
     required AppColors colors,
   }) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: colors.primary,
+      seedColor: AppColors.brandPrimary,
       brightness: brightness,
       primary: colors.primary,
+      onPrimary: colors.onPrimary,
+      onSurface: colors.textPrimary,
+      onSurfaceVariant: colors.textSecondary,
+      outline: colors.border,
       error: colors.danger,
       onError: colors.onDanger,
-      surface: colors.background,
+      surface: colors.surface,
+      surfaceContainerLowest: colors.background,
+      surfaceContainerLow: colors.surface,
+      surfaceContainer: brightness == Brightness.light
+          ? const Color(0xFFFAF8F7)
+          : const Color(0xFF2B2726),
+      surfaceContainerHigh: brightness == Brightness.light
+          ? const Color(0xFFF3EEEB)
+          : const Color(0xFF302B29),
+      surfaceContainerHighest: brightness == Brightness.light
+          ? const Color(0xFFECE5E1)
+          : const Color(0xFF3F3A39),
+      outlineVariant: brightness == Brightness.light
+          ? const Color(0xFFD8D4D3)
+          : const Color(0xFF4B4543),
+      primaryContainer: brightness == Brightness.light
+          ? const Color(0xFFFFD2C6)
+          : const Color(0xFF4E1304),
+      onPrimaryContainer: brightness == Brightness.light
+          ? const Color(0xFF852305)
+          : const Color(0xFFFFD2C6),
     );
 
-    const defaultRadius = BorderRadius.all(Radius.circular(12));
+    const defaultRadius = BorderRadius.all(Radius.circular(16));
 
     return ThemeData(
       useMaterial3: true,
@@ -33,20 +57,32 @@ class AppTheme {
       extensions: [colors],
 
       appBarTheme: const AppBarTheme(elevation: 0, centerTitle: true),
+      buttonTheme: const ButtonThemeData(alignedDropdown: true),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: colors.primary,
-          foregroundColor: Colors.white,
+          foregroundColor: colors.onPrimary,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: defaultRadius),
           elevation: 0,
         ),
       ),
 
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: colors.actionForeground),
+      ),
+
+      textSelectionTheme: TextSelectionThemeData(cursorColor: colors.primary),
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: colors.primary,
+          foregroundColor: colors.actionForeground,
           side: BorderSide(color: colors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: const RoundedRectangleBorder(borderRadius: defaultRadius),
@@ -55,14 +91,26 @@ class AppTheme {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+        fillColor: brightness == Brightness.light
+            ? colorScheme.surfaceContainer
+            : colorScheme.surfaceContainerHigh,
+        floatingLabelStyle: WidgetStateTextStyle.resolveWith(
+          (states) => TextStyle(
+            color: states.contains(WidgetState.error)
+                ? colors.danger
+                : states.contains(WidgetState.focused)
+                ? colors.primary
+                : colors.textSecondary,
+          ),
         ),
-        border: const OutlineInputBorder(
+        contentPadding: const EdgeInsets.all(16),
+        border: OutlineInputBorder(
           borderRadius: defaultRadius,
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: colors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: defaultRadius,
+          borderSide: BorderSide(color: colors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: defaultRadius,
@@ -76,8 +124,9 @@ class AppTheme {
 
       cardTheme: CardThemeData(
         elevation: 0,
+        color: colors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: defaultRadius,
           side: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
