@@ -57,6 +57,7 @@ class AppTheme {
       extensions: [colors],
 
       appBarTheme: const AppBarTheme(elevation: 0, centerTitle: true),
+      buttonTheme: const ButtonThemeData(alignedDropdown: true),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/di/injection.dart';
+import 'package:petlytics/core/router/app_router.dart';
+import 'package:petlytics/core/storage/image_storage.dart';
+import 'package:petlytics/core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +18,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return RepositoryProvider<ImageStorage>.value(
+      value: getIt<ImageStorage>(),
+      child: MaterialApp.router(
+        title: 'Petlytics',
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.system,
+        routerConfig: appRouter,
+      ),
+    );
   }
 }
