@@ -10,6 +10,9 @@ import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:petlytics/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
+import 'package:petlytics/features/weight_history/data/repositories/weight_history_repository_impl.dart';
+import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
 import 'package:sqflite/sqflite.dart';
 
 final getIt = GetIt.instance;
@@ -31,6 +34,14 @@ Future<void> setupDependencies() async {
 
   getIt.registerLazySingleton<PetRepository>(
     () => PetRepositoryImpl(getIt<PetLocalDataSource>()),
+  );
+
+  getIt.registerLazySingleton<WeightHistoryLocalDataSource>(
+    () => WeightHistoryLocalDataSourceImpl(getIt<Database>()),
+  );
+
+  getIt.registerLazySingleton<WeightHistoryRepository>(
+    () => WeightHistoryRepositoryImpl(getIt<WeightHistoryLocalDataSource>()),
   );
 
   getIt.registerLazySingleton<CreatePet>(
