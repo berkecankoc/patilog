@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -222,5 +224,91 @@ void main() {
         verifyNever(() => repository.getPets());
       },
     );
+  });
+
+  group('closing during a pending operation', () {
+    for (final succeeds in [true, false]) {
+      final outcome = succeeds ? 'success' : 'failure';
+      const failure = LocalDatabaseFailure('Operation failed');
+
+      test('loadPets ignores $outcome after close', () async {
+        final pending = Completer<Result<List<Pet>>>();
+        when(() => repository.getPets()).thenAnswer((_) => pending.future);
+        final cubit = PetCubit(repository, createPet, updatePet);
+
+        final operation = cubit.loadPets();
+        await cubit.close();
+        pending.complete(
+          succeeds ? const Success([pet]) : const Error(failure),
+        );
+
+        await expectLater(operation, completes);
+        expect(cubit.state, const PetLoading());
+      });
+
+      test('getPetById ignores $outcome after close', () async {
+        final pending = Completer<Result<Pet>>();
+        when(
+          () => repository.getPetById(pet.id),
+        ).thenAnswer((_) => pending.future);
+        final cubit = PetCubit(repository, createPet, updatePet);
+
+        final operation = cubit.getPetById(pet.id);
+        await cubit.close();
+        pending.complete(succeeds ? const Success(pet) : const Error(failure));
+
+        await expectLater(operation, completes);
+        expect(cubit.state, const PetLoading());
+      });
+
+      test('createPet ignores $outcome after close', () async {
+        final pending = Completer<Result<void>>();
+        when(() => createPet(createParams)).thenAnswer((_) => pending.future);
+        final cubit = PetCubit(repository, createPet, updatePet);
+
+        final operation = cubit.createPet(createParams);
+        await cubit.close();
+        pending.complete(succeeds ? const Success(null) : const Error(failure));
+
+        await expectLater(operation, completes);
+        expect(cubit.state, const PetLoading());
+      });
+
+      test('updatePet ignores $outcome after close', () async {
+        final pending = Completer<Result<void>>();
+        when(
+          () => updatePet(pet, updateParams),
+        ).thenAnswer((_) => pending.future);
+        final cubit = PetCubit(repository, createPet, updatePet);
+
+        final operation = cubit.updatePet(pet, updateParams);
+        await cubit.close();
+        pending.complete(succeeds ? const Success(null) : const Error(failure));
+
+        await expectLater(operation, completes);
+        expect(cubit.state, const PetLoading());
+      });
+
+      test(
+        'deletePet ignores $outcome without reloading after close',
+        () async {
+          final pending = Completer<Result<void>>();
+          when(
+            () => repository.deletePet(pet.id),
+          ).thenAnswer((_) => pending.future);
+          final cubit = PetCubit(repository, createPet, updatePet);
+
+          final operation = cubit.deletePet(pet.id);
+          await cubit.close();
+          pending.complete(
+            succeeds ? const Success(null) : const Error(failure),
+          );
+
+          await expectLater(operation, completes);
+          expect(cubit.state, const PetLoading());
+          verifyNever(() => repository.getPets());
+        },
+      );
+    }
   });
 }

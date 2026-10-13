@@ -63,7 +63,6 @@ final class PetModel extends Equatable {
     'reproductive_status': reproductiveStatus.name,
     'breed': breed,
     'birth_date': _formatDate(birthDate),
-    'weight': weight,
     'microchip_id': microchipId,
     'image_path': imagePath,
   };

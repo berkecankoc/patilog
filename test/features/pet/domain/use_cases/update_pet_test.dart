@@ -4,18 +4,23 @@ import 'package:petlytics/core/error/exception.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
+import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
+import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 
 class MockPetRepository extends Mock implements PetRepository {}
 
 class MockImageStorage extends Mock implements ImageStorage {}
 
+class MockIdGenerator extends Mock implements IdGenerator {}
+
 void main() {
   late MockPetRepository repository;
   late MockImageStorage imageStorage;
   late UpdatePet updatePet;
+  late MockIdGenerator idGenerator;
 
   const oldImagePath = 'old.jpg';
   const sourceNewImagePath = '/picker/new.jpg';
@@ -34,7 +39,21 @@ void main() {
     repository = MockPetRepository();
     imageStorage = MockImageStorage();
 
-    updatePet = UpdatePet(repository, imageStorage);
+    idGenerator = MockIdGenerator();
+    when(idGenerator.generate).thenReturn('weight-id');
+    updatePet = UpdatePet(repository, imageStorage, idGenerator);
+  });
+
+  setUpAll(() {
+    registerFallbackValue(pet);
+    registerFallbackValue(
+      WeightEntry(
+        id: 'weight-id',
+        petId: pet.id,
+        weight: 1,
+        measuredAt: DateTime(2026),
+      ),
+    );
   });
 
   test('keeps the existing image when image path is unchanged', () async {
@@ -58,14 +77,29 @@ void main() {
     );
 
     when(
-      () => repository.updatePet(expectedPet),
+      () => repository.updatePet(
+        expectedPet,
+        weightEntry: any(named: 'weightEntry'),
+      ),
     ).thenAnswer((_) async => const Success(null));
 
     final result = await updatePet(pet, params);
 
     expect(result, const Success<void>(null));
 
-    verify(() => repository.updatePet(expectedPet)).called(1);
+    final measurement =
+        verify(
+              () => repository.updatePet(
+                expectedPet,
+                weightEntry: captureAny(named: 'weightEntry'),
+              ),
+            ).captured.single
+            as WeightEntry;
+    expect(measurement.id, 'weight-id');
+    expect(measurement.petId, pet.id);
+    expect(measurement.weight, 5.8);
+    final now = DateTime.now();
+    expect(measurement.measuredAt, DateTime(now.year, now.month, now.day));
     verifyZeroInteractions(imageStorage);
   });
 
@@ -210,4 +244,27 @@ void main() {
     verify(() => imageStorage.save(sourceNewImagePath)).called(1);
     verifyZeroInteractions(repository);
   });
+
+  for (final weight in <double?>[5.8, null]) {
+    test(
+      'weight $weight does not add a measurement when unchanged or cleared',
+      () async {
+        final current = pet.copyWith(weight: 5.8);
+        final params = UpdatePetParams(
+          name: pet.name,
+          species: pet.species,
+          sex: pet.sex,
+          reproductiveStatus: pet.reproductiveStatus,
+          weight: weight,
+          sourceImagePath: pet.imagePath,
+        );
+        when(
+          () => repository.updatePet(any(), weightEntry: null),
+        ).thenAnswer((_) async => const Success(null));
+        expect(await updatePet(current, params), const Success<void>(null));
+        verify(() => repository.updatePet(any(), weightEntry: null)).called(1);
+        verifyNever(idGenerator.generate);
+      },
+    );
+  }
 }

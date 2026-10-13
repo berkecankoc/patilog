@@ -5,15 +5,22 @@ import 'package:petlytics/features/pet/data/data_sources/pet_local_data_source.d
 import 'package:petlytics/features/pet/data/models/pet_model.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
+import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:petlytics/features/weight_history/data/models/weight_entry_model.dart';
 
 final class PetRepositoryImpl implements PetRepository {
   final PetLocalDataSource localDataSource;
   const PetRepositoryImpl(this.localDataSource);
 
   @override
-  Future<Result<void>> createPet(Pet pet) async {
+  Future<Result<void>> createPet(Pet pet, {WeightEntry? weightEntry}) async {
     try {
-      await localDataSource.createPet(PetModel.fromEntity(pet));
+      await localDataSource.createPet(
+        PetModel.fromEntity(pet),
+        weightEntry: weightEntry == null
+            ? null
+            : WeightEntryModel.fromEntity(weightEntry),
+      );
       return const Success(null);
     } on LocalDataSourceException {
       return const Error(LocalDatabaseFailure('Failed to create pet'));
@@ -56,9 +63,14 @@ final class PetRepositoryImpl implements PetRepository {
   }
 
   @override
-  Future<Result<void>> updatePet(Pet pet) async {
+  Future<Result<void>> updatePet(Pet pet, {WeightEntry? weightEntry}) async {
     try {
-      await localDataSource.updatePet(PetModel.fromEntity(pet));
+      await localDataSource.updatePet(
+        PetModel.fromEntity(pet),
+        weightEntry: weightEntry == null
+            ? null
+            : WeightEntryModel.fromEntity(weightEntry),
+      );
       return const Success(null);
     } on LocalDataSourceException {
       return const Error(LocalDatabaseFailure('Failed to update pet'));

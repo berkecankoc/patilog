@@ -28,9 +28,16 @@ Future<Database> openAppDatabase() async {
           reproductive_status TEXT NOT NULL,
           breed TEXT,
           birth_date TEXT,
-          weight REAL,
           microchip_id TEXT,
           image_path TEXT
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE ${DatabaseTables.weightEntries} (
+          id TEXT PRIMARY KEY,
+          pet_id TEXT NOT NULL REFERENCES ${DatabaseTables.pets}(id) ON DELETE CASCADE,
+          weight REAL NOT NULL CHECK (weight > 0),
+          measured_at TEXT NOT NULL
         )
       ''');
     },

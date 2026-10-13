@@ -7,6 +7,8 @@ import 'package:petlytics/features/pet/data/data_sources/pet_local_data_source.d
 import 'package:petlytics/features/pet/data/models/pet_model.dart';
 import 'package:petlytics/features/pet/data/repositories/pet_repository_impl.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
+import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:petlytics/features/weight_history/data/models/weight_entry_model.dart';
 
 class MockPetLocalDataSource extends Mock implements PetLocalDataSource {}
 
@@ -33,6 +35,44 @@ void main() {
     localDataSource = MockPetLocalDataSource();
     repository = PetRepositoryImpl(localDataSource);
   });
+
+  for (final creating in [true, false]) {
+    test(
+      '${creating ? 'create' : 'update'} passes the measurement model to the atomic save',
+      () async {
+        final entry = WeightEntry(
+          id: 'weight-1',
+          petId: pet.id,
+          weight: 5.4,
+          measuredAt: DateTime(2026),
+        );
+        final model = WeightEntryModel.fromEntity(entry);
+        if (creating) {
+          when(
+            () => localDataSource.createPet(petModel, weightEntry: model),
+          ).thenAnswer((_) async {});
+          expect(
+            await repository.createPet(pet, weightEntry: entry),
+            const Success<void>(null),
+          );
+          verify(
+            () => localDataSource.createPet(petModel, weightEntry: model),
+          ).called(1);
+        } else {
+          when(
+            () => localDataSource.updatePet(petModel, weightEntry: model),
+          ).thenAnswer((_) async {});
+          expect(
+            await repository.updatePet(pet, weightEntry: entry),
+            const Success<void>(null),
+          );
+          verify(
+            () => localDataSource.updatePet(petModel, weightEntry: model),
+          ).called(1);
+        }
+      },
+    );
+  }
 
   group('createPet', () {
     test('returns Success<void> when data source succeeds', () async {

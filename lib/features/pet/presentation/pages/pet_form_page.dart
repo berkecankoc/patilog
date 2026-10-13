@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart'
     show CreatePetParams;
@@ -13,14 +14,6 @@ import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
 import 'package:petlytics/features/pet/presentation/extensions/pet_display_extensions.dart';
 import 'package:petlytics/features/pet/presentation/widgets/pet_image.dart';
-
-String _formatDate(DateTime date) {
-  final year = date.year.toString().padLeft(4, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  final day = date.day.toString().padLeft(2, '0');
-
-  return '$month/$day/$year';
-}
 
 class _PetImageField extends StatelessWidget {
   final String? imagePath;
@@ -124,7 +117,6 @@ class _PetFormPageState extends State<PetFormPage> {
 
   final _nameController = TextEditingController();
   final _breedController = TextEditingController();
-  final _birthDateController = TextEditingController();
   final _weightController = TextEditingController();
   final _microchipIdController = TextEditingController();
 
@@ -153,7 +145,6 @@ class _PetFormPageState extends State<PetFormPage> {
       _breedController.text = pet.breed ?? '';
       if (pet.birthDate != null) {
         _birthDate = pet.birthDate;
-        _birthDateController.text = _formatDate(pet.birthDate!);
       }
       if (pet.weight != null) {
         _weightController.text = pet.weight.toString();
@@ -167,7 +158,6 @@ class _PetFormPageState extends State<PetFormPage> {
   void dispose() {
     _nameController.dispose();
     _breedController.dispose();
-    _birthDateController.dispose();
     _weightController.dispose();
     _microchipIdController.dispose();
     super.dispose();
@@ -227,22 +217,6 @@ class _PetFormPageState extends State<PetFormPage> {
       );
       context.read<PetCubit>().updatePet(widget.pet!, updateParams);
     }
-  }
-
-  Future<void> _pickBirthDate() async {
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: _birthDate ?? DateTime.now(),
-      firstDate: DateTime(1980),
-      lastDate: DateTime.now(),
-    );
-
-    if (pickedDate == null || !mounted) return;
-
-    setState(() {
-      _birthDate = pickedDate;
-      _birthDateController.text = _formatDate(pickedDate);
-    });
   }
 
   Future<void> _pickImage() async {
@@ -425,26 +399,14 @@ class _PetFormPageState extends State<PetFormPage> {
 
                         Column(
                           children: [
-                            TextFormField(
-                              controller: _birthDateController,
-                              readOnly: true,
-                              onTap: _pickBirthDate,
-                              decoration: InputDecoration(
-                                labelText: 'Birth date',
-                                hintText: 'mm/dd/yyyy',
-                                suffixIcon: _birthDate == null
-                                    ? null
-                                    : IconButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _birthDate = null;
-                                            _birthDateController.clear();
-                                          });
-                                        },
-                                        tooltip: 'Clear birth date',
-                                        icon: const Icon(Icons.clear),
-                                      ),
-                              ),
+                            AppDateField(
+                              labelText: 'Birth date',
+                              value: _birthDate,
+                              firstDate: DateTime(1980),
+                              lastDate: DateTime.now(),
+                              clearable: true,
+                              onChanged: (date) =>
+                                  setState(() => _birthDate = date),
                             ),
 
                             VerticalGap.md,

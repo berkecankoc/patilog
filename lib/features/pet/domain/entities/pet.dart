@@ -15,6 +15,8 @@ final class Pet extends Equatable {
 
   final String? breed;
   final DateTime? birthDate;
+
+  /// Current weight derived from the newest historical measurement on reads.
   final double? weight;
   final String? microchipId;
 
