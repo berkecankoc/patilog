@@ -18,6 +18,7 @@ final class PetCubit extends Cubit<PetState> {
     emit(const PetLoading());
 
     final result = await repository.getPets();
+    if (isClosed) return;
 
     switch (result) {
       case Success<List<Pet>>():
@@ -31,6 +32,7 @@ final class PetCubit extends Cubit<PetState> {
     emit(const PetLoading());
 
     final result = await repository.getPetById(id);
+    if (isClosed) return;
 
     switch (result) {
       case Success<Pet>():
@@ -44,6 +46,7 @@ final class PetCubit extends Cubit<PetState> {
     emit(const PetLoading());
 
     final result = await _createPet(params);
+    if (isClosed) return;
 
     switch (result) {
       case Success<void>():
@@ -57,6 +60,7 @@ final class PetCubit extends Cubit<PetState> {
     emit(const PetLoading());
 
     final result = await _updatePet(pet, params);
+    if (isClosed) return;
 
     switch (result) {
       case Success<void>():
@@ -70,6 +74,7 @@ final class PetCubit extends Cubit<PetState> {
     emit(const PetLoading());
 
     final result = await repository.deletePet(id);
+    if (isClosed) return;
 
     switch (result) {
       case Success<void>():
