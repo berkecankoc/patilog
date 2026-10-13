@@ -65,9 +65,11 @@ void main() {
     when(ids.generate).thenReturn('new-entry');
     final pets = MockPetRepository();
     when(() => pets.getPets()).thenAnswer((_) async => const Success([pet]));
-    when(
-      () => pets.getPetById(pet.id),
-    ).thenAnswer((_) async => const Success(pet));
+    when(() => pets.getPetById(pet.id)).thenAnswer(
+      (_) async => Success(
+        pet.copyWith(weight: entries.isEmpty ? null : entries.first.weight),
+      ),
+    );
     getIt.registerFactory<PetCubit>(
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet()),
     );
@@ -277,6 +279,57 @@ void main() {
         verify(() => repository.updateWeightEntry(captureAny())).captured.single
             as WeightEntry;
     expect(updated.measuredAt, DateTime(2025, 1, 11));
+  });
+
+  testWidgets('reselecting the measurement day preserves its time', (
+    tester,
+  ) async {
+    when(() => repository.updateWeightEntry(any())).thenAnswer((
+      invocation,
+    ) async {
+      entries = [invocation.positionalArguments.first as WeightEntry];
+      return const Success(null);
+    });
+    await pumpRouter(tester);
+    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Choose measurement date'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '4.7');
+    await save(tester);
+    final updated =
+        verify(() => repository.updateWeightEntry(captureAny())).captured.single
+            as WeightEntry;
+    expect(updated.measuredAt, entry.measuredAt);
+  });
+
+  testWidgets('returning from weight history refreshes the profile weight', (
+    tester,
+  ) async {
+    when(() => repository.updateWeightEntry(any())).thenAnswer((
+      invocation,
+    ) async {
+      entries = [invocation.positionalArguments.first as WeightEntry];
+      return const Success(null);
+    });
+    await pumpRouter(tester, initialLocation: AppRoutes.petDetail(pet.id));
+    await tester.ensureVisible(find.text('Weight history'));
+    await tester.tap(find.text('Weight history'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '4.9');
+    await save(tester);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Profile details'));
+    await tester.tap(find.text('Profile details'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('4.9 kg'));
+    expect(find.text('4.9 kg'), findsOneWidget);
+    expect(find.text('4.5 kg'), findsNothing);
   });
 
   testWidgets('cancelling the form does not reload history', (tester) async {

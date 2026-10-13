@@ -54,7 +54,11 @@ Future<void> setupDependencies() async {
   );
 
   getIt.registerLazySingleton<UpdatePet>(
-    () => UpdatePet(getIt<PetRepository>(), getIt<ImageStorage>()),
+    () => UpdatePet(
+      getIt<PetRepository>(),
+      getIt<ImageStorage>(),
+      getIt<IdGenerator>(),
+    ),
   );
 
   getIt.registerFactory<PetCubit>(

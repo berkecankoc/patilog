@@ -40,7 +40,6 @@ void main() {
       'reproductive_status': 'sterilized',
       'breed': 'Siamese',
       'birth_date': '2022-07-11',
-      'weight': 5.4,
       'microchip_id': '123456789',
       'image_path': 'fluffy.jpg',
     });

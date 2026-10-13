@@ -24,6 +24,13 @@ class PetDetailPage extends StatelessWidget {
     }
   }
 
+  Future<void> _openWeightHistory(BuildContext context) async {
+    await context.push(AppRoutes.weightHistory(petId));
+    if (context.mounted) {
+      await context.read<PetCubit>().getPetById(petId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PetCubit, PetState>(
@@ -40,7 +47,10 @@ class PetDetailPage extends StatelessWidget {
           ],
         ),
         body: switch (state) {
-          PetLoaded(:final pet) => _PetView(pet: pet),
+          PetLoaded(:final pet) => _PetView(
+            pet: pet,
+            onWeightHistory: () => _openWeightHistory(context),
+          ),
           PetError(:final message) => ErrorView(
             message: message,
             onRetry: () => context.read<PetCubit>().getPetById(petId),
@@ -54,7 +64,8 @@ class PetDetailPage extends StatelessWidget {
 
 class _PetView extends StatelessWidget {
   final Pet pet;
-  const _PetView({required this.pet});
+  final VoidCallback onWeightHistory;
+  const _PetView({required this.pet, required this.onWeightHistory});
 
   @override
   Widget build(BuildContext context) {
@@ -131,9 +142,7 @@ class _PetView extends StatelessWidget {
                         ListTile(
                           enabled: section.$2 == 'Weight history',
                           onTap: section.$2 == 'Weight history'
-                              ? () => context.push(
-                                  AppRoutes.weightHistory(pet.id),
-                                )
+                              ? onWeightHistory
                               : null,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.md,

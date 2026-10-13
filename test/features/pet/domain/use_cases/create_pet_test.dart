@@ -8,6 +8,7 @@ import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 
 class MockPetRepository extends Mock implements PetRepository {}
 
@@ -49,6 +50,17 @@ void main() {
     imagePath: savedImagePath,
   );
 
+  setUpAll(
+    () => registerFallbackValue(
+      WeightEntry(
+        id: 'weight-id',
+        petId: 'pet-id',
+        weight: 1,
+        measuredAt: DateTime(2026),
+      ),
+    ),
+  );
+
   setUp(() {
     repository = MockPetRepository();
     idGenerator = MockIdGenerator();
@@ -67,7 +79,10 @@ void main() {
       when(() => idGenerator.generate()).thenReturn('generated-id');
 
       when(
-        () => repository.createPet(expectedPet),
+        () => repository.createPet(
+          expectedPet,
+          weightEntry: any(named: 'weightEntry'),
+        ),
       ).thenAnswer((_) async => const Success(null));
 
       final result = await createPet(params);
@@ -75,8 +90,19 @@ void main() {
       expect(result, const Success<void>(null));
 
       verify(() => imageStorage.save(sourceImagePath)).called(1);
-      verify(() => idGenerator.generate()).called(1);
-      verify(() => repository.createPet(expectedPet)).called(1);
+      verify(() => idGenerator.generate()).called(2);
+      final initialWeight =
+          verify(
+                () => repository.createPet(
+                  expectedPet,
+                  weightEntry: captureAny(named: 'weightEntry'),
+                ),
+              ).captured.single
+              as WeightEntry;
+      expect(initialWeight.petId, expectedPet.id);
+      expect(initialWeight.weight, params.weight);
+      final now = DateTime.now();
+      expect(initialWeight.measuredAt, DateTime(now.year, now.month, now.day));
     },
   );
 
@@ -122,7 +148,12 @@ void main() {
 
       when(() => idGenerator.generate()).thenReturn('generated-id');
 
-      when(() => repository.createPet(expectedPet)).thenAnswer(
+      when(
+        () => repository.createPet(
+          expectedPet,
+          weightEntry: any(named: 'weightEntry'),
+        ),
+      ).thenAnswer(
         (_) async => const Error(LocalDatabaseFailure('Failed to create pet')),
       );
 
@@ -135,8 +166,13 @@ void main() {
         const Error<void>(LocalDatabaseFailure('Failed to create pet')),
       );
 
-      verify(() => idGenerator.generate()).called(1);
-      verify(() => repository.createPet(expectedPet)).called(1);
+      verify(() => idGenerator.generate()).called(2);
+      verify(
+        () => repository.createPet(
+          expectedPet,
+          weightEntry: any(named: 'weightEntry'),
+        ),
+      ).called(1);
       verify(() => imageStorage.delete(savedImagePath)).called(1);
     },
   );
@@ -167,7 +203,12 @@ void main() {
 
       when(() => idGenerator.generate()).thenReturn('generated-id');
 
-      when(() => repository.createPet(expectedPet)).thenAnswer(
+      when(
+        () => repository.createPet(
+          expectedPet,
+          weightEntry: any(named: 'weightEntry'),
+        ),
+      ).thenAnswer(
         (_) async => const Error(LocalDatabaseFailure('Failed to create pet')),
       );
 

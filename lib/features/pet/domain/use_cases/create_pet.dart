@@ -5,6 +5,7 @@ import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
+import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 
 final class CreatePetParams {
   final String name;
@@ -62,7 +63,16 @@ class CreatePet {
       imagePath: savedImagePath,
     );
 
-    final result = await repository.createPet(pet);
+    final now = DateTime.now();
+    final weightEntry = params.weight == null
+        ? null
+        : WeightEntry(
+            id: idGenerator.generate(),
+            petId: pet.id,
+            weight: params.weight!,
+            measuredAt: DateTime(now.year, now.month, now.day),
+          );
+    final result = await repository.createPet(pet, weightEntry: weightEntry);
 
     if (result case Error<void>()) {
       // If pet creation fails after saving an image,

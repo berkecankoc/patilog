@@ -2,8 +2,10 @@ import 'package:petlytics/core/error/exception.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
+import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
+import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 
 final class UpdatePetParams {
   final String name;
@@ -36,8 +38,9 @@ final class UpdatePetParams {
 class UpdatePet {
   final PetRepository repository;
   final ImageStorage imageStorage;
+  final IdGenerator idGenerator;
 
-  const UpdatePet(this.repository, this.imageStorage);
+  const UpdatePet(this.repository, this.imageStorage, this.idGenerator);
 
   Future<Result<void>> call(Pet pet, UpdatePetParams params) async {
     final String? finalImagePath;
@@ -70,7 +73,20 @@ class UpdatePet {
       imagePath: finalImagePath,
     );
 
-    final result = await repository.updatePet(updatedPet);
+    final now = DateTime.now();
+    // Clearing the form field does not delete history; unchanged weight adds no entry.
+    final weightEntry = params.weight == null || params.weight == pet.weight
+        ? null
+        : WeightEntry(
+            id: idGenerator.generate(),
+            petId: pet.id,
+            weight: params.weight!,
+            measuredAt: DateTime(now.year, now.month, now.day),
+          );
+    final result = await repository.updatePet(
+      updatedPet,
+      weightEntry: weightEntry,
+    );
 
     switch (result) {
       case Success<void>():

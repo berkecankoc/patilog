@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
@@ -20,7 +21,6 @@ class WeightEntryFormPage extends StatefulWidget {
 class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _weightController = TextEditingController();
-  final _dateController = TextEditingController();
   late DateTime _measuredAt;
   String? _saveError;
 
@@ -34,35 +34,9 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _dateController.text = MaterialLocalizations.of(
-      context,
-    ).formatShortDate(_measuredAt);
-  }
-
-  @override
   void dispose() {
     _weightController.dispose();
-    _dateController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickDate() async {
-    FocusScope.of(context).unfocus();
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _measuredAt,
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (date == null || !mounted) return;
-    setState(() {
-      _measuredAt = date;
-      _dateController.text = MaterialLocalizations.of(
-        context,
-      ).formatShortDate(date);
-    });
   }
 
   void _submit() {
@@ -147,18 +121,19 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
                             },
                           ),
                           VerticalGap.md,
-                          TextFormField(
-                            controller: _dateController,
-                            readOnly: true,
-                            onTap: _pickDate,
-                            decoration: InputDecoration(
-                              labelText: 'Measurement date',
-                              suffixIcon: IconButton(
-                                tooltip: 'Choose measurement date',
-                                onPressed: _pickDate,
-                                icon: const Icon(Icons.calendar_today_outlined),
-                              ),
-                            ),
+                          AppDateField(
+                            labelText: 'Measurement date',
+                            value: _measuredAt,
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                            onChanged: (date) {
+                              // Reselecting the same day must not erase the measurement time.
+                              if (date == null ||
+                                  DateUtils.isSameDay(date, _measuredAt)) {
+                                return;
+                              }
+                              setState(() => _measuredAt = date);
+                            },
                           ),
                           VerticalGap.lg,
                           if (_saveError != null) ...[

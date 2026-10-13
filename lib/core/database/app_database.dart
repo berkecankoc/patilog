@@ -28,7 +28,6 @@ Future<Database> openAppDatabase() async {
           reproductive_status TEXT NOT NULL,
           breed TEXT,
           birth_date TEXT,
-          weight REAL,
           microchip_id TEXT,
           image_path TEXT
         )
