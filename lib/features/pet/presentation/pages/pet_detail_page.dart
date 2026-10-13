@@ -129,7 +129,12 @@ class _PetView extends StatelessWidget {
                             child: Divider(height: 1),
                           ),
                         ListTile(
-                          enabled: false,
+                          enabled: section.$2 == 'Weight history',
+                          onTap: section.$2 == 'Weight history'
+                              ? () => context.push(
+                                  AppRoutes.weightHistory(pet.id),
+                                )
+                              : null,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.md,
                             vertical: AppSpacing.sm,
@@ -155,7 +160,9 @@ class _PetView extends StatelessWidget {
                             ),
                           ),
                           subtitle: Text(
-                            'Coming soon',
+                            section.$2 == 'Weight history'
+                                ? 'View and manage measurements'
+                                : 'Coming soon',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colors.onSurfaceVariant,
                             ),

@@ -1,0 +1,464 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:petlytics/core/di/injection.dart';
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/core/router/app_router.dart';
+import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/services/id_generator.dart';
+import 'package:petlytics/core/storage/image_storage.dart';
+import 'package:petlytics/core/theme/app_theme.dart';
+import 'package:petlytics/features/pet/domain/entities/pet.dart';
+import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
+import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
+import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
+import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+import 'package:petlytics/features/weight_history/presentation/pages/weight_entry_form_page.dart';
+import 'package:petlytics/features/weight_history/presentation/pages/weight_history_page.dart';
+
+class MockWeightRepository extends Mock implements WeightHistoryRepository {}
+
+class MockIdGenerator extends Mock implements IdGenerator {}
+
+class MockPetRepository extends Mock implements PetRepository {}
+
+class MockCreatePet extends Mock implements CreatePet {}
+
+class MockUpdatePet extends Mock implements UpdatePet {}
+
+class MockImageStorage extends Mock implements ImageStorage {}
+
+void main() {
+  const pet = Pet(
+    id: 'pet-1',
+    name: 'Fluffy',
+    species: PetSpecies.cat,
+    sex: PetSex.female,
+    reproductiveStatus: ReproductiveStatus.sterilized,
+  );
+  final entry = WeightEntry(
+    id: 'entry-1',
+    petId: pet.id,
+    weight: 4.5,
+    measuredAt: DateTime(2025, 1, 12, 10, 30),
+  );
+  late MockWeightRepository repository;
+  late List<WeightEntry> entries;
+
+  setUpAll(() => registerFallbackValue(entry));
+
+  setUp(() {
+    entries = [entry];
+    repository = MockWeightRepository();
+    when(
+      () => repository.getWeightEntries(pet.id),
+    ).thenAnswer((_) async => Success(List.of(entries)));
+    final ids = MockIdGenerator();
+    when(ids.generate).thenReturn('new-entry');
+    final pets = MockPetRepository();
+    when(() => pets.getPets()).thenAnswer((_) async => const Success([pet]));
+    when(
+      () => pets.getPetById(pet.id),
+    ).thenAnswer((_) async => const Success(pet));
+    getIt.registerFactory<PetCubit>(
+      () => PetCubit(pets, MockCreatePet(), MockUpdatePet()),
+    );
+    getIt.registerFactory<WeightHistoryCubit>(
+      () => WeightHistoryCubit(repository, ids),
+    );
+  });
+
+  tearDown(() async {
+    await getIt.unregister<PetCubit>();
+    await getIt.unregister<WeightHistoryCubit>();
+  });
+
+  Future<GoRouter> pumpRouter(
+    WidgetTester tester, {
+    String? initialLocation,
+    Brightness brightness = Brightness.light,
+    double width = 390,
+    double scale = 1,
+    bool keyboard = false,
+  }) async {
+    tester.view.physicalSize = Size(width, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final router = GoRouter(
+      initialLocation: initialLocation ?? AppRoutes.weightHistory(pet.id),
+      routes: appRouter.configuration.routes,
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(
+        theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
+        routerConfig: router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(scale),
+            viewInsets: EdgeInsets.only(bottom: keyboard ? 280 : 0),
+          ),
+          child: RepositoryProvider<ImageStorage>.value(
+            value: MockImageStorage(),
+            child: child!,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return router;
+  }
+
+  Future<void> openAddForm(WidgetTester tester) async {
+    await tester.tap(find.byTooltip('Add measurement'));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> save(WidgetTester tester) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.widgetWithText(ElevatedButton, 'Save measurement'),
+    );
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Save measurement'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('profile opens weight history for the selected pet', (
+    tester,
+  ) async {
+    final router = await pumpRouter(
+      tester,
+      initialLocation: AppRoutes.petDetail(pet.id),
+    );
+    await tester.ensureVisible(find.text('Weight history'));
+    await tester.tap(find.text('Weight history'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.path, AppRoutes.weightHistory(pet.id));
+    expect(find.byType(WeightHistoryPage), findsOneWidget);
+    verify(() => repository.getWeightEntries(pet.id)).called(1);
+  });
+
+  testWidgets('empty history offers a measurement form with today selected', (
+    tester,
+  ) async {
+    entries = [];
+    await pumpRouter(tester);
+    expect(find.text('No measurements yet'), findsOneWidget);
+    expect(find.text('Latest weight'), findsNothing);
+    await openAddForm(tester);
+
+    expect(find.byType(WeightEntryFormPage), findsOneWidget);
+    final context = tester.element(find.byType(WeightEntryFormPage));
+    final today = MaterialLocalizations.of(
+      context,
+    ).formatShortDate(DateTime.now());
+    expect(find.text(today), findsOneWidget);
+  });
+
+  for (final input in ['', '0', '-1', 'NaN', 'Infinity', 'abc']) {
+    testWidgets('invalid weight "$input" never reaches the repository', (
+      tester,
+    ) async {
+      await pumpRouter(tester);
+      await openAddForm(tester);
+      await tester.enterText(find.byType(TextFormField).first, input);
+      await save(tester);
+
+      expect(
+        find.text(
+          input.isEmpty
+              ? 'Weight is required'
+              : 'Enter a weight greater than zero',
+        ),
+        findsOneWidget,
+      );
+      verifyNever(() => repository.createWeightEntry(any()));
+    });
+  }
+
+  testWidgets('creation returns to refreshed history', (tester) async {
+    when(() => repository.createWeightEntry(any())).thenAnswer((
+      invocation,
+    ) async {
+      entries = [invocation.positionalArguments.first as WeightEntry, entry];
+      return const Success(null);
+    });
+    final router = await pumpRouter(tester);
+    await openAddForm(tester);
+    expect(router.state.uri.path, AppRoutes.addEditWeightEntry(pet.id));
+    await tester.enterText(find.byType(TextFormField).first, '4.8');
+    await save(tester);
+
+    expect(find.byType(WeightHistoryPage), findsOneWidget);
+    expect(find.text('4.8 kg'), findsNWidgets(2));
+    final created =
+        verify(() => repository.createWeightEntry(captureAny())).captured.single
+            as WeightEntry;
+    expect(created.id, 'new-entry');
+    expect(created.petId, pet.id);
+    expect(created.weight, 4.8);
+    expect(DateUtils.isSameDay(created.measuredAt, DateTime.now()), isTrue);
+    verify(() => repository.getWeightEntries(pet.id)).called(2);
+  });
+
+  testWidgets('save failure preserves weight and selected date for retry', (
+    tester,
+  ) async {
+    var attempts = 0;
+    when(() => repository.updateWeightEntry(any())).thenAnswer((
+      invocation,
+    ) async {
+      if (attempts++ == 0) {
+        return const Error(
+          LocalDatabaseFailure('Could not save. Please retry.'),
+        );
+      }
+      entries = [invocation.positionalArguments.first as WeightEntry];
+      return const Success(null);
+    });
+    await pumpRouter(tester);
+    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '4.7');
+    await save(tester);
+
+    expect(find.text('Could not save. Please retry.'), findsOneWidget);
+    expect(find.text('4.7'), findsOneWidget);
+    final formContext = tester.element(find.byType(WeightEntryFormPage));
+    expect(
+      find.text(
+        MaterialLocalizations.of(formContext).formatShortDate(entry.measuredAt),
+      ),
+      findsOneWidget,
+    );
+    await save(tester);
+    expect(find.byType(WeightHistoryPage), findsOneWidget);
+    expect(find.text('4.7 kg'), findsNWidgets(2));
+    final updated = verify(
+      () => repository.updateWeightEntry(captureAny()),
+    ).captured.cast<WeightEntry>();
+    expect(updated, hasLength(2));
+    expect(updated.last.id, entry.id);
+    expect(updated.last.petId, entry.petId);
+    expect(updated.last.measuredAt, entry.measuredAt);
+    verifyNever(() => repository.createWeightEntry(any()));
+  });
+
+  testWidgets('measurement date can be changed before saving', (tester) async {
+    when(() => repository.updateWeightEntry(any())).thenAnswer((
+      invocation,
+    ) async {
+      entries = [invocation.positionalArguments.first as WeightEntry];
+      return const Success(null);
+    });
+    await pumpRouter(tester);
+    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Choose measurement date'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+    await tester.tap(find.text('11').last);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await save(tester);
+
+    final updated =
+        verify(() => repository.updateWeightEntry(captureAny())).captured.single
+            as WeightEntry;
+    expect(updated.measuredAt, DateTime(2025, 1, 11));
+  });
+
+  testWidgets('cancelling the form does not reload history', (tester) async {
+    await pumpRouter(tester);
+    await openAddForm(tester);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(WeightHistoryPage), findsOneWidget);
+    verify(() => repository.getWeightEntries(pet.id)).called(1);
+    verifyNever(() => repository.createWeightEntry(any()));
+  });
+
+  for (final confirm in [false, true]) {
+    testWidgets(
+      'deletion ${confirm ? 'confirms and refreshes' : 'cancels without deleting'}',
+      (tester) async {
+        when(() => repository.deleteWeightEntry(entry.id)).thenAnswer((
+          _,
+        ) async {
+          entries = [];
+          return const Success(null);
+        });
+        await pumpRouter(tester);
+        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.pumpAndSettle();
+        expect(find.text('Delete measurement?'), findsOneWidget);
+        await tester.tap(find.text(confirm ? 'Delete' : 'Cancel'));
+        await tester.pumpAndSettle();
+
+        if (confirm) {
+          expect(find.text('No measurements yet'), findsOneWidget);
+          verify(() => repository.deleteWeightEntry(entry.id)).called(1);
+          verify(() => repository.getWeightEntries(pet.id)).called(2);
+        } else {
+          expect(find.text('4.5 kg'), findsNWidgets(2));
+          verifyNever(() => repository.deleteWeightEntry(any()));
+        }
+      },
+    );
+  }
+
+  testWidgets('load failure offers a working retry', (tester) async {
+    final pending = Completer<Result<List<WeightEntry>>>();
+    var attempts = 0;
+    when(() => repository.getWeightEntries(pet.id)).thenAnswer((_) {
+      return attempts++ == 0
+          ? Future.value(
+              const Error(LocalDatabaseFailure('Could not load measurements')),
+            )
+          : pending.future;
+    });
+    await pumpRouter(tester);
+    expect(find.text('Could not load measurements'), findsOneWidget);
+    expect(
+      tester
+          .widget<FloatingActionButton>(find.byType(FloatingActionButton))
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester
+          .widget<FloatingActionButton>(find.byType(FloatingActionButton))
+          .onPressed,
+      isNull,
+    );
+    pending.complete(Success(entries));
+    await tester.pumpAndSettle();
+    expect(find.text('Latest weight'), findsOneWidget);
+    verify(() => repository.getWeightEntries(pet.id)).called(2);
+  });
+
+  testWidgets('deleting the latest measurement shows the previous weight', (
+    tester,
+  ) async {
+    final older = WeightEntry(
+      id: 'older-entry',
+      petId: pet.id,
+      weight: 4.2,
+      measuredAt: DateTime(2024, 1, 12),
+    );
+    entries = [entry, older];
+    when(() => repository.deleteWeightEntry(entry.id)).thenAnswer((_) async {
+      entries = [older];
+      return const Success(null);
+    });
+    await pumpRouter(tester);
+    expect(find.text('Jan 12, 2025'), findsNWidgets(2));
+    expect(find.text('Jan 12, 2024'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.delete_outline).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('4.5 kg'), findsNothing);
+    expect(find.text('4.2 kg'), findsNWidgets(2));
+    expect(find.text('Jan 12, 2024'), findsNWidgets(2));
+  });
+
+  testWidgets('delete failure allows reloading without repeating deletion', (
+    tester,
+  ) async {
+    when(() => repository.deleteWeightEntry(entry.id)).thenAnswer(
+      (_) async =>
+          const Error(LocalDatabaseFailure('Could not delete measurement')),
+    );
+    await pumpRouter(tester);
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Could not delete measurement'), findsOneWidget);
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(find.text('4.5 kg'), findsNWidgets(2));
+    verify(() => repository.deleteWeightEntry(entry.id)).called(1);
+    verify(() => repository.getWeightEntries(pet.id)).called(2);
+  });
+
+  testWidgets('history and form have labeled accessible tap targets', (
+    tester,
+  ) async {
+    await pumpRouter(tester);
+    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+    await openAddForm(tester);
+    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+  });
+
+  testWidgets('duplicate submissions and back during save are safe', (
+    tester,
+  ) async {
+    final pending = Completer<Result<void>>();
+    when(
+      () => repository.createWeightEntry(any()),
+    ).thenAnswer((_) => pending.future);
+    await pumpRouter(tester);
+    await openAddForm(tester);
+    await tester.enterText(find.byType(TextFormField).first, '5');
+    final field = tester.widget<TextField>(find.byType(TextField).first);
+    field.onSubmitted!('5');
+    field.onSubmitted!('5');
+    await tester.pump();
+    expect(find.text('Saving…'), findsOneWidget);
+    expect(
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+      isNull,
+    );
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    pending.complete(const Success(null));
+    await tester.pumpAndSettle();
+    expect(find.byType(WeightHistoryPage), findsOneWidget);
+    verify(() => repository.createWeightEntry(any())).called(1);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final brightness in Brightness.values) {
+    for (final (width, scale) in [(320.0, 2.0), (800.0, 1.0)]) {
+      testWidgets('history and form fit $width at $scale in $brightness', (
+        tester,
+      ) async {
+        await pumpRouter(
+          tester,
+          brightness: brightness,
+          width: width,
+          scale: scale,
+          keyboard: true,
+        );
+        expect(tester.takeException(), isNull);
+        final addButton = tester.getRect(find.byType(FloatingActionButton));
+        expect(addButton.left, greaterThanOrEqualTo(0));
+        expect(addButton.right, lessThanOrEqualTo(width));
+        await openAddForm(tester);
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'Save measurement'),
+        );
+        expect(find.text('Save measurement').hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+}
