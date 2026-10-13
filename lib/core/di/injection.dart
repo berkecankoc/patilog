@@ -13,6 +13,7 @@ import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
 import 'package:petlytics/features/weight_history/data/repositories/weight_history_repository_impl.dart';
 import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
+import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:sqflite/sqflite.dart';
 
 final getIt = GetIt.instance;
@@ -61,6 +62,13 @@ Future<void> setupDependencies() async {
       getIt<PetRepository>(),
       getIt<CreatePet>(),
       getIt<UpdatePet>(),
+    ),
+  );
+
+  getIt.registerFactory<WeightHistoryCubit>(
+    () => WeightHistoryCubit(
+      getIt<WeightHistoryRepository>(),
+      getIt<IdGenerator>(),
     ),
   );
 }
