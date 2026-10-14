@@ -92,6 +92,24 @@ void main() {
             findsNWidgets(3),
           );
           expect(find.byTooltip('Edit profile'), findsOneWidget);
+          expect(
+            tester.getTopLeft(find.text('Profile details')).dy,
+            lessThan(tester.getTopLeft(find.text('Care records')).dy),
+          );
+          expect(
+            find.descendant(
+              of: find.byType(AppBar),
+              matching: find.byTooltip('Edit profile'),
+            ),
+            findsNothing,
+          );
+          expect(
+            find.descendant(
+              of: find.byType(ExpansionTile),
+              matching: find.byTooltip('Edit profile'),
+            ),
+            findsOneWidget,
+          );
           for (final title in [
             'Vet visits',
             'Vaccines',
@@ -102,6 +120,8 @@ void main() {
           }
           expect(find.text('Not provided'), findsNothing);
           await tester.ensureVisible(find.text('Profile details'));
+          await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+          await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
           await tester.tap(find.text('Profile details'));
           await tester.pumpAndSettle();
           const fieldOrder = [
@@ -123,6 +143,22 @@ void main() {
               .where(fieldOrder.contains)
               .toList();
           expect(displayedFields, fieldOrder);
+          for (final icon in [
+            Icons.wc_outlined,
+            Icons.category_outlined,
+            Icons.health_and_safety_outlined,
+            Icons.cake_outlined,
+            Icons.monitor_weight_outlined,
+            Icons.memory_outlined,
+          ]) {
+            expect(
+              find.descendant(
+                of: find.byType(ExpansionTile),
+                matching: find.byIcon(icon),
+              ),
+              findsOneWidget,
+            );
+          }
           expect(find.text('Not provided'), findsNWidgets(3));
           expect(tester.takeException(), isNull);
 

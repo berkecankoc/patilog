@@ -315,6 +315,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text(pet.name));
         await tester.pumpAndSettle();
+        await tester.ensureVisible(find.byTooltip('Edit profile'));
         await tester.tap(find.byTooltip('Edit profile'));
         await tester.pumpAndSettle();
         await tester.enterText(
