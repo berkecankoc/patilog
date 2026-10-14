@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
@@ -31,41 +32,112 @@ class PetDetailPage extends StatelessWidget {
     }
   }
 
+  Future<void> _deletePet(BuildContext context, Pet pet) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AppConfirmationDialog(
+        title: 'Delete pet?',
+        message:
+            '${pet.name}’s profile, photo and weight history will be removed. This cannot be undone.',
+        confirmLabel: 'Delete',
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<PetCubit>().deletePet(pet);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PetCubit, PetState>(
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Pet profile'),
-          actions: [
-            if (state case PetLoaded(:final pet))
-              IconButton(
-                tooltip: 'Edit profile',
-                onPressed: () => _editPet(context, pet),
-                icon: const Icon(Icons.edit_outlined),
-              ),
-          ],
-        ),
-        body: switch (state) {
-          PetLoaded(:final pet) => _PetView(
-            pet: pet,
-            onWeightHistory: () => _openWeightHistory(context),
+    return BlocConsumer<PetCubit, PetState>(
+      listener: (context, state) {
+        if (state is PetDeleted) context.pop(true);
+      },
+      builder: (context, state) {
+        final deleting = state is PetLoaded && state.isDeleting;
+        return PopScope(
+          canPop: !deleting,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(deleting ? 'Deleting pet…' : 'Pet profile'),
+              leading: deleting
+                  ? IconButton(
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      onPressed: null,
+                      icon: const BackButtonIcon(),
+                    )
+                  : null,
+              bottom: deleting
+                  ? const PreferredSize(
+                      preferredSize: Size.fromHeight(4),
+                      child: LinearProgressIndicator(
+                        semanticsLabel: 'Deleting pet',
+                      ),
+                    )
+                  : null,
+              actions: [
+                if (state case PetLoaded(:final pet)) ...[
+                  IconButton(
+                    tooltip: 'Delete pet',
+                    onPressed: deleting ? null : () => _deletePet(context, pet),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              ],
+            ),
+            body: AbsorbPointer(
+              absorbing: deleting,
+              child: switch (state) {
+                PetLoaded(:final pet, :final deleteError) => Column(
+                  children: [
+                    if (deleteError != null)
+                      MaterialBanner(
+                        forceActionsBelow: true,
+                        content: Semantics(
+                          liveRegion: true,
+                          child: Text(deleteError),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => _deletePet(context, pet),
+                            child: const Text('Retry deletion'),
+                          ),
+                        ],
+                      ),
+                    Expanded(
+                      child: _PetView(
+                        pet: pet,
+                        onEdit: deleting ? null : () => _editPet(context, pet),
+                        onWeightHistory: () => _openWeightHistory(context),
+                      ),
+                    ),
+                  ],
+                ),
+                PetError(:final message) => ErrorView(
+                  message: message,
+                  onRetry: () => context.read<PetCubit>().getPetById(petId),
+                ),
+                _ => const Center(child: CircularProgressIndicator()),
+              },
+            ),
           ),
-          PetError(:final message) => ErrorView(
-            message: message,
-            onRetry: () => context.read<PetCubit>().getPetById(petId),
-          ),
-          _ => const Center(child: CircularProgressIndicator()),
-        },
-      ),
+        );
+      },
     );
   }
 }
 
 class _PetView extends StatelessWidget {
   final Pet pet;
+  final VoidCallback? onEdit;
   final VoidCallback onWeightHistory;
-  const _PetView({required this.pet, required this.onWeightHistory});
+  const _PetView({
+    required this.pet,
+    required this.onEdit,
+    required this.onWeightHistory,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +193,104 @@ class _PetView extends StatelessWidget {
                   ),
                 ),
                 VerticalGap.xl,
+                Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    title: Row(
+                      children: [
+                        const Expanded(child: Text('Profile details')),
+                        IconButton(
+                          tooltip: 'Edit profile',
+                          onPressed: onEdit,
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                      ],
+                    ),
+                    shape: const Border(),
+                    collapsedShape: const Border(),
+                    childrenPadding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      0,
+                      AppSpacing.md,
+                      AppSpacing.md,
+                    ),
+                    expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final (index, detail) in [
+                        (Icons.wc_outlined, 'Sex', pet.sex.label),
+                        (Icons.category_outlined, 'Breed', pet.breed),
+                        (
+                          Icons.health_and_safety_outlined,
+                          'Reproductive status',
+                          pet.reproductiveStatus.label,
+                        ),
+                        (
+                          Icons.cake_outlined,
+                          'Birth date',
+                          birthDate == null
+                              ? null
+                              : MaterialLocalizations.of(
+                                  context,
+                                ).formatMediumDate(birthDate),
+                        ),
+                        (
+                          Icons.monitor_weight_outlined,
+                          'Current weight',
+                          pet.weight == null ? null : '${pet.weight} kg',
+                        ),
+                        (
+                          Icons.memory_outlined,
+                          'Microchip ID',
+                          pet.microchipId,
+                        ),
+                      ].indexed) ...[
+                        if (index > 0)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: AppSpacing.md,
+                            ),
+                            child: Divider(height: 1),
+                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            ExcludeSemantics(
+                              child: Icon(
+                                detail.$1,
+                                color: colors.onSurfaceVariant,
+                                size: 20,
+                              ),
+                            ),
+                            HorizontalGap.md,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    detail.$2,
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: colors.onSurfaceVariant,
+                                        ),
+                                  ),
+                                  VerticalGap.xs,
+                                  Text(
+                                    detail.$3?.trim().isNotEmpty == true
+                                        ? detail.$3!
+                                        : 'Not provided',
+                                    style: theme.textTheme.bodyLarge,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                VerticalGap.lg,
                 Text('Care records', style: theme.textTheme.titleLarge),
                 VerticalGap.md,
                 Card(
@@ -182,64 +352,6 @@ class _PetView extends StatelessWidget {
                               color: colors.onSurfaceVariant,
                             ),
                           ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                VerticalGap.lg,
-                Card(
-                  margin: EdgeInsets.zero,
-                  clipBehavior: Clip.antiAlias,
-                  child: ExpansionTile(
-                    title: const Text('Profile details'),
-                    shape: const Border(),
-                    collapsedShape: const Border(),
-                    childrenPadding: const EdgeInsets.fromLTRB(
-                      AppSpacing.md,
-                      0,
-                      AppSpacing.md,
-                      AppSpacing.md,
-                    ),
-                    expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final (index, detail) in [
-                        ('Sex', pet.sex.label),
-                        ('Breed', pet.breed),
-                        ('Reproductive status', pet.reproductiveStatus.label),
-                        (
-                          'Birth date',
-                          birthDate == null
-                              ? null
-                              : MaterialLocalizations.of(
-                                  context,
-                                ).formatMediumDate(birthDate),
-                        ),
-                        (
-                          'Current weight',
-                          pet.weight == null ? null : '${pet.weight} kg',
-                        ),
-                        ('Microchip ID', pet.microchipId),
-                      ].indexed) ...[
-                        if (index > 0)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: AppSpacing.md,
-                            ),
-                            child: Divider(height: 1),
-                          ),
-                        Text(
-                          detail.$1,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                        VerticalGap.xs,
-                        Text(
-                          detail.$2?.trim().isNotEmpty == true
-                              ? detail.$2!
-                              : 'Not provided',
-                          style: theme.textTheme.bodyLarge,
                         ),
                       ],
                     ],

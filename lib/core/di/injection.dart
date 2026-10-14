@@ -8,6 +8,7 @@ import 'package:petlytics/features/pet/data/data_sources/pet_local_data_source.d
 import 'package:petlytics/features/pet/data/repositories/pet_repository_impl.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
@@ -61,11 +62,16 @@ Future<void> setupDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<DeletePet>(
+    () => DeletePet(getIt<PetRepository>(), getIt<ImageStorage>()),
+  );
+
   getIt.registerFactory<PetCubit>(
     () => PetCubit(
       getIt<PetRepository>(),
       getIt<CreatePet>(),
       getIt<UpdatePet>(),
+      getIt<DeletePet>(),
     ),
   );
 

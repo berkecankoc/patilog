@@ -17,6 +17,7 @@ import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_form_page.dart';
@@ -30,8 +31,14 @@ class MockCreatePet extends Mock implements CreatePet {}
 
 class MockUpdatePet extends Mock implements UpdatePet {}
 
-PetCubit makeCubit(PetState state) =>
-    PetCubit(MockRepository(), MockCreatePet(), MockUpdatePet())..emit(state);
+class MockDeletePet extends Mock implements DeletePet {}
+
+PetCubit makeCubit(PetState state) => PetCubit(
+  MockRepository(),
+  MockCreatePet(),
+  MockUpdatePet(),
+  MockDeletePet(),
+)..emit(state);
 
 const pet = Pet(
   id: 'pet-1',
@@ -237,8 +244,6 @@ void main() {
           keyboard: true,
         );
         expect(tester.takeException(), isNull);
-        await tester.ensureVisible(find.text('Save changes'));
-        await tester.pumpAndSettle();
         expect(find.text('Save changes').hitTestable(), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
@@ -247,7 +252,12 @@ void main() {
 
   testWidgets('save failure keeps input and allows retry', (tester) async {
     final createPet = MockCreatePet();
-    final cubit = PetCubit(MockRepository(), createPet, MockUpdatePet());
+    final cubit = PetCubit(
+      MockRepository(),
+      createPet,
+      MockUpdatePet(),
+      MockDeletePet(),
+    );
     addTearDown(cubit.close);
     when(() => createPet(any())).thenAnswer(
       (_) async =>
@@ -257,14 +267,14 @@ void main() {
     await tester.enterText(find.byType(TextFormField).first, 'Fluffy');
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byType(FilledButton));
+    await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Add pet'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Add pet'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add pet'));
     await tester.pumpAndSettle();
     expect(find.text('Could not save. Please retry.'), findsOneWidget);
     expect(find.text('Fluffy'), findsOneWidget);
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
       isNotNull,
     );
     verify(() => createPet(any())).called(1);
@@ -289,7 +299,7 @@ void main() {
           return const Success<void>(null);
         });
         getIt.registerFactory<PetCubit>(
-          () => PetCubit(repository, MockCreatePet(), update),
+          () => PetCubit(repository, MockCreatePet(), update, MockDeletePet()),
         );
         addTearDown(() => getIt.unregister<PetCubit>());
         final router = GoRouter(
@@ -303,6 +313,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text(pet.name));
         await tester.pumpAndSettle();
+        await tester.ensureVisible(find.byTooltip('Edit profile'));
         await tester.tap(find.byTooltip('Edit profile'));
         await tester.pumpAndSettle();
         await tester.enterText(
@@ -311,8 +322,7 @@ void main() {
         );
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.byType(FilledButton));
-        await tester.pumpAndSettle();
+        expect(find.text('Save changes').hitTestable(), findsOneWidget);
         await tester.tap(find.text('Save changes'));
         await tester.pumpAndSettle();
         expect(find.text('Updated pet name'), findsOneWidget);

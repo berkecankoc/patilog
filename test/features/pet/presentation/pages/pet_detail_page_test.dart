@@ -8,6 +8,7 @@ import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_detail_page.dart';
@@ -19,6 +20,8 @@ class MockImageStorage extends Mock implements ImageStorage {}
 class MockCreatePet extends Mock implements CreatePet {}
 
 class MockUpdatePet extends Mock implements UpdatePet {}
+
+class MockDeletePet extends Mock implements DeletePet {}
 
 void main() {
   for (final brightness in Brightness.values) {
@@ -49,7 +52,12 @@ void main() {
           when(
             () => repository.getPetById(pet.id),
           ).thenAnswer((_) async => const Success(pet));
-          final cubit = PetCubit(repository, MockCreatePet(), MockUpdatePet());
+          final cubit = PetCubit(
+            repository,
+            MockCreatePet(),
+            MockUpdatePet(),
+            MockDeletePet(),
+          );
           await cubit.getPetById(pet.id);
           addTearDown(cubit.close);
 
@@ -84,6 +92,24 @@ void main() {
             findsNWidgets(3),
           );
           expect(find.byTooltip('Edit profile'), findsOneWidget);
+          expect(
+            tester.getTopLeft(find.text('Profile details')).dy,
+            lessThan(tester.getTopLeft(find.text('Care records')).dy),
+          );
+          expect(
+            find.descendant(
+              of: find.byType(AppBar),
+              matching: find.byTooltip('Edit profile'),
+            ),
+            findsNothing,
+          );
+          expect(
+            find.descendant(
+              of: find.byType(ExpansionTile),
+              matching: find.byTooltip('Edit profile'),
+            ),
+            findsOneWidget,
+          );
           for (final title in [
             'Vet visits',
             'Vaccines',
@@ -94,6 +120,8 @@ void main() {
           }
           expect(find.text('Not provided'), findsNothing);
           await tester.ensureVisible(find.text('Profile details'));
+          await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+          await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
           await tester.tap(find.text('Profile details'));
           await tester.pumpAndSettle();
           const fieldOrder = [
@@ -115,6 +143,22 @@ void main() {
               .where(fieldOrder.contains)
               .toList();
           expect(displayedFields, fieldOrder);
+          for (final icon in [
+            Icons.wc_outlined,
+            Icons.category_outlined,
+            Icons.health_and_safety_outlined,
+            Icons.cake_outlined,
+            Icons.monitor_weight_outlined,
+            Icons.memory_outlined,
+          ]) {
+            expect(
+              find.descendant(
+                of: find.byType(ExpansionTile),
+                matching: find.byIcon(icon),
+              ),
+              findsOneWidget,
+            );
+          }
           expect(find.text('Not provided'), findsNWidgets(3));
           expect(tester.takeException(), isNull);
 

@@ -21,11 +21,13 @@ final class PetLoading extends PetState {
 
 final class PetLoaded extends PetState {
   final Pet pet;
+  final bool isDeleting;
+  final String? deleteError;
 
-  const PetLoaded(this.pet);
+  const PetLoaded(this.pet, {this.isDeleting = false, this.deleteError});
 
   @override
-  List<Object?> get props => [pet];
+  List<Object?> get props => [pet, isDeleting, deleteError];
 }
 
 final class PetsLoaded extends PetState {
@@ -46,6 +48,13 @@ final class PetCreated extends PetState {
 
 final class PetUpdated extends PetState {
   const PetUpdated();
+
+  @override
+  List<Object?> get props => [];
+}
+
+final class PetDeleted extends PetState {
+  const PetDeleted();
 
   @override
   List<Object?> get props => [];

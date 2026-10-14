@@ -8,6 +8,7 @@ import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
@@ -18,10 +19,13 @@ class MockCreatePet extends Mock implements CreatePet {}
 
 class MockUpdatePet extends Mock implements UpdatePet {}
 
+class MockDeletePet extends Mock implements DeletePet {}
+
 void main() {
   late MockPetRepository repository;
   late MockCreatePet createPet;
   late MockUpdatePet updatePet;
+  late MockDeletePet deletePet;
 
   const pet = Pet(
     id: 'pet-1',
@@ -45,10 +49,13 @@ void main() {
     reproductiveStatus: ReproductiveStatus.sterilized,
   );
 
+  setUpAll(() => registerFallbackValue(pet));
+
   setUp(() {
     repository = MockPetRepository();
     createPet = MockCreatePet();
     updatePet = MockUpdatePet();
+    deletePet = MockDeletePet();
   });
 
   group('loadPets', () {
@@ -59,7 +66,7 @@ void main() {
           () => repository.getPets(),
         ).thenAnswer((_) async => const Success([pet]));
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.loadPets(),
       expect: () => [
@@ -75,7 +82,7 @@ void main() {
           (_) async => const Error(LocalDatabaseFailure('Failed to get pets')),
         );
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.loadPets(),
       expect: () => [const PetLoading(), const PetError('Failed to get pets')],
@@ -90,7 +97,7 @@ void main() {
           () => repository.getPetById('pet-1'),
         ).thenAnswer((_) async => const Success(pet));
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.getPetById('pet-1'),
       expect: () => [const PetLoading(), const PetLoaded(pet)],
@@ -103,7 +110,7 @@ void main() {
           (_) async => const Error(NotFoundFailure('Pet not found')),
         );
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.getPetById('pet-1'),
       expect: () => [const PetLoading(), const PetError('Pet not found')],
@@ -117,7 +124,7 @@ void main() {
           () => createPet(createParams),
         ).thenAnswer((_) async => const Success(null));
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.createPet(createParams),
       expect: () => [const PetLoading(), const PetCreated()],
@@ -134,7 +141,7 @@ void main() {
               const Error(LocalDatabaseFailure('Failed to create pet')),
         );
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.createPet(createParams),
       expect: () => [
@@ -154,7 +161,7 @@ void main() {
           () => updatePet(pet, updateParams),
         ).thenAnswer((_) async => const Success(null));
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.updatePet(pet, updateParams),
       expect: () => [const PetLoading(), const PetUpdated()],
@@ -171,7 +178,7 @@ void main() {
               const Error(LocalDatabaseFailure('Failed to update pet')),
         );
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.updatePet(pet, updateParams),
       expect: () => [
@@ -185,42 +192,43 @@ void main() {
   });
   group('deletePet', () {
     blocTest<PetCubit, PetState>(
-      'emits PetLoading and PetsLoaded when repository succeeds',
+      'keeps the profile while deleting and emits PetDeleted on success',
       build: () {
-        when(
-          () => repository.deletePet(pet.id),
-        ).thenAnswer((_) async => const Success(null));
+        when(() => deletePet(pet)).thenAnswer((_) async => const Success(null));
         when(
           () => repository.getPets(),
         ).thenAnswer((_) async => const Success([]));
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
-      act: (cubit) => cubit.deletePet(pet.id),
-      expect: () => [const PetLoading(), const PetsLoaded([])],
+      act: (cubit) => cubit.deletePet(pet),
+      expect: () => [
+        const PetLoaded(pet, isDeleting: true),
+        const PetDeleted(),
+      ],
       verify: (_) {
-        verify(() => repository.deletePet(pet.id)).called(1);
-        verify(() => repository.getPets()).called(1);
+        verify(() => deletePet(pet)).called(1);
+        verifyNever(() => repository.getPets());
       },
     );
 
     blocTest<PetCubit, PetState>(
-      'emits PetLoading and PetError when repository fails',
+      'restores the profile with a deletion error when the use case fails',
       build: () {
-        when(() => repository.deletePet(pet.id)).thenAnswer(
+        when(() => deletePet(pet)).thenAnswer(
           (_) async =>
               const Error(LocalDatabaseFailure('Failed to delete pet')),
         );
 
-        return PetCubit(repository, createPet, updatePet);
+        return PetCubit(repository, createPet, updatePet, deletePet);
       },
-      act: (cubit) => cubit.deletePet(pet.id),
+      act: (cubit) => cubit.deletePet(pet),
       expect: () => [
-        const PetLoading(),
-        const PetError('Failed to delete pet'),
+        const PetLoaded(pet, isDeleting: true),
+        const PetLoaded(pet, deleteError: 'Failed to delete pet'),
       ],
       verify: (_) {
-        verify(() => repository.deletePet(pet.id)).called(1);
+        verify(() => deletePet(pet)).called(1);
         verifyNever(() => repository.getPets());
       },
     );
@@ -234,7 +242,7 @@ void main() {
       test('loadPets ignores $outcome after close', () async {
         final pending = Completer<Result<List<Pet>>>();
         when(() => repository.getPets()).thenAnswer((_) => pending.future);
-        final cubit = PetCubit(repository, createPet, updatePet);
+        final cubit = PetCubit(repository, createPet, updatePet, deletePet);
 
         final operation = cubit.loadPets();
         await cubit.close();
@@ -251,7 +259,7 @@ void main() {
         when(
           () => repository.getPetById(pet.id),
         ).thenAnswer((_) => pending.future);
-        final cubit = PetCubit(repository, createPet, updatePet);
+        final cubit = PetCubit(repository, createPet, updatePet, deletePet);
 
         final operation = cubit.getPetById(pet.id);
         await cubit.close();
@@ -264,7 +272,7 @@ void main() {
       test('createPet ignores $outcome after close', () async {
         final pending = Completer<Result<void>>();
         when(() => createPet(createParams)).thenAnswer((_) => pending.future);
-        final cubit = PetCubit(repository, createPet, updatePet);
+        final cubit = PetCubit(repository, createPet, updatePet, deletePet);
 
         final operation = cubit.createPet(createParams);
         await cubit.close();
@@ -279,7 +287,7 @@ void main() {
         when(
           () => updatePet(pet, updateParams),
         ).thenAnswer((_) => pending.future);
-        final cubit = PetCubit(repository, createPet, updatePet);
+        final cubit = PetCubit(repository, createPet, updatePet, deletePet);
 
         final operation = cubit.updatePet(pet, updateParams);
         await cubit.close();
@@ -293,19 +301,17 @@ void main() {
         'deletePet ignores $outcome without reloading after close',
         () async {
           final pending = Completer<Result<void>>();
-          when(
-            () => repository.deletePet(pet.id),
-          ).thenAnswer((_) => pending.future);
-          final cubit = PetCubit(repository, createPet, updatePet);
+          when(() => deletePet(pet)).thenAnswer((_) => pending.future);
+          final cubit = PetCubit(repository, createPet, updatePet, deletePet);
 
-          final operation = cubit.deletePet(pet.id);
+          final operation = cubit.deletePet(pet);
           await cubit.close();
           pending.complete(
             succeeds ? const Success(null) : const Error(failure),
           );
 
           await expectLater(operation, completes);
-          expect(cubit.state, const PetLoading());
+          expect(cubit.state, const PetLoaded(pet, isDeleting: true));
           verifyNever(() => repository.getPets());
         },
       );
