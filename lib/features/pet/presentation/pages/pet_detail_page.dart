@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
@@ -34,80 +35,12 @@ class PetDetailPage extends StatelessWidget {
   Future<void> _deletePet(BuildContext context, Pet pet) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        final theme = Theme.of(context);
-        return Dialog(
-          constraints: const BoxConstraints(maxWidth: 360),
-          insetPadding: const EdgeInsets.all(AppSpacing.lg),
-          backgroundColor: theme.colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.md),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Semantics(
-                        namesRoute: true,
-                        child: Text(
-                          'Delete pet?',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleLarge,
-                        ),
-                      ),
-                      VerticalGap.md,
-                      Text(
-                        '${pet.name}’s profile, photo and weight history will be removed. This cannot be undone.',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  0,
-                  AppSpacing.lg,
-                  AppSpacing.lg,
-                ),
-                child: OverflowBar(
-                  spacing: AppSpacing.sm,
-                  overflowSpacing: AppSpacing.sm,
-                  alignment: MainAxisAlignment.center,
-                  overflowAlignment: OverflowBarAlignment.center,
-                  children: [
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: theme.colorScheme.onSurface,
-                        minimumSize: const Size(96, 48),
-                      ),
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(96, 48),
-                      ),
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text('Delete'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (context) => AppConfirmationDialog(
+        title: 'Delete pet?',
+        message:
+            '${pet.name}’s profile, photo and weight history will be removed. This cannot be undone.',
+        confirmLabel: 'Delete',
+      ),
     );
     if (confirmed == true && context.mounted) {
       await context.read<PetCubit>().deletePet(pet);

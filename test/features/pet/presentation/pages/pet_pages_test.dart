@@ -244,8 +244,6 @@ void main() {
           keyboard: true,
         );
         expect(tester.takeException(), isNull);
-        await tester.ensureVisible(find.text('Save changes'));
-        await tester.pumpAndSettle();
         expect(find.text('Save changes').hitTestable(), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
@@ -269,14 +267,14 @@ void main() {
     await tester.enterText(find.byType(TextFormField).first, 'Fluffy');
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byType(FilledButton));
+    await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Add pet'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Add pet'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add pet'));
     await tester.pumpAndSettle();
     expect(find.text('Could not save. Please retry.'), findsOneWidget);
     expect(find.text('Fluffy'), findsOneWidget);
     expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
       isNotNull,
     );
     verify(() => createPet(any())).called(1);
@@ -324,8 +322,7 @@ void main() {
         );
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.byType(FilledButton));
-        await tester.pumpAndSettle();
+        expect(find.text('Save changes').hitTestable(), findsOneWidget);
         await tester.tap(find.text('Save changes'));
         await tester.pumpAndSettle();
         expect(find.text('Updated pet name'), findsOneWidget);
