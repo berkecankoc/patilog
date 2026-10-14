@@ -16,6 +16,7 @@ import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
@@ -33,6 +34,8 @@ class MockPetRepository extends Mock implements PetRepository {}
 class MockCreatePet extends Mock implements CreatePet {}
 
 class MockUpdatePet extends Mock implements UpdatePet {}
+
+class MockDeletePet extends Mock implements DeletePet {}
 
 class MockImageStorage extends Mock implements ImageStorage {}
 
@@ -71,7 +74,7 @@ void main() {
       ),
     );
     getIt.registerFactory<PetCubit>(
-      () => PetCubit(pets, MockCreatePet(), MockUpdatePet()),
+      () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );
     getIt.registerFactory<WeightHistoryCubit>(
       () => WeightHistoryCubit(repository, ids),

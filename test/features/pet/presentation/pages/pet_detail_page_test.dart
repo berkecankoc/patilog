@@ -8,6 +8,7 @@ import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_detail_page.dart';
@@ -19,6 +20,8 @@ class MockImageStorage extends Mock implements ImageStorage {}
 class MockCreatePet extends Mock implements CreatePet {}
 
 class MockUpdatePet extends Mock implements UpdatePet {}
+
+class MockDeletePet extends Mock implements DeletePet {}
 
 void main() {
   for (final brightness in Brightness.values) {
@@ -49,7 +52,12 @@ void main() {
           when(
             () => repository.getPetById(pet.id),
           ).thenAnswer((_) async => const Success(pet));
-          final cubit = PetCubit(repository, MockCreatePet(), MockUpdatePet());
+          final cubit = PetCubit(
+            repository,
+            MockCreatePet(),
+            MockUpdatePet(),
+            MockDeletePet(),
+          );
           await cubit.getPetById(pet.id);
           addTearDown(cubit.close);
 

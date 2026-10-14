@@ -17,6 +17,7 @@ import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_form_page.dart';
@@ -30,8 +31,14 @@ class MockCreatePet extends Mock implements CreatePet {}
 
 class MockUpdatePet extends Mock implements UpdatePet {}
 
-PetCubit makeCubit(PetState state) =>
-    PetCubit(MockRepository(), MockCreatePet(), MockUpdatePet())..emit(state);
+class MockDeletePet extends Mock implements DeletePet {}
+
+PetCubit makeCubit(PetState state) => PetCubit(
+  MockRepository(),
+  MockCreatePet(),
+  MockUpdatePet(),
+  MockDeletePet(),
+)..emit(state);
 
 const pet = Pet(
   id: 'pet-1',
@@ -247,7 +254,12 @@ void main() {
 
   testWidgets('save failure keeps input and allows retry', (tester) async {
     final createPet = MockCreatePet();
-    final cubit = PetCubit(MockRepository(), createPet, MockUpdatePet());
+    final cubit = PetCubit(
+      MockRepository(),
+      createPet,
+      MockUpdatePet(),
+      MockDeletePet(),
+    );
     addTearDown(cubit.close);
     when(() => createPet(any())).thenAnswer(
       (_) async =>
@@ -289,7 +301,7 @@ void main() {
           return const Success<void>(null);
         });
         getIt.registerFactory<PetCubit>(
-          () => PetCubit(repository, MockCreatePet(), update),
+          () => PetCubit(repository, MockCreatePet(), update, MockDeletePet()),
         );
         addTearDown(() => getIt.unregister<PetCubit>());
         final router = GoRouter(

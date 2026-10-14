@@ -31,33 +31,171 @@ class PetDetailPage extends StatelessWidget {
     }
   }
 
+  Future<void> _deletePet(BuildContext context, Pet pet) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return Dialog(
+          constraints: const BoxConstraints(maxWidth: 360),
+          insetPadding: const EdgeInsets.all(AppSpacing.lg),
+          backgroundColor: theme.colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.md),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Semantics(
+                        namesRoute: true,
+                        child: Text(
+                          'Delete pet?',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleLarge,
+                        ),
+                      ),
+                      VerticalGap.md,
+                      Text(
+                        '${pet.name}’s profile, photo and weight history will be removed. This cannot be undone.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                ),
+                child: OverflowBar(
+                  spacing: AppSpacing.sm,
+                  overflowSpacing: AppSpacing.sm,
+                  alignment: MainAxisAlignment.center,
+                  overflowAlignment: OverflowBarAlignment.center,
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onSurface,
+                        minimumSize: const Size(96, 48),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(96, 48),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<PetCubit>().deletePet(pet);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PetCubit, PetState>(
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Pet profile'),
-          actions: [
-            if (state case PetLoaded(:final pet))
-              IconButton(
-                tooltip: 'Edit profile',
-                onPressed: () => _editPet(context, pet),
-                icon: const Icon(Icons.edit_outlined),
-              ),
-          ],
-        ),
-        body: switch (state) {
-          PetLoaded(:final pet) => _PetView(
-            pet: pet,
-            onWeightHistory: () => _openWeightHistory(context),
+    return BlocConsumer<PetCubit, PetState>(
+      listener: (context, state) {
+        if (state is PetDeleted) context.pop(true);
+      },
+      builder: (context, state) {
+        final deleting = state is PetLoaded && state.isDeleting;
+        return PopScope(
+          canPop: !deleting,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(deleting ? 'Deleting pet…' : 'Pet profile'),
+              leading: deleting
+                  ? IconButton(
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      onPressed: null,
+                      icon: const BackButtonIcon(),
+                    )
+                  : null,
+              bottom: deleting
+                  ? const PreferredSize(
+                      preferredSize: Size.fromHeight(4),
+                      child: LinearProgressIndicator(
+                        semanticsLabel: 'Deleting pet',
+                      ),
+                    )
+                  : null,
+              actions: [
+                if (state case PetLoaded(:final pet)) ...[
+                  IconButton(
+                    tooltip: 'Edit profile',
+                    onPressed: deleting ? null : () => _editPet(context, pet),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                  IconButton(
+                    tooltip: 'Delete pet',
+                    onPressed: deleting ? null : () => _deletePet(context, pet),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              ],
+            ),
+            body: AbsorbPointer(
+              absorbing: deleting,
+              child: switch (state) {
+                PetLoaded(:final pet, :final deleteError) => Column(
+                  children: [
+                    if (deleteError != null)
+                      MaterialBanner(
+                        forceActionsBelow: true,
+                        content: Semantics(
+                          liveRegion: true,
+                          child: Text(deleteError),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => _deletePet(context, pet),
+                            child: const Text('Retry deletion'),
+                          ),
+                        ],
+                      ),
+                    Expanded(
+                      child: _PetView(
+                        pet: pet,
+                        onWeightHistory: () => _openWeightHistory(context),
+                      ),
+                    ),
+                  ],
+                ),
+                PetError(:final message) => ErrorView(
+                  message: message,
+                  onRetry: () => context.read<PetCubit>().getPetById(petId),
+                ),
+                _ => const Center(child: CircularProgressIndicator()),
+              },
+            ),
           ),
-          PetError(:final message) => ErrorView(
-            message: message,
-            onRetry: () => context.read<PetCubit>().getPetById(petId),
-          ),
-          _ => const Center(child: CircularProgressIndicator()),
-        },
-      ),
+        );
+      },
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
 
@@ -10,8 +11,9 @@ final class PetCubit extends Cubit<PetState> {
   final PetRepository repository;
   final CreatePet _createPet;
   final UpdatePet _updatePet;
+  final DeletePet _deletePet;
 
-  PetCubit(this.repository, this._createPet, this._updatePet)
+  PetCubit(this.repository, this._createPet, this._updatePet, this._deletePet)
     : super(const PetInitial());
 
   Future<void> loadPets() async {
@@ -70,17 +72,18 @@ final class PetCubit extends Cubit<PetState> {
     }
   }
 
-  Future<void> deletePet(String id) async {
-    emit(const PetLoading());
+  Future<void> deletePet(Pet pet) async {
+    if (state case PetLoaded(isDeleting: true)) return;
+    emit(PetLoaded(pet, isDeleting: true));
 
-    final result = await repository.deletePet(id);
+    final result = await _deletePet(pet);
     if (isClosed) return;
 
     switch (result) {
       case Success<void>():
-        await loadPets();
+        emit(const PetDeleted());
       case Error<void>():
-        emit(PetError(result.failure.message));
+        emit(PetLoaded(pet, deleteError: result.failure.message));
     }
   }
 }

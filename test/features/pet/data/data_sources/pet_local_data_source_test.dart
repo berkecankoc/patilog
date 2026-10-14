@@ -13,6 +13,7 @@ import 'package:petlytics/features/pet/data/models/pet_model.dart';
 import 'package:petlytics/features/pet/data/repositories/pet_repository_impl.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
+import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
 import 'package:petlytics/features/weight_history/data/models/weight_entry_model.dart';
@@ -215,4 +216,38 @@ void main() {
     );
     expect(await history.getWeightEntries(pet.id), isEmpty);
   });
+
+  test(
+    'pet deletion cascades its measurements and leaves other pets intact',
+    () async {
+      const other = PetModel(
+        id: 'pet-2',
+        name: 'Buddy',
+        species: PetSpecies.dog,
+        sex: PetSex.male,
+        reproductiveStatus: ReproductiveStatus.intact,
+      );
+      await source.createPet(
+        pet,
+        weightEntry: measurement('weight-1', 4.5, measuredAt),
+      );
+      await history.createWeightEntry(measurement('weight-2', 4.6, measuredAt));
+      await source.createPet(
+        other,
+        weightEntry: WeightEntryModel(
+          id: 'other-weight',
+          petId: other.id,
+          weight: 10,
+          measuredAt: measuredAt,
+        ),
+      );
+      final images = MockImageStorage();
+      final delete = DeletePet(PetRepositoryImpl(source), images);
+      expect(await delete(pet.toEntity()), const Success<void>(null));
+      expect(await history.getWeightEntries(pet.id), isEmpty);
+      expect((await source.getPets()).single.id, other.id);
+      expect((await history.getWeightEntries(other.id)).single.weight, 10);
+      verifyZeroInteractions(images);
+    },
+  );
 }
