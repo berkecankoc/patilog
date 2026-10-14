@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
@@ -28,21 +29,12 @@ class WeightHistoryPage extends StatelessWidget {
     final date = MaterialLocalizations.of(
       context,
     ).formatShortDate(entry.measuredAt.toLocal());
-    final confirmed = await showAdaptiveDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog.adaptive(
-        title: const Text('Delete measurement?'),
-        content: Text('Remove the ${entry.weight} kg measurement from $date?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (context) => AppConfirmationDialog(
+        title: 'Delete measurement?',
+        message: 'Remove the ${entry.weight} kg measurement from $date?',
+        confirmLabel: 'Delete',
       ),
     );
     if (confirmed == true && context.mounted) {
