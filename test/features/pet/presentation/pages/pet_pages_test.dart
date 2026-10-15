@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +22,7 @@ import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_form_page.dart';
+import 'package:petlytics/features/pet/presentation/pages/pet_detail_page.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_list_page.dart';
 
 class MockRepository extends Mock implements PetRepository {}
@@ -74,6 +76,7 @@ void main() {
     Widget page,
     PetCubit cubit, {
     double width = 320,
+    double height = 720,
     double scale = 2,
     bool keyboard = false,
     Brightness brightness = Brightness.light,
@@ -82,7 +85,7 @@ void main() {
     when(() => imageStorage.resolvePath(any())).thenAnswer(
       (invocation) async => invocation.positionalArguments.first as String,
     );
-    tester.view.physicalSize = Size(width, 720);
+    tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -104,6 +107,191 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  for (final detail in [false, true]) {
+    for (final size in [const Size(320, 568), const Size(640, 320)]) {
+      testWidgets(
+        '${detail ? 'profile' : 'pet list'} error retry stays reachable at $size with large text',
+        (tester) async {
+          final repository = MockRepository();
+          when(
+            repository.getPets,
+          ).thenAnswer((_) async => const Success([pet]));
+          when(
+            () => repository.getPetById(pet.id),
+          ).thenAnswer((_) async => const Success(pet));
+          final cubit = PetCubit(
+            repository,
+            MockCreatePet(),
+            MockUpdatePet(),
+            MockDeletePet(),
+          )..emit(const PetError('Failed to get pets'));
+          addTearDown(cubit.close);
+          await pumpPage(
+            tester,
+            detail ? PetDetailPage(petId: pet.id) : const PetListPage(),
+            cubit,
+            width: size.width,
+            height: size.height,
+          );
+          expect(tester.takeException(), isNull);
+          final retry = find.widgetWithText(ElevatedButton, 'Retry');
+          await tester.ensureVisible(retry);
+          await tester.tap(retry);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(find.text('Retry'), findsNothing);
+          if (detail) {
+            verify(() => repository.getPetById(pet.id)).called(1);
+          } else {
+            verify(repository.getPets).called(1);
+          }
+        },
+      );
+    }
+  }
+
+  for (final code in ['photo_access_denied', 'picker_error']) {
+    testWidgets(
+      'photo picker $code reports failure and preserves input and photo on retry',
+      (tester) async {
+        var attempts = 0;
+        const channel = MethodChannel('plugins.flutter.io/image_picker');
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          (_) async {
+            if (attempts++ == 0) throw PlatformException(code: code);
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            channel,
+            null,
+          ),
+        );
+        final directory = Directory.systemTemp.createTempSync(
+          'pet-picker-test-',
+        );
+        addTearDown(() => directory.deleteSync(recursive: true));
+        final file = File('${directory.path}/photo.png');
+        final recorder = ui.PictureRecorder();
+        Canvas(recorder).drawColor(Colors.orange, BlendMode.src);
+        final picture = recorder.endRecording();
+        final image = (await tester.runAsync(() => picture.toImage(1, 1)))!;
+        picture.dispose();
+        PaintingBinding.instance.imageCache.putIfAbsent(
+          FileImage(file),
+          () => OneFrameImageStreamCompleter(
+            Future.value(ImageInfo(image: image)),
+          ),
+        );
+        addTearDown(PaintingBinding.instance.imageCache.clear);
+        final storedPet = pet.copyWith(imagePath: file.path);
+        final update = MockUpdatePet();
+        when(() => update(storedPet, any())).thenAnswer(
+          (_) async => const Error(LocalDatabaseFailure('Could not save pet')),
+        );
+        final cubit = PetCubit(
+          MockRepository(),
+          MockCreatePet(),
+          update,
+          MockDeletePet(),
+        );
+        addTearDown(cubit.close);
+        await pumpPage(tester, PetFormPage(pet: storedPet), cubit, scale: 1);
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'Updated Buddy',
+        );
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Change photo'));
+        await tester.tap(find.text('Change photo'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(
+          find.text(
+            code == 'photo_access_denied'
+                ? 'Photo access was denied. Allow access in Settings and try again.'
+                : 'Could not select a photo. Please try again.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.byTooltip('Remove photo'), findsOneWidget);
+        expect(find.text('Updated Buddy'), findsOneWidget);
+        await tester.tap(find.text('Retry'));
+        await tester.pumpAndSettle();
+        expect(attempts, 2);
+        expect(find.byType(SnackBar), findsNothing);
+        expect(find.byTooltip('Remove photo'), findsOneWidget);
+        await tester.tap(find.widgetWithText(ElevatedButton, 'Save changes'));
+        await tester.pumpAndSettle();
+        final params =
+            verify(() => update(storedPet, captureAny())).captured.single
+                as UpdatePetParams;
+        expect(params.name, 'Updated Buddy');
+        expect(params.sourceImagePath, file.path);
+      },
+    );
+  }
+
+  testWidgets('cancelling photo selection does not show an error', (
+    tester,
+  ) async {
+    const channel = MethodChannel('plugins.flutter.io/image_picker');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (_) async => null,
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+    final cubit = makeCubit(const PetInitial());
+    addTearDown(cubit.close);
+    await pumpPage(tester, const PetFormPage(), cubit, scale: 1);
+    await tester.tap(find.text('Add photo'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('Add photo'), findsOneWidget);
+  });
+
+  testWidgets('photo retry callback is safe after leaving the form', (
+    tester,
+  ) async {
+    var attempts = 0;
+    const channel = MethodChannel('plugins.flutter.io/image_picker');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      _,
+    ) async {
+      attempts++;
+      throw PlatformException(code: 'photo_access_denied');
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+    final cubit = makeCubit(const PetInitial());
+    addTearDown(cubit.close);
+    await pumpPage(tester, const PetFormPage(), cubit, scale: 1);
+    await tester.tap(find.text('Add photo'));
+    await tester.pumpAndSettle();
+    final retry = tester
+        .widget<SnackBar>(find.byType(SnackBar))
+        .action!
+        .onPressed;
+    await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+    retry();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(attempts, 1);
+  });
 
   for (final validPhoto in [false, true]) {
     testWidgets(

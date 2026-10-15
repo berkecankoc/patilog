@@ -36,9 +36,12 @@ class PetListPage extends StatelessWidget {
                   ? _EmptyPetsView(onAddPet: () => _openAddPet(context))
                   : _PetListView(pets: pets),
 
-            PetError(:final message) => ErrorView(
-              message: message,
-              onRetry: () => context.read<PetCubit>().loadPets(),
+            PetError(:final message) => Padding(
+              padding: const EdgeInsets.only(bottom: 96),
+              child: ErrorView(
+                message: message,
+                onRetry: () => context.read<PetCubit>().loadPets(),
+              ),
             ),
 
             _ => const _PetLoadingView(),

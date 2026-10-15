@@ -144,58 +144,73 @@ void main() {
   }
 
   blocTest<WeightHistoryCubit, WeightHistoryState>(
-    'reloads the same pet history after deleting a measurement',
+    'removes a deleted measurement without discarding the loaded list',
     build: () {
       when(
         () => repository.deleteWeightEntry(entry.id),
       ).thenAnswer((_) async => const Success(null));
-      when(
-        () => repository.getWeightEntries(entry.petId),
-      ).thenAnswer((_) async => const Success([]));
       return makeCubit();
     },
+    seed: () => WeightHistoryLoaded([entry]),
     act: (cubit) => cubit.deleteWeightEntry(entry),
-    expect: () => [const WeightHistoryLoading(), const WeightHistoryLoaded([])],
+    expect: () => [
+      WeightHistoryLoaded([entry], isDeleting: true, deletionEntry: entry),
+      const WeightHistoryLoaded([]),
+    ],
     verify: (_) {
       verify(() => repository.deleteWeightEntry(entry.id)).called(1);
-      verify(() => repository.getWeightEntries(entry.petId)).called(1);
+      verifyNever(() => repository.getWeightEntries(entry.petId));
     },
   );
 
   blocTest<WeightHistoryCubit, WeightHistoryState>(
-    'does not reload history after a failed deletion',
+    'keeps the list and failed measurement available for a deletion retry',
     build: () {
       when(() => repository.deleteWeightEntry(entry.id)).thenAnswer(
         (_) async => const Error(LocalDatabaseFailure('Delete failed')),
       );
       return makeCubit();
     },
+    seed: () => WeightHistoryLoaded([entry]),
     act: (cubit) => cubit.deleteWeightEntry(entry),
     expect: () => [
-      const WeightHistoryLoading(),
-      const WeightHistoryError('Delete failed'),
+      WeightHistoryLoaded([entry], isDeleting: true, deletionEntry: entry),
+      WeightHistoryLoaded(
+        [entry],
+        deletionEntry: entry,
+        deleteError: 'Delete failed',
+      ),
     ],
     verify: (_) => verifyNever(() => repository.getWeightEntries(entry.petId)),
   );
 
-  blocTest<WeightHistoryCubit, WeightHistoryState>(
-    'reports a reload failure without deleting the measurement twice',
-    build: () {
+  test(
+    'ignores duplicate deletions while keeping the remaining order',
+    () async {
+      final older = WeightEntry(
+        id: 'older',
+        petId: entry.petId,
+        weight: 5,
+        measuredAt: DateTime.utc(2026, 10, 12),
+      );
+      when(
+        () => repository.getWeightEntries(entry.petId),
+      ).thenAnswer((_) async => Success([entry, older]));
+      final pending = Completer<Result<void>>();
       when(
         () => repository.deleteWeightEntry(entry.id),
-      ).thenAnswer((_) async => const Success(null));
-      when(() => repository.getWeightEntries(entry.petId)).thenAnswer(
-        (_) async => const Error(LocalDatabaseFailure('Reload failed')),
-      );
-      return makeCubit();
+      ).thenAnswer((_) => pending.future);
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.loadWeightHistory(entry.petId);
+      final first = cubit.deleteWeightEntry(entry);
+      await cubit.deleteWeightEntry(entry);
+      pending.complete(const Success(null));
+      await first;
+      expect(cubit.state, WeightHistoryLoaded([older]));
+      verify(() => repository.deleteWeightEntry(entry.id)).called(1);
+      verify(() => repository.getWeightEntries(entry.petId)).called(1);
     },
-    act: (cubit) => cubit.deleteWeightEntry(entry),
-    expect: () => [
-      const WeightHistoryLoading(),
-      const WeightHistoryError('Reload failed'),
-    ],
-    verify: (_) =>
-        verify(() => repository.deleteWeightEntry(entry.id)).called(1),
   );
 
   test(
@@ -221,6 +236,11 @@ void main() {
         () => repository.deleteWeightEntry(entry.id),
       ).thenAnswer((_) => pending.future);
       final cubit = makeCubit();
+      when(
+        () => repository.getWeightEntries(entry.petId),
+      ).thenAnswer((_) async => Success([entry]));
+      await cubit.loadWeightHistory(entry.petId);
+      clearInteractions(repository);
       final operation = cubit.deleteWeightEntry(entry);
       await cubit.close();
       pending.complete(const Success(null));

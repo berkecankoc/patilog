@@ -91,10 +91,11 @@ void main() {
     String? initialLocation,
     Brightness brightness = Brightness.light,
     double width = 390,
+    double height = 720,
     double scale = 1,
     bool keyboard = false,
   }) async {
-    tester.view.physicalSize = Size(width, 720);
+    tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -131,10 +132,8 @@ void main() {
   Future<void> save(WidgetTester tester) async {
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.widgetWithText(ElevatedButton, 'Save measurement'),
-    );
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Save measurement'));
+    await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Save'));
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Save'));
     await tester.pumpAndSettle();
   }
 
@@ -325,7 +324,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, '4.9');
     await save(tester);
-    await tester.tap(find.byType(BackButton));
+    await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Profile details'));
     await tester.tap(find.text('Profile details'));
@@ -338,7 +337,7 @@ void main() {
   testWidgets('cancelling the form does not reload history', (tester) async {
     await pumpRouter(tester);
     await openAddForm(tester);
-    await tester.tap(find.byType(BackButton));
+    await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.byType(WeightHistoryPage), findsOneWidget);
     verify(() => repository.getWeightEntries(pet.id)).called(1);
@@ -347,7 +346,7 @@ void main() {
 
   for (final confirm in [false, true]) {
     testWidgets(
-      'deletion ${confirm ? 'confirms and refreshes' : 'cancels without deleting'}',
+      'deletion ${confirm ? 'confirms and updates the list' : 'cancels without deleting'}',
       (tester) async {
         when(() => repository.deleteWeightEntry(entry.id)).thenAnswer((
           _,
@@ -365,7 +364,7 @@ void main() {
         if (confirm) {
           expect(find.text('No measurements yet'), findsOneWidget);
           verify(() => repository.deleteWeightEntry(entry.id)).called(1);
-          verify(() => repository.getWeightEntries(pet.id)).called(2);
+          verify(() => repository.getWeightEntries(pet.id)).called(1);
         } else {
           expect(find.text('4.5 kg'), findsNWidgets(2));
           verifyNever(() => repository.deleteWeightEntry(any()));
@@ -433,25 +432,41 @@ void main() {
     expect(find.text('Jan 12, 2024'), findsNWidgets(2));
   });
 
-  testWidgets('delete failure allows reloading without repeating deletion', (
-    tester,
-  ) async {
-    when(() => repository.deleteWeightEntry(entry.id)).thenAnswer(
-      (_) async =>
-          const Error(LocalDatabaseFailure('Could not delete measurement')),
-    );
-    await pumpRouter(tester);
-    await tester.tap(find.byIcon(Icons.delete_outline));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete'));
-    await tester.pumpAndSettle();
-    expect(find.text('Could not delete measurement'), findsOneWidget);
-    await tester.tap(find.text('Retry'));
-    await tester.pumpAndSettle();
-    expect(find.text('4.5 kg'), findsNWidgets(2));
-    verify(() => repository.deleteWeightEntry(entry.id)).called(1);
-    verify(() => repository.getWeightEntries(pet.id)).called(2);
-  });
+  testWidgets(
+    'delete failure keeps the list and retries only after confirmation',
+    (tester) async {
+      var attempts = 0;
+      when(() => repository.deleteWeightEntry(entry.id)).thenAnswer((_) async {
+        if (attempts++ == 0) {
+          return const Error(
+            LocalDatabaseFailure('Could not delete measurement'),
+          );
+        }
+        entries = [];
+        return const Success(null);
+      });
+      await pumpRouter(tester);
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('Could not delete measurement'), findsOneWidget);
+      expect(find.text('4.5 kg'), findsNWidgets(2));
+      await tester.tap(find.text('Retry deletion'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('4.5 kg'), findsNWidgets(2));
+      verify(() => repository.deleteWeightEntry(entry.id)).called(1);
+      await tester.tap(find.text('Retry deletion'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('No measurements yet'), findsOneWidget);
+      verify(() => repository.deleteWeightEntry(entry.id)).called(1);
+      verify(() => repository.getWeightEntries(pet.id)).called(1);
+    },
+  );
 
   testWidgets('history and form have labeled accessible tap targets', (
     tester,
@@ -483,8 +498,11 @@ void main() {
       tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
       isNull,
     );
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(WeightEntryFormPage), findsOneWidget);
+    expect(find.text('Discard changes?'), findsNothing);
     pending.complete(const Success(null));
     await tester.pumpAndSettle();
     expect(find.byType(WeightHistoryPage), findsOneWidget);
@@ -492,7 +510,288 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a second submit after success cannot save or pop twice', (
+    tester,
+  ) async {
+    when(
+      () => repository.createWeightEntry(any()),
+    ).thenAnswer((_) async => const Success(null));
+    await pumpRouter(tester);
+    await openAddForm(tester);
+    await tester.enterText(find.byType(TextFormField).first, '5.2');
+    final submit = tester
+        .widget<TextField>(find.byType(TextField).first)
+        .onSubmitted!;
+    submit('5.2');
+    await tester.idle();
+    submit('5.2');
+    await tester.pumpAndSettle();
+    expect(find.byType(WeightHistoryPage), findsOneWidget);
+    verify(() => repository.createWeightEntry(any())).called(1);
+  });
+
+  for (final editing in [false, true]) {
+    for (final systemBack in [false, true]) {
+      testWidgets(
+        'dirty ${editing ? 'edit' : 'add'} form protects input on ${systemBack ? 'system' : 'app bar'} back',
+        (tester) async {
+          await pumpRouter(tester);
+          if (editing) {
+            await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+            await tester.pumpAndSettle();
+          } else {
+            await openAddForm(tester);
+          }
+          await tester.enterText(find.byType(TextFormField).first, '4.7');
+          FocusManager.instance.primaryFocus?.unfocus();
+          await tester.pumpAndSettle();
+          Future<void> back() async {
+            if (systemBack) {
+              await tester.binding.handlePopRoute();
+            } else {
+              await tester.tap(find.byTooltip('Back'));
+            }
+            await tester.pumpAndSettle();
+          }
+
+          await back();
+          expect(find.text('Discard changes?'), findsOneWidget);
+          await tester.tap(find.text('Keep editing'));
+          await tester.pumpAndSettle();
+          expect(find.text('4.7'), findsOneWidget);
+          await back();
+          await tester.tap(find.text('Discard changes'));
+          await tester.pumpAndSettle();
+          expect(find.byType(WeightHistoryPage), findsOneWidget);
+          verifyNever(() => repository.createWeightEntry(any()));
+          verifyNever(() => repository.updateWeightEntry(any()));
+        },
+      );
+    }
+  }
+
+  testWidgets(
+    'unchanged edit closes without confirmation and cannot be saved',
+    (tester) async {
+      await pumpRouter(tester);
+      await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save'))
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byType(WeightHistoryPage), findsOneWidget);
+      verifyNever(() => repository.updateWeightEntry(any()));
+    },
+  );
+
+  testWidgets('date-only edit is protected before leaving', (tester) async {
+    await pumpRouter(tester);
+    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Choose measurement date'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('11').last);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Discard changes?'), findsOneWidget);
+    await tester.tap(find.text('Keep editing'));
+    await tester.pumpAndSettle();
+    expect(find.text('Jan 11, 2025'), findsOneWidget);
+  });
+
+  testWidgets('pending save failure stays on the form with input and retry', (
+    tester,
+  ) async {
+    final pending = Completer<Result<void>>();
+    when(
+      () => repository.createWeightEntry(any()),
+    ).thenAnswer((_) => pending.future);
+    await pumpRouter(tester);
+    await openAddForm(tester);
+    await tester.enterText(find.byType(TextFormField).first, '5.2');
+    tester.widget<TextField>(find.byType(TextField).first).onSubmitted!('5.2');
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(WeightEntryFormPage), findsOneWidget);
+    pending.complete(
+      const Error(LocalDatabaseFailure('Failed to create measurement')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Failed to create measurement').hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.text('5.2'), findsOneWidget);
+    expect(
+      tester
+          .widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save'))
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets(
+    'pending deletion blocks exit and profile refreshes after completion',
+    (tester) async {
+      final older = WeightEntry(
+        id: 'older-entry',
+        petId: pet.id,
+        weight: 4.2,
+        measuredAt: DateTime(2024, 1, 12),
+      );
+      entries = [entry, older];
+      final pending = Completer<Result<void>>();
+      when(() => repository.deleteWeightEntry(entry.id)).thenAnswer((_) async {
+        final result = await pending.future;
+        entries = [older];
+        return result;
+      });
+      await pumpRouter(tester, initialLocation: AppRoutes.petDetail(pet.id));
+      await tester.ensureVisible(find.text('Weight history'));
+      await tester.tap(find.text('Weight history'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.delete_outline).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pump();
+      expect(find.text('4.5 kg'), findsNWidgets(2));
+      expect(
+        tester
+            .widget<FloatingActionButton>(find.byType(FloatingActionButton))
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.byTooltip('Back'));
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.byType(WeightHistoryPage), findsOneWidget);
+      pending.complete(const Success(null));
+      await tester.pumpAndSettle();
+      expect(find.text('4.5 kg'), findsNothing);
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Profile details'));
+      await tester.tap(find.text('Profile details'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('4.2 kg'));
+      expect(find.text('4.2 kg'), findsOneWidget);
+      expect(find.text('4.5 kg'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'delete error and confirmed retry preserve a long list scroll position',
+    (tester) async {
+      entries = List.generate(
+        30,
+        (i) => WeightEntry(
+          id: 'entry-$i',
+          petId: pet.id,
+          weight: 4.5 + i / 10,
+          measuredAt: DateTime(2025, 1, 30 - i),
+        ),
+      );
+      var attempts = 0;
+      when(() => repository.deleteWeightEntry(any())).thenAnswer((
+        invocation,
+      ) async {
+        if (attempts++ == 0) {
+          return const Error(
+            LocalDatabaseFailure('Failed to delete measurement'),
+          );
+        }
+        entries.removeWhere(
+          (item) => item.id == invocation.positionalArguments.first,
+        );
+        return const Success(null);
+      });
+      await pumpRouter(tester);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -1000));
+      await tester.pumpAndSettle();
+      final scroll = tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position;
+      final offset = scroll.pixels;
+      expect(offset, greaterThan(0));
+      await tester.tap(find.byIcon(Icons.delete_outline).hitTestable().first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Failed to delete measurement').hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.byType(CustomScrollView), findsOneWidget);
+      expect(scroll.pixels, offset);
+      await tester.tap(find.text('Retry deletion'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete measurement?'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('Failed to delete measurement'), findsNothing);
+      expect(scroll.pixels, offset);
+      verify(() => repository.getWeightEntries(pet.id)).called(1);
+    },
+  );
+
   for (final brightness in Brightness.values) {
+    for (final (width, height, scale, keyboard) in [
+      (320.0, 568.0, 2.0, true),
+      (640.0, 320.0, 2.0, false),
+    ]) {
+      testWidgets(
+        'save error and retry stay visible at $width x $height in $brightness',
+        (tester) async {
+          when(() => repository.createWeightEntry(any())).thenAnswer(
+            (_) async => const Error(
+              LocalDatabaseFailure('Failed to create measurement'),
+            ),
+          );
+          await pumpRouter(
+            tester,
+            brightness: brightness,
+            width: width,
+            height: height,
+            scale: scale,
+            keyboard: keyboard,
+          );
+          await openAddForm(tester);
+          await tester.enterText(find.byType(TextFormField).first, '5.2');
+          tester.widget<TextField>(find.byType(TextField).first).onSubmitted!(
+            '5.2',
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          final error = find.text('Failed to create measurement');
+          expect(error.hitTestable(), findsOneWidget);
+          final viewport = tester.getRect(find.byType(SingleChildScrollView));
+          expect(tester.getRect(error).top, greaterThanOrEqualTo(viewport.top));
+          expect(
+            tester.getRect(error).bottom,
+            lessThanOrEqualTo(viewport.bottom),
+          );
+          final saveButton = find.widgetWithText(ElevatedButton, 'Save');
+          expect(
+            tester.getRect(error).bottom,
+            lessThanOrEqualTo(tester.getRect(saveButton).top),
+          );
+          expect(
+            find.widgetWithText(ElevatedButton, 'Save').hitTestable(),
+            findsOneWidget,
+          );
+          expect(find.text('5.2'), findsOneWidget);
+        },
+      );
+    }
     for (final (width, scale) in [(320.0, 2.0), (800.0, 1.0)]) {
       testWidgets('history and form fit $width at $scale in $brightness', (
         tester,
@@ -509,10 +808,8 @@ void main() {
         expect(addButton.left, greaterThanOrEqualTo(0));
         expect(addButton.right, lessThanOrEqualTo(width));
         await openAddForm(tester);
-        await tester.ensureVisible(
-          find.widgetWithText(ElevatedButton, 'Save measurement'),
-        );
-        expect(find.text('Save measurement').hitTestable(), findsOneWidget);
+        await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Save'));
+        expect(find.text('Save').hitTestable(), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }
