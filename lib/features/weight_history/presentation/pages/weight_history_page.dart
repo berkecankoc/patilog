@@ -45,78 +45,151 @@ class WeightHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<WeightHistoryCubit, WeightHistoryState>(
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('Weight history')),
-        floatingActionButton: FloatingActionButton.extended(
-          // Keep the action within the viewport when text is enlarged.
-          isExtended: MediaQuery.textScalerOf(context).scale(14) <= 21,
-          onPressed: state is WeightHistoryLoaded
-              ? () => _openForm(context)
-              : null,
-          icon: const Icon(Icons.add),
-          tooltip: 'Add measurement',
-          label: const Text('Add weight'),
-        ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: switch (state) {
-                WeightHistoryLoaded(:final entries) when entries.isEmpty =>
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.monitor_weight_outlined,
-                          size: 48,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        VerticalGap.md,
-                        Text(
-                          'No measurements yet',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        VerticalGap.sm,
-                        const Text(
-                          'Add a weight measurement to start the history.',
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+      builder: (context, state) {
+        final deleting = state is WeightHistoryLoaded && state.isDeleting;
+        return PopScope(
+          canPop: !deleting,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Weight history'),
+              leading: deleting
+                  ? IconButton(
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      onPressed: null,
+                      icon: const BackButtonIcon(),
+                    )
+                  : null,
+              bottom: deleting
+                  ? const PreferredSize(
+                      preferredSize: Size.fromHeight(4),
+                      child: LinearProgressIndicator(
+                        semanticsLabel: 'Deleting measurement',
+                      ),
+                    )
+                  : null,
+            ),
+            floatingActionButton: FloatingActionButton.extended(
+              // Keep the action within the viewport when text is enlarged.
+              isExtended: MediaQuery.textScalerOf(context).scale(14) <= 21,
+              onPressed: state is WeightHistoryLoaded && !deleting
+                  ? () => _openForm(context)
+                  : null,
+              icon: const Icon(Icons.add),
+              tooltip: 'Add measurement',
+              label: const Text('Add weight'),
+            ),
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: switch (state) {
+                    WeightHistoryLoaded(
+                      :final entries,
+                      :final deleteError,
+                      :final deletionEntry,
+                    ) =>
+                      Column(
+                        children: [
+                          if (deleteError != null && deletionEntry != null)
+                            MaterialBanner(
+                              forceActionsBelow: true,
+                              content: Semantics(
+                                liveRegion: true,
+                                child: Text(deleteError),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      _delete(context, deletionEntry),
+                                  child: const Text('Retry deletion'),
+                                ),
+                              ],
+                            ),
+                          Expanded(
+                            child: AbsorbPointer(
+                              absorbing: deleting,
+                              child: entries.isEmpty
+                                  ? SingleChildScrollView(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        24,
+                                        24,
+                                        24,
+                                        96,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.monitor_weight_outlined,
+                                            size: 48,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                          VerticalGap.md,
+                                          Text(
+                                            'No measurements yet',
+                                            textAlign: TextAlign.center,
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.titleLarge,
+                                          ),
+                                          VerticalGap.sm,
+                                          const Text(
+                                            'Add a weight measurement to start the history.',
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : _Measurements(
+                                      entries: entries,
+                                      deletingEntryId: deleting
+                                          ? deletionEntry?.id
+                                          : null,
+                                      onEdit: deleting
+                                          ? null
+                                          : (entry) =>
+                                                _openForm(context, entry),
+                                      onDelete: deleting
+                                          ? null
+                                          : (entry) => _delete(context, entry),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    WeightHistoryError(:final message) => ErrorView(
+                      message: message,
+                      onRetry: () => context
+                          .read<WeightHistoryCubit>()
+                          .loadWeightHistory(petId),
                     ),
-                  ),
-                WeightHistoryLoaded(:final entries) => _Measurements(
-                  entries: entries,
-                  onEdit: (entry) => _openForm(context, entry),
-                  onDelete: (entry) => _delete(context, entry),
+                    _ => const CircularProgressIndicator(),
+                  },
                 ),
-                WeightHistoryError(:final message) => ErrorView(
-                  message: message,
-                  onRetry: () => context
-                      .read<WeightHistoryCubit>()
-                      .loadWeightHistory(petId),
-                ),
-                _ => const CircularProgressIndicator(),
-              },
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
 class _Measurements extends StatelessWidget {
   final List<WeightEntry> entries;
-  final ValueChanged<WeightEntry> onEdit;
-  final ValueChanged<WeightEntry> onDelete;
+  final ValueChanged<WeightEntry>? onEdit;
+  final ValueChanged<WeightEntry>? onDelete;
+  final String? deletingEntryId;
 
   const _Measurements({
     required this.entries,
     required this.onEdit,
     required this.onDelete,
+    required this.deletingEntryId,
   });
 
   @override
@@ -197,12 +270,23 @@ class _Measurements extends StatelessWidget {
                   minVerticalPadding: AppSpacing.md,
                   title: Text('${entry.weight} kg'),
                   subtitle: Text(date),
-                  onTap: () => onEdit(entry),
-                  trailing: IconButton(
-                    tooltip: 'Delete ${entry.weight} kg measurement from $date',
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => onDelete(entry),
-                  ),
+                  onTap: onEdit == null ? null : () => onEdit!(entry),
+                  trailing: deletingEntryId == entry.id
+                      ? const SizedBox.square(
+                          dimension: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            semanticsLabel: 'Deleting measurement',
+                          ),
+                        )
+                      : IconButton(
+                          tooltip:
+                              'Delete ${entry.weight} kg measurement from $date',
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: onDelete == null
+                              ? null
+                              : () => onDelete!(entry),
+                        ),
                 ),
               );
             },

@@ -21,10 +21,19 @@ final class WeightHistoryLoading extends WeightHistoryState {
 
 final class WeightHistoryLoaded extends WeightHistoryState {
   final List<WeightEntry> entries;
-  const WeightHistoryLoaded(this.entries);
+  final bool isDeleting;
+  final WeightEntry? deletionEntry;
+  final String? deleteError;
+
+  const WeightHistoryLoaded(
+    this.entries, {
+    this.isDeleting = false,
+    this.deletionEntry,
+    this.deleteError,
+  });
 
   @override
-  List<Object?> get props => [entries];
+  List<Object?> get props => [entries, isDeleting, deletionEntry, deleteError];
 }
 
 final class WeightEntryCreated extends WeightHistoryState {

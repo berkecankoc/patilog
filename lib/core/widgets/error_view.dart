@@ -10,29 +10,32 @@ class ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: context.colors.danger),
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: context.colors.danger),
 
-            VerticalGap.md,
+              VerticalGap.md,
 
-            Text(
-              'Something went wrong',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+              Text(
+                'Something went wrong',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
 
-            VerticalGap.sm,
+              VerticalGap.sm,
 
-            Text(message, textAlign: TextAlign.center),
+              Text(message, textAlign: TextAlign.center),
 
-            VerticalGap.lg,
+              VerticalGap.lg,
 
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
+              ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ],
+          ),
         ),
       ),
     );

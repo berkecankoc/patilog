@@ -72,15 +72,34 @@ final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
   }
 
   Future<void> deleteWeightEntry(WeightEntry entry) async {
-    emit(const WeightHistoryLoading());
+    final current = state;
+    if (current is! WeightHistoryLoaded || current.isDeleting) return;
+    emit(
+      WeightHistoryLoaded(
+        current.entries,
+        isDeleting: true,
+        deletionEntry: entry,
+      ),
+    );
     final result = await repository.deleteWeightEntry(entry.id);
     if (isClosed) return;
 
     switch (result) {
       case Success<void>():
-        await loadWeightHistory(entry.petId);
+        // The committed deletion is known; keep the list and its scroll state.
+        emit(
+          WeightHistoryLoaded(
+            current.entries.where((item) => item.id != entry.id).toList(),
+          ),
+        );
       case Error<void>():
-        emit(WeightHistoryError(result.failure.message));
+        emit(
+          WeightHistoryLoaded(
+            current.entries,
+            deletionEntry: entry,
+            deleteError: result.failure.message,
+          ),
+        );
     }
   }
 }

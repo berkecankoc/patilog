@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -245,17 +246,33 @@ class _PetFormPageState extends State<PetFormPage> {
   }
 
   Future<void> _pickImage() async {
-    final image = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      requestFullMetadata: false,
-    );
+    if (!mounted || context.read<PetCubit>().state is PetLoading) return;
+    try {
+      final image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        requestFullMetadata: false,
+      );
 
-    if (image == null || !mounted) return;
+      if (image == null || !mounted) return;
 
-    setState(() {
-      _pickedImagePath = image.path;
-    });
+      setState(() {
+        _pickedImagePath = image.path;
+      });
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      final message = error.code == 'photo_access_denied'
+          ? 'Photo access was denied. Allow access in Settings and try again.'
+          : 'Could not select a photo. Please try again.';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            action: SnackBarAction(label: 'Retry', onPressed: _pickImage),
+          ),
+        );
+    }
   }
 
   void _leave([bool? result]) {
