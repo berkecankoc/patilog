@@ -14,6 +14,8 @@ import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
 import 'package:petlytics/features/vet_visit/data/repositories/vet_visit_repository_impl.dart';
 import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
 import 'package:petlytics/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
 import 'package:petlytics/features/weight_history/data/repositories/weight_history_repository_impl.dart';
 import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
@@ -91,5 +93,13 @@ Future<void> setupDependencies() async {
       getIt<WeightHistoryRepository>(),
       getIt<IdGenerator>(),
     ),
+  );
+
+  getIt.registerFactory<VetVisitCubit>(
+    () => VetVisitCubit(getIt<VetVisitRepository>()),
+  );
+
+  getIt.registerFactory<VetVisitFormCubit>(
+    () => VetVisitFormCubit(getIt<VetVisitRepository>(), getIt<IdGenerator>()),
   );
 }

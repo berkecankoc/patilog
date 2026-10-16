@@ -8,6 +8,10 @@ import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
 import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_state.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -29,6 +33,41 @@ void main() {
     await getIt.reset();
     await directory.delete(recursive: true);
   });
+
+  test(
+    'Cubit factories provide independent state and use the registered repository',
+    () async {
+      await getIt<Database>().insert(DatabaseTables.pets, {
+        'id': 'pet-1',
+        'name': 'Milo',
+        'species': 'cat',
+        'sex': 'male',
+        'reproductive_status': 'intact',
+      });
+      final list = getIt<VetVisitCubit>();
+      final otherList = getIt<VetVisitCubit>();
+      final form = getIt<VetVisitFormCubit>();
+      final otherForm = getIt<VetVisitFormCubit>();
+      for (final cubit in [list, otherList, form, otherForm]) {
+        addTearDown(cubit.close);
+      }
+      expect(identical(list, otherList), isFalse);
+      expect(identical(form, otherForm), isFalse);
+      await form.saveVetVisit(
+        petId: 'pet-1',
+        visitedOn: DateTime(2026, 10, 15),
+        reason: 'Checkup',
+      );
+      expect(form.state.isSaved, isTrue);
+      expect(otherForm.state, const VetVisitFormState());
+      await list.loadVetVisits('pet-1');
+      final loaded = list.state as VetVisitsLoaded;
+      expect(loaded.visits.single.id, isNotEmpty);
+      expect(loaded.visits.single.petId, 'pet-1');
+      expect(loaded.visits.single.reason, 'Checkup');
+      expect(otherList.state, const VetVisitInitial());
+    },
+  );
 
   test(
     'registered vet repository persists, reads and deletes through SQLite',
