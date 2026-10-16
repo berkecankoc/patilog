@@ -308,7 +308,104 @@ void main() {
     },
   );
 
-  for (final operation in ['list', 'detail', 'delete']) {
+  for (final (result, error) in <(Result<void>, String?)>[
+    (const Success(null), null),
+    (const Error(LocalDatabaseFailure('Delete failed')), 'Delete failed'),
+    (const Error(NotFoundFailure('Visit not found')), 'Visit not found'),
+  ]) {
+    blocTest<VetVisitCubit, VetVisitState>(
+      'list deletion retains rows while pending and maps $result',
+      build: () {
+        when(
+          () => repository.deleteVetVisit(visit.petId, visit.id),
+        ).thenAnswer((_) async => result);
+        return makeCubit();
+      },
+      seed: () => VetVisitsLoaded(visit.petId, [visit, older]),
+      act: (cubit) => cubit.deleteListedVisit(visit),
+      expect: () => [
+        VetVisitsLoaded(
+          visit.petId,
+          [visit, older],
+          isDeleting: true,
+          deletionVisit: visit,
+        ),
+        if (error == null)
+          VetVisitsLoaded(visit.petId, [older])
+        else
+          VetVisitsLoaded(
+            visit.petId,
+            [visit, older],
+            deletionVisit: visit,
+            deleteError: error,
+          ),
+      ],
+      verify: (_) {
+        verify(
+          () => repository.deleteVetVisit(visit.petId, visit.id),
+        ).called(1);
+        verifyNoMoreInteractions(repository);
+      },
+    );
+  }
+
+  test(
+    'pending list deletion blocks other writes and refreshes and can retry after failure',
+    () async {
+      when(
+        () => repository.getVetVisits(visit.petId),
+      ).thenAnswer((_) async => Success([visit, older]));
+      final pending = Completer<Result<void>>();
+      when(
+        () => repository.deleteVetVisit(visit.petId, visit.id),
+      ).thenAnswer((_) => pending.future);
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.loadVetVisits(visit.petId);
+      final deleting = cubit.deleteListedVisit(visit);
+      await cubit.deleteListedVisit(visit);
+      await cubit.deleteListedVisit(older);
+      await cubit.loadVetVisits(visit.petId);
+      await cubit.loadVetVisit(visit.petId, visit.id);
+      pending.complete(const Error(LocalDatabaseFailure('Delete failed')));
+      await deleting;
+      when(
+        () => repository.deleteVetVisit(visit.petId, visit.id),
+      ).thenAnswer((_) async => const Success(null));
+      await cubit.deleteListedVisit(visit);
+      expect(cubit.state, VetVisitsLoaded(visit.petId, [older]));
+      verify(() => repository.deleteVetVisit(visit.petId, visit.id)).called(2);
+      verify(() => repository.getVetVisits(visit.petId)).called(1);
+      verifyNever(() => repository.deleteVetVisit(older.petId, older.id));
+      verifyNever(() => repository.getVetVisitById(visit.petId, visit.id));
+    },
+  );
+
+  test(
+    'list deletion ignores IDs that are missing or belong to another pet',
+    () async {
+      when(
+        () => repository.getVetVisits(visit.petId),
+      ).thenAnswer((_) async => Success([visit]));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.loadVetVisits(visit.petId);
+      clearInteractions(repository);
+      await cubit.deleteListedVisit(older);
+      await cubit.deleteListedVisit(
+        VetVisit(
+          id: visit.id,
+          petId: 'pet-2',
+          visitedOn: visit.visitedOn,
+          reason: visit.reason,
+        ),
+      );
+      expect(cubit.state, VetVisitsLoaded(visit.petId, [visit]));
+      verifyZeroInteractions(repository);
+    },
+  );
+
+  for (final operation in ['list', 'detail', 'delete', 'list-delete']) {
     test(
       'does not emit when pending $operation completes after close',
       () async {
@@ -328,12 +425,19 @@ void main() {
         if (operation == 'delete') {
           await cubit.loadVetVisit(visit.petId, visit.id);
         }
+        if (operation == 'list-delete') {
+          when(
+            () => repository.getVetVisits(visit.petId),
+          ).thenAnswer((_) async => Success([visit]));
+          await cubit.loadVetVisits(visit.petId);
+        }
         when(
           () => repository.getVetVisitById(visit.petId, visit.id),
         ).thenAnswer((_) => pendingDetail.future);
         final work = switch (operation) {
           'list' => cubit.loadVetVisits(visit.petId),
           'detail' => cubit.loadVetVisit(visit.petId, visit.id),
+          'list-delete' => cubit.deleteListedVisit(visit),
           _ => cubit.deleteVetVisit(),
         };
         await cubit.close();
@@ -345,6 +449,7 @@ void main() {
         await cubit.loadVetVisits(visit.petId);
         await cubit.loadVetVisit(visit.petId, visit.id);
         await cubit.deleteVetVisit();
+        await cubit.deleteListedVisit(visit);
         cubit.removeDeletedVisit(visit.id);
         verifyZeroInteractions(repository);
       },

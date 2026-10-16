@@ -5,6 +5,8 @@ import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
+import 'package:petlytics/core/widgets/app_error_feedback.dart';
+import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
@@ -38,7 +40,7 @@ class PetDetailPage extends StatelessWidget {
       builder: (context) => AppConfirmationDialog(
         title: 'Delete pet?',
         message:
-            '${pet.name}’s profile, photo and weight history will be removed. This cannot be undone.',
+            '${pet.name}’s profile, photo, weight history and vet visits will be removed. This cannot be undone.',
         confirmLabel: 'Delete',
       ),
     );
@@ -93,24 +95,20 @@ class PetDetailPage extends StatelessWidget {
                 PetLoaded(:final pet, :final deleteError) => Column(
                   children: [
                     if (deleteError != null)
-                      MaterialBanner(
-                        forceActionsBelow: true,
-                        content: Semantics(
-                          liveRegion: true,
-                          child: Text(deleteError),
+                      Flexible(
+                        child: AppErrorFeedback(
+                          message: deleteError,
+                          retryLabel: 'Retry deletion',
+                          onRetry: () => _deletePet(context, pet),
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => _deletePet(context, pet),
-                            child: const Text('Retry deletion'),
-                          ),
-                        ],
                       ),
                     Expanded(
                       child: _PetView(
                         pet: pet,
                         onEdit: deleting ? null : () => _editPet(context, pet),
                         onWeightHistory: () => _openWeightHistory(context),
+                        onVetVisits: () =>
+                            context.push(AppRoutes.vetVisits(petId)),
                       ),
                     ),
                   ],
@@ -133,10 +131,12 @@ class _PetView extends StatelessWidget {
   final Pet pet;
   final VoidCallback? onEdit;
   final VoidCallback onWeightHistory;
+  final VoidCallback onVetVisits;
   const _PetView({
     required this.pet,
     required this.onEdit,
     required this.onWeightHistory,
+    required this.onVetVisits,
   });
 
   @override
@@ -291,7 +291,10 @@ class _PetView extends StatelessWidget {
                   ),
                 ),
                 VerticalGap.lg,
-                Text('Care records', style: theme.textTheme.titleLarge),
+                const AppSectionHeading(
+                  title: 'Care records',
+                  icon: Icons.folder_open_outlined,
+                ),
                 VerticalGap.md,
                 Card(
                   margin: EdgeInsets.zero,
@@ -310,10 +313,14 @@ class _PetView extends StatelessWidget {
                             child: Divider(height: 1),
                           ),
                         ListTile(
-                          enabled: section.$2 == 'Weight history',
-                          onTap: section.$2 == 'Weight history'
-                              ? onWeightHistory
-                              : null,
+                          enabled:
+                              section.$2 == 'Weight history' ||
+                              section.$2 == 'Vet visits',
+                          onTap: switch (section.$2) {
+                            'Weight history' => onWeightHistory,
+                            'Vet visits' => onVetVisits,
+                            _ => null,
+                          },
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.md,
                             vertical: AppSpacing.sm,
@@ -339,9 +346,12 @@ class _PetView extends StatelessWidget {
                             ),
                           ),
                           subtitle: Text(
-                            section.$2 == 'Weight history'
-                                ? 'View and manage measurements'
-                                : 'Coming soon',
+                            switch (section.$2) {
+                              'Weight history' =>
+                                'View and manage measurements',
+                              'Vet visits' => 'View and manage visits',
+                              _ => 'Coming soon',
+                            },
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colors.onSurfaceVariant,
                             ),

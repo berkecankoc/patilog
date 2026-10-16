@@ -13,7 +13,9 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
   bool get _canLoad =>
       !isClosed &&
       switch (state) {
-        VetVisitLoaded(isDeleting: true) || VetVisitDeleted() => false,
+        VetVisitsLoaded(isDeleting: true) ||
+        VetVisitLoaded(isDeleting: true) ||
+        VetVisitDeleted() => false,
         _ => true,
       };
 
@@ -99,10 +101,53 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
     }
   }
 
+  Future<void> deleteListedVisit(VetVisit visit) async {
+    final current = state;
+    if (isClosed ||
+        current is! VetVisitsLoaded ||
+        current.isDeleting ||
+        current.isRefreshing) {
+      return;
+    }
+    final index = current.visits.indexWhere((item) => item.id == visit.id);
+    if (index < 0 || current.petId != visit.petId) return;
+    final target = current.visits[index];
+    ++_loadRequest;
+    emit(
+      VetVisitsLoaded(
+        current.petId,
+        current.visits,
+        isDeleting: true,
+        deletionVisit: target,
+      ),
+    );
+    final result = await repository.deleteVetVisit(current.petId, target.id);
+    if (isClosed) return;
+
+    switch (result) {
+      case Success<void>():
+        emit(
+          VetVisitsLoaded(
+            current.petId,
+            current.visits.where((item) => item.id != target.id).toList(),
+          ),
+        );
+      case Error<void>():
+        emit(
+          VetVisitsLoaded(
+            current.petId,
+            current.visits,
+            deletionVisit: target,
+            deleteError: result.failure.message,
+          ),
+        );
+    }
+  }
+
   /// Applies a deletion confirmed by the detail route without another read.
   void removeDeletedVisit(String visitId) {
     final current = state;
-    if (isClosed || current is! VetVisitsLoaded) return;
+    if (isClosed || current is! VetVisitsLoaded || current.isDeleting) return;
     ++_loadRequest;
     emit(
       VetVisitsLoaded(

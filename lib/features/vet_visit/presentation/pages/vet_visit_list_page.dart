@@ -1,0 +1,331 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:petlytics/core/widgets/app_error_feedback.dart';
+import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/error_view.dart';
+import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
+import 'package:petlytics/features/vet_visit/presentation/utils/confirm_vet_visit_deletion.dart';
+
+class VetVisitListPage extends StatelessWidget {
+  final String petId;
+
+  const VetVisitListPage({super.key, required this.petId});
+
+  Future<void> _addVisit(BuildContext context) async {
+    final saved = await context.push<bool>(AppRoutes.addEditVetVisit(petId));
+    if (saved == true && context.mounted) {
+      await context.read<VetVisitCubit>().loadVetVisits(petId);
+    }
+  }
+
+  Future<void> _openVisit(BuildContext context, VetVisit visit) async {
+    final deletedId = await context.push<String>(
+      AppRoutes.vetVisitDetail(petId, visit.id),
+    );
+    if (!context.mounted) return;
+    final cubit = context.read<VetVisitCubit>();
+    if (deletedId != null) {
+      cubit.removeDeletedVisit(deletedId);
+    } else {
+      await cubit.loadVetVisits(petId);
+    }
+  }
+
+  Future<void> _delete(BuildContext context, VetVisit visit) async {
+    final confirmed = await confirmVetVisitDeletion(context, visit);
+    if (confirmed && context.mounted) {
+      await context.read<VetVisitCubit>().deleteListedVisit(visit);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<VetVisitCubit, VetVisitState>(
+      builder: (context, state) {
+        final deleting = state is VetVisitsLoaded && state.isDeleting;
+        final busy =
+            state is VetVisitsLoaded &&
+            (state.isRefreshing || state.isDeleting);
+        return PopScope(
+          canPop: !deleting,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Vet visits'),
+              leading: deleting
+                  ? IconButton(
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      onPressed: null,
+                      icon: const BackButtonIcon(),
+                    )
+                  : null,
+              bottom: busy
+                  ? PreferredSize(
+                      preferredSize: const Size.fromHeight(4),
+                      child: LinearProgressIndicator(
+                        semanticsLabel: deleting
+                            ? 'Deleting visit'
+                            : 'Refreshing visits',
+                      ),
+                    )
+                  : null,
+            ),
+            floatingActionButton: state is VetVisitsLoaded
+                ? FloatingActionButton.extended(
+                    isExtended:
+                        MediaQuery.textScalerOf(context).scale(14) <= 21,
+                    tooltip: 'Add visit',
+                    onPressed: busy ? null : () => _addVisit(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add visit'),
+                  )
+                : null,
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: switch (state) {
+                    VetVisitsLoaded(
+                      :final visits,
+                      :final refreshError,
+                      :final deleteError,
+                      :final deletionVisit,
+                    ) =>
+                      Column(
+                        children: [
+                          if (deleteError != null && deletionVisit != null)
+                            Flexible(
+                              child: AppErrorFeedback(
+                                message: deleteError,
+                                retryLabel: 'Retry deletion',
+                                onRetry: () => _delete(context, deletionVisit),
+                              ),
+                            )
+                          else if (refreshError != null)
+                            Flexible(
+                              child: AppErrorFeedback(
+                                message: refreshError,
+                                retryLabel: 'Retry',
+                                onRetry: () => context
+                                    .read<VetVisitCubit>()
+                                    .loadVetVisits(petId),
+                              ),
+                            ),
+                          Expanded(
+                            child: visits.isEmpty
+                                ? Center(
+                                    child: SingleChildScrollView(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        AppSpacing.lg,
+                                        AppSpacing.lg,
+                                        AppSpacing.lg,
+                                        96,
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          ExcludeSemantics(
+                                            child: Icon(
+                                              Icons.local_hospital_outlined,
+                                              size: 48,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          VerticalGap.md,
+                                          Text(
+                                            'No visits yet',
+                                            textAlign: TextAlign.center,
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.titleLarge,
+                                          ),
+                                          VerticalGap.sm,
+                                          const Text(
+                                            'Add a completed visit to keep the details together.',
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      24,
+                                      16,
+                                      24,
+                                      96,
+                                    ),
+                                    itemCount: visits.length,
+                                    separatorBuilder: (_, index) =>
+                                        VerticalGap.md,
+                                    itemBuilder: (context, index) {
+                                      final visit = visits[index];
+                                      return _VisitListItem(
+                                        key: ValueKey(visit.id),
+                                        visit: visit,
+                                        deleting:
+                                            deleting &&
+                                            deletionVisit?.id == visit.id,
+                                        onOpen: busy
+                                            ? null
+                                            : () => _openVisit(context, visit),
+                                        onDelete: busy
+                                            ? null
+                                            : () => _delete(context, visit),
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
+                    VetVisitError(:final message) => ErrorView(
+                      message: message,
+                      onRetry: () =>
+                          context.read<VetVisitCubit>().loadVetVisits(petId),
+                    ),
+                    _ => const Center(child: CircularProgressIndicator()),
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _VisitListItem extends StatelessWidget {
+  final VetVisit visit;
+  final bool deleting;
+  final VoidCallback? onOpen;
+  final VoidCallback? onDelete;
+
+  const _VisitListItem({
+    super.key,
+    required this.visit,
+    required this.deleting,
+    required this.onOpen,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final date = MaterialLocalizations.of(
+      context,
+    ).formatShortDate(visit.visitedOn);
+    final clinic = visit.clinicName?.trim();
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpen,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ColoredBox(
+              color: colors.surfaceContainer,
+              child: Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.sm,
+                  AppSpacing.sm,
+                ),
+                child: Row(
+                  children: [
+                    ExcludeSemantics(
+                      child: Icon(
+                        Icons.event_note_outlined,
+                        size: 20,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                    HorizontalGap.sm,
+                    Expanded(
+                      child: Text(
+                        date,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    HorizontalGap.sm,
+                    SizedBox.square(
+                      dimension: 48,
+                      child: deleting
+                          ? const Center(
+                              child: SizedBox.square(
+                                dimension: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  semanticsLabel: 'Deleting visit',
+                                ),
+                              ),
+                            )
+                          : IconButton(
+                              tooltip:
+                                  'Delete visit from $date: ${visit.reason}',
+                              onPressed: onDelete,
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    visit.reason,
+                    style: theme.textTheme.bodyLarge,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (clinic != null && clinic.isNotEmpty) ...[
+                    VerticalGap.sm,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ExcludeSemantics(
+                          child: Icon(
+                            Icons.local_hospital_outlined,
+                            size: 18,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                        HorizontalGap.sm,
+                        Expanded(
+                          child: Text(
+                            clinic,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

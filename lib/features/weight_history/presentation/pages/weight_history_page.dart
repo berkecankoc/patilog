@@ -5,6 +5,8 @@ import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
+import 'package:petlytics/core/widgets/app_error_feedback.dart';
+import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
@@ -93,19 +95,12 @@ class WeightHistoryPage extends StatelessWidget {
                       Column(
                         children: [
                           if (deleteError != null && deletionEntry != null)
-                            MaterialBanner(
-                              forceActionsBelow: true,
-                              content: Semantics(
-                                liveRegion: true,
-                                child: Text(deleteError),
+                            Flexible(
+                              child: AppErrorFeedback(
+                                message: deleteError,
+                                retryLabel: 'Retry deletion',
+                                onRetry: () => _delete(context, deletionEntry),
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      _delete(context, deletionEntry),
-                                  child: const Text('Retry deletion'),
-                                ),
-                              ],
                             ),
                           Expanded(
                             child: AbsorbPointer(
@@ -238,7 +233,10 @@ class _Measurements extends StatelessWidget {
                   ),
                 ),
                 VerticalGap.lg,
-                Text('Measurements', style: theme.textTheme.titleLarge),
+                const AppSectionHeading(
+                  title: 'Measurements',
+                  icon: Icons.monitor_weight_outlined,
+                ),
                 VerticalGap.xs,
                 Text(
                   'Newest first. Select a measurement to edit it.',

@@ -24,16 +24,30 @@ final class VetVisitsLoaded extends VetVisitState {
   final List<VetVisit> visits;
   final bool isRefreshing;
   final String? refreshError;
+  final bool isDeleting;
+  final VetVisit? deletionVisit;
+  final String? deleteError;
 
   const VetVisitsLoaded(
     this.petId,
     this.visits, {
     this.isRefreshing = false,
     this.refreshError,
+    this.isDeleting = false,
+    this.deletionVisit,
+    this.deleteError,
   });
 
   @override
-  List<Object?> get props => [petId, visits, isRefreshing, refreshError];
+  List<Object?> get props => [
+    petId,
+    visits,
+    isRefreshing,
+    refreshError,
+    isDeleting,
+    deletionVisit,
+    deleteError,
+  ];
 }
 
 final class VetVisitLoaded extends VetVisitState {
