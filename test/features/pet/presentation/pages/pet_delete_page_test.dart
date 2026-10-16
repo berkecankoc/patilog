@@ -75,16 +75,18 @@ void main() {
   Future<void> pumpProfile(
     WidgetTester tester, {
     double width = 390,
+    double height = 720,
     double scale = 1,
     Brightness brightness = Brightness.light,
     TargetPlatform platform = TargetPlatform.android,
+    String? initialLocation,
   }) async {
-    tester.view.physicalSize = Size(width, 720);
+    tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final router = GoRouter(
-      initialLocation: AppRoutes.pets,
+      initialLocation: initialLocation ?? AppRoutes.pets,
       routes: appRouter.configuration.routes,
     );
     addTearDown(router.dispose);
@@ -106,8 +108,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text(pet.name));
-    await tester.pumpAndSettle();
+    if (initialLocation == null) {
+      await tester.tap(find.text(pet.name));
+      await tester.pumpAndSettle();
+    }
   }
 
   Future<void> confirmDialog(WidgetTester tester) async {
@@ -260,6 +264,48 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final brightness in Brightness.values) {
+    for (final size in [const Size(320, 568), const Size(640, 320)]) {
+      testWidgets(
+        'shared profile feedback is aligned and retry reconfirms at $size in $brightness',
+        (tester) async {
+          when(() => repository.deletePet(pet.id)).thenAnswer(
+            (_) async => const Error(
+              LocalDatabaseFailure('Could not delete pet. Please retry.'),
+            ),
+          );
+          await pumpProfile(
+            tester,
+            width: size.width,
+            height: size.height,
+            scale: 2,
+            brightness: brightness,
+            initialLocation: AppRoutes.petDetail(pet.id),
+          );
+          await confirmDialog(tester);
+          await tester.tap(find.text('Delete'));
+          await tester.pumpAndSettle();
+          final message = find.text('Could not delete pet. Please retry.');
+          final retry = find.text('Retry deletion');
+          expect(retry.hitTestable(), findsOneWidget);
+          expect(
+            tester.getTopLeft(retry).dx,
+            closeTo(tester.getTopLeft(message).dx, 0.1),
+          );
+          expect(tester.getRect(retry).bottom, lessThanOrEqualTo(size.height));
+          await tester.tap(retry);
+          await tester.pumpAndSettle();
+          expect(find.text('Delete pet?'), findsOneWidget);
+          await tester.tap(find.text('Cancel'));
+          await tester.pumpAndSettle();
+          expect(find.byType(PetDetailPage), findsOneWidget);
+          verify(() => repository.deletePet(pet.id)).called(1);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
 
   for (final brightness in Brightness.values) {
     for (final (width, scale) in [(320.0, 2.0), (800.0, 1.0)]) {

@@ -7,6 +7,8 @@ import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
+import 'package:petlytics/core/widgets/app_form_actions.dart';
+import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart'
     show CreatePetParams;
@@ -306,43 +308,21 @@ class _PetFormPageState extends State<PetFormPage> {
   }
 
   Widget _saveActions(bool saving) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_saveError != null) ...[
-          Semantics(
-            liveRegion: true,
-            child: Text(
-              _saveError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-              semanticsLabel: 'Could not save pet: $_saveError',
+    return AppFormActions(
+      label: widget.pet == null ? 'Add pet' : 'Save changes',
+      saving: saving,
+      fixed: widget.pet != null,
+      onPressed: widget.pet != null && !_hasChanges ? null : _submit,
+      feedback: _saveError == null
+          ? null
+          : Semantics(
+              liveRegion: true,
+              child: Text(
+                _saveError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                semanticsLabel: 'Could not save pet: $_saveError',
+              ),
             ),
-          ),
-          VerticalGap.md,
-        ],
-        ElevatedButton(
-          onPressed: saving || (widget.pet != null && !_hasChanges)
-              ? null
-              : _submit,
-          child: saving
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    HorizontalGap.sm,
-                    const Flexible(child: Text('Saving…')),
-                  ],
-                )
-              : Text(widget.pet == null ? 'Add pet' : 'Save changes'),
-        ),
-      ],
     );
   }
 
@@ -425,11 +405,9 @@ class _PetFormPageState extends State<PetFormPage> {
                                   ),
 
                                   VerticalGap.lg,
-                                  Text(
-                                    'Basic details',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge,
+                                  const AppSectionHeading(
+                                    title: 'Basic details',
+                                    icon: Icons.info_outline,
                                   ),
                                   VerticalGap.md,
 
@@ -511,11 +489,9 @@ class _PetFormPageState extends State<PetFormPage> {
 
                                   VerticalGap.md,
 
-                                  Text(
-                                    'Health details',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge,
+                                  const AppSectionHeading(
+                                    title: 'Health details',
+                                    icon: Icons.health_and_safety_outlined,
                                   ),
                                   VerticalGap.md,
                                   DropdownButtonFormField<ReproductiveStatus>(
@@ -595,11 +571,9 @@ class _PetFormPageState extends State<PetFormPage> {
 
                                   VerticalGap.md,
 
-                                  Text(
-                                    'Identification',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge,
+                                  const AppSectionHeading(
+                                    title: 'Identification',
+                                    icon: Icons.badge_outlined,
                                   ),
                                   VerticalGap.md,
                                   TextFormField(
@@ -621,26 +595,7 @@ class _PetFormPageState extends State<PetFormPage> {
                     ),
                   ),
                 ),
-                if (widget.pet != null)
-                  Material(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: SafeArea(
-                      top: false,
-                      child: Center(
-                        heightFactor: 1,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 640),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg,
-                              vertical: AppSpacing.md,
-                            ),
-                            child: _saveActions(saving),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                if (widget.pet != null) _saveActions(saving),
               ],
             ),
           ),

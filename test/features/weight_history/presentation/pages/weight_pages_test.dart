@@ -744,6 +744,63 @@ void main() {
   );
 
   for (final brightness in Brightness.values) {
+    for (final size in [const Size(320, 568), const Size(640, 320)]) {
+      testWidgets(
+        'shared history feedback is aligned and retry reconfirms at $size in $brightness',
+        (tester) async {
+          when(() => repository.deleteWeightEntry(entry.id)).thenAnswer(
+            (_) async => const Error(
+              LocalDatabaseFailure('Failed to delete measurement'),
+            ),
+          );
+          await pumpRouter(
+            tester,
+            width: size.width,
+            height: size.height,
+            scale: 2,
+            brightness: brightness,
+          );
+          final delete = find.byIcon(Icons.delete_outline);
+          await tester.scrollUntilVisible(
+            delete,
+            150,
+            scrollable: find.descendant(
+              of: find.byType(CustomScrollView),
+              matching: find.byType(Scrollable),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(delete);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Delete'));
+          await tester.pumpAndSettle();
+          final message = find.text('Failed to delete measurement');
+          final retry = find.text('Retry deletion');
+          expect(retry.hitTestable(), findsOneWidget);
+          expect(
+            tester.getTopLeft(retry).dx,
+            closeTo(tester.getTopLeft(message).dx, 0.1),
+          );
+          expect(
+            tester
+                .getRect(retry)
+                .overlaps(tester.getRect(find.byType(FloatingActionButton))),
+            isFalse,
+          );
+          await tester.tap(retry);
+          await tester.pumpAndSettle();
+          expect(find.text('Delete measurement?'), findsOneWidget);
+          await tester.tap(find.text('Cancel'));
+          await tester.pumpAndSettle();
+          expect(find.byType(WeightHistoryPage), findsOneWidget);
+          verify(() => repository.deleteWeightEntry(entry.id)).called(1);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
+  for (final brightness in Brightness.values) {
     for (final (width, height, scale, keyboard) in [
       (320.0, 568.0, 2.0, true),
       (640.0, 320.0, 2.0, false),

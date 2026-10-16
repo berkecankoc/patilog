@@ -7,6 +7,12 @@ import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_detail_page.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_form_page.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_list_page.dart';
+import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_detail_page.dart';
+import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_form_page.dart';
+import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_list_page.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:petlytics/features/weight_history/presentation/pages/weight_entry_form_page.dart';
@@ -45,6 +51,43 @@ final appRouter = GoRouter(
             );
           },
           routes: [
+            GoRoute(
+              path: 'vet-visits',
+              builder: (context, state) {
+                final petId = state.pathParameters['petId']!;
+                return BlocProvider<VetVisitCubit>(
+                  create: (_) => getIt<VetVisitCubit>()..loadVetVisits(petId),
+                  child: VetVisitListPage(petId: petId),
+                );
+              },
+              routes: [
+                GoRoute(
+                  path: 'form',
+                  builder: (context, state) {
+                    final petId = state.pathParameters['petId']!;
+                    final visit = state.extra as VetVisit?;
+                    return BlocProvider<VetVisitFormCubit>(
+                      create: (_) =>
+                          getIt<VetVisitFormCubit>()
+                            ..loadSuggestions(clinicName: visit?.clinicName),
+                      child: VetVisitFormPage(petId: petId, visit: visit),
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: ':visitId',
+                  builder: (context, state) {
+                    final petId = state.pathParameters['petId']!;
+                    final visitId = state.pathParameters['visitId']!;
+                    return BlocProvider<VetVisitCubit>(
+                      create: (_) =>
+                          getIt<VetVisitCubit>()..loadVetVisit(petId, visitId),
+                      child: VetVisitDetailPage(petId: petId, visitId: visitId),
+                    );
+                  },
+                ),
+              ],
+            ),
             GoRoute(
               path: 'weight-history',
               builder: (context, state) {
