@@ -11,6 +11,9 @@ import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:petlytics/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
+import 'package:petlytics/features/vet_visit/data/repositories/vet_visit_repository_impl.dart';
+import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
 import 'package:petlytics/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
 import 'package:petlytics/features/weight_history/data/repositories/weight_history_repository_impl.dart';
 import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
@@ -36,6 +39,14 @@ Future<void> setupDependencies() async {
 
   getIt.registerLazySingleton<PetRepository>(
     () => PetRepositoryImpl(getIt<PetLocalDataSource>()),
+  );
+
+  getIt.registerLazySingleton<VetVisitLocalDataSource>(
+    () => VetVisitLocalDataSourceImpl(getIt<Database>()),
+  );
+
+  getIt.registerLazySingleton<VetVisitRepository>(
+    () => VetVisitRepositoryImpl(getIt<VetVisitLocalDataSource>()),
   );
 
   getIt.registerLazySingleton<WeightHistoryLocalDataSource>(
