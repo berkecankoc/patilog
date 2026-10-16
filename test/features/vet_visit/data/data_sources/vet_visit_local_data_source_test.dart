@@ -1,0 +1,346 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:petlytics/core/database/app_database.dart';
+import 'package:petlytics/core/database/database_tables.dart';
+import 'package:petlytics/core/error/exception.dart';
+import 'package:petlytics/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
+import 'package:petlytics/features/vet_visit/data/models/vet_visit_model.dart';
+import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+void main() {
+  late Directory directory;
+  late Database db;
+  late VetVisitLocalDataSourceImpl source;
+
+  VetVisitModel visit({
+    String id = 'visit-1',
+    String petId = 'pet-1',
+    int day = 15,
+    String reason = 'Checkup',
+    String? clinicName,
+    String? veterinarianName,
+    String? diagnosis,
+    String? notes,
+    int? costMinorUnits,
+    VetVisitCurrency? currency,
+  }) => VetVisitModel(
+    id: id,
+    petId: petId,
+    visitedOn: DateTime(2026, 10, day),
+    reason: reason,
+    clinicName: clinicName,
+    veterinarianName: veterinarianName,
+    diagnosis: diagnosis,
+    notes: notes,
+    costMinorUnits: costMinorUnits,
+    currency: currency,
+  );
+
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
+  setUp(() async {
+    directory = await Directory.systemTemp.createTemp('vet-visit-source-');
+    await databaseFactory.setDatabasesPath(directory.path);
+    db = await openAppDatabase();
+    source = VetVisitLocalDataSourceImpl(db);
+    for (final id in ['pet-1', 'pet-2']) {
+      await db.insert(DatabaseTables.pets, {
+        'id': id,
+        'name': id,
+        'species': 'cat',
+        'sex': 'female',
+        'reproductive_status': 'intact',
+      });
+    }
+  });
+
+  tearDown(() async {
+    await db.close();
+    await directory.delete(recursive: true);
+  });
+
+  test(
+    'returns empty visits and suggestions before any visit is saved',
+    () async {
+      expect(await source.getVetVisits('pet-1'), isEmpty);
+      expect(
+        await source.getSuggestions(),
+        const VetVisitSuggestions(clinicNames: [], veterinarianNames: []),
+      );
+    },
+  );
+
+  test('lists only this pet by calendar date then insertion order', () async {
+    final original = visit();
+    final older = visit(id: 'older', day: 14);
+    final newerTie = visit(id: 'tie');
+    final otherPet = visit(id: 'other', petId: 'pet-2', day: 16);
+    for (final entry in [original, otherPet, older, newerTie]) {
+      await source.createVetVisit(entry);
+    }
+    expect(await source.getVetVisits('pet-1'), [newerTie, original, older]);
+    expect(await source.getVetVisits('pet-2'), [otherPet]);
+  });
+
+  test('reads a complete saved visit by pet and visit IDs', () async {
+    final entry = visit(
+      clinicName: 'Clinic',
+      veterinarianName: 'Dr. Smith',
+      diagnosis: 'Healthy',
+      notes: 'Routine visit',
+      costMinorUnits: 125050,
+      currency: VetVisitCurrency.turkishLira,
+    );
+    await source.createVetVisit(entry);
+    expect(await source.getVetVisitById(entry.petId, entry.id), entry);
+  });
+
+  test(
+    'edits all fields and clears optional data without reordering ties',
+    () async {
+      await source.createVetVisit(visit(clinicName: 'Clinic'));
+      final later = visit(id: 'later');
+      await source.createVetVisit(later);
+      final updated = visit(
+        reason: 'Follow-up',
+        veterinarianName: 'Dr. Smith',
+        diagnosis: 'Healthy',
+        notes: 'Review',
+        costMinorUnits: 0,
+        currency: VetVisitCurrency.euro,
+      );
+      await source.updateVetVisit(updated);
+      expect(await source.getVetVisits('pet-1'), [later, updated]);
+      final changedDate = visit(day: 16);
+      await source.updateVetVisit(changedDate);
+      expect(await source.getVetVisits('pet-1'), [changedDate, later]);
+    },
+  );
+
+  test('normalizes saved text and treats punctuation as data', () async {
+    await source.createVetVisit(
+      visit(
+        reason: "  O'Brien's checkup  ",
+        clinicName: '  Clinic  ',
+        veterinarianName: '  Dr. Smith  ',
+        diagnosis: ' \n ',
+        notes: ' ',
+      ),
+    );
+    expect(
+      await source.getVetVisitById('pet-1', 'visit-1'),
+      visit(
+        reason: "O'Brien's checkup",
+        clinicName: 'Clinic',
+        veterinarianName: 'Dr. Smith',
+      ),
+    );
+  });
+
+  test(
+    'missing or wrong-pet IDs cannot read, update or delete a visit',
+    () async {
+      final entry = visit();
+      await source.createVetVisit(entry);
+      for (final ids in [('pet-2', entry.id), ('pet-1', 'missing')]) {
+        await expectLater(
+          source.getVetVisitById(ids.$1, ids.$2),
+          throwsA(isA<LocalDataNotFoundException>()),
+        );
+        await expectLater(
+          source.updateVetVisit(visit(id: ids.$2, petId: ids.$1)),
+          throwsA(isA<LocalDataNotFoundException>()),
+        );
+        await expectLater(
+          source.deleteVetVisit(ids.$1, ids.$2),
+          throwsA(isA<LocalDataNotFoundException>()),
+        );
+      }
+      expect(await source.getVetVisits('pet-1'), [entry]);
+      expect(await source.getVetVisits('pet-2'), isEmpty);
+    },
+  );
+
+  test(
+    'duplicate IDs and missing pet references cannot overwrite data',
+    () async {
+      final entry = visit();
+      await source.createVetVisit(entry);
+      for (final invalid in [
+        visit(reason: 'Overwrite'),
+        visit(petId: 'missing'),
+      ]) {
+        await expectLater(
+          source.createVetVisit(invalid),
+          throwsA(isA<LocalDataSourceException>()),
+        );
+      }
+      expect(await source.getVetVisits('pet-1'), [entry]);
+      await expectLater(
+        source.createVetVisit(visit(id: 'orphan', petId: 'missing')),
+        throwsA(isA<LocalDataSourceException>()),
+      );
+    },
+  );
+
+  test(
+    'deletes only the selected visit and cascades when its pet is deleted',
+    () async {
+      final other = visit(id: 'other', petId: 'pet-2');
+      await source.createVetVisit(visit());
+      await source.createVetVisit(visit(id: 'keep'));
+      await source.createVetVisit(other);
+      await source.deleteVetVisit('pet-1', 'visit-1');
+      expect((await source.getVetVisits('pet-1')).single.id, 'keep');
+      await db.delete('pets', where: 'id = ?', whereArgs: ['pet-1']);
+      expect(await source.getVetVisits('pet-1'), isEmpty);
+      expect(await source.getVetVisits('pet-2'), [other]);
+    },
+  );
+
+  test(
+    'schema rejects blank reasons and inconsistent or fractional costs',
+    () async {
+      for (final invalid in <Map<String, Object?>>[
+        {'reason': '   '},
+        {'cost_minor_units': -1, 'currency': 'TRY'},
+        {'cost_minor_units': 100, 'currency': null},
+        {'cost_minor_units': null, 'currency': 'USD'},
+        {'cost_minor_units': 100, 'currency': 'GBP'},
+        {'cost_minor_units': 12.5, 'currency': 'EUR'},
+      ]) {
+        await expectLater(
+          db.insert(DatabaseTables.vetVisits, {
+            ...visit().toJson(),
+            ...invalid,
+          }),
+          throwsA(isA<DatabaseException>()),
+        );
+      }
+      expect(await source.getVetVisits('pet-1'), isEmpty);
+    },
+  );
+
+  test(
+    'suggests names across pets, deduplicating and keeping latest spelling',
+    () async {
+      await source.createVetVisit(
+        visit(clinicName: ' alpha ', veterinarianName: ' dr. smith '),
+      );
+      await source.createVetVisit(
+        visit(id: 'beta', clinicName: 'Beta', veterinarianName: 'Dr. Adams'),
+      );
+      await source.createVetVisit(
+        visit(
+          id: 'latest',
+          petId: 'pet-2',
+          day: 14,
+          clinicName: 'ALPHA',
+          veterinarianName: 'Dr. Smith',
+        ),
+      );
+      await source.createVetVisit(visit(id: 'blank', clinicName: ' '));
+      await source.createVetVisit(
+        visit(id: 'no-clinic', veterinarianName: 'Dr. Jones'),
+      );
+      expect(
+        await source.getSuggestions(),
+        const VetVisitSuggestions(
+          clinicNames: ['ALPHA', 'Beta'],
+          veterinarianNames: ['Dr. Adams', 'Dr. Jones', 'Dr. Smith'],
+        ),
+      );
+      expect(
+        await source.getSuggestions(clinicName: '  '),
+        await source.getSuggestions(),
+      );
+      expect(
+        await source.getSuggestions(clinicName: '  aLpHa  '),
+        const VetVisitSuggestions(
+          clinicNames: ['ALPHA', 'Beta'],
+          veterinarianNames: ['Dr. Smith'],
+        ),
+      );
+      expect(
+        (await source.getSuggestions(clinicName: 'Al')).veterinarianNames,
+        isEmpty,
+      );
+    },
+  );
+
+  test(
+    'updates and deletes suggestion sources without a separate saved catalog',
+    () async {
+      await source.createVetVisit(
+        visit(clinicName: 'Old', veterinarianName: 'Dr. A'),
+      );
+      await source.createVetVisit(visit(id: 'other', clinicName: 'Old'));
+      await source.updateVetVisit(
+        visit(clinicName: 'New', veterinarianName: 'Dr. B'),
+      );
+      expect((await source.getSuggestions()).clinicNames, ['New', 'Old']);
+      expect((await source.getSuggestions()).veterinarianNames, ['Dr. B']);
+      await source.deleteVetVisit('pet-1', 'other');
+      expect((await source.getSuggestions()).clinicNames, ['New']);
+      await source.deleteVetVisit('pet-1', 'visit-1');
+      expect(
+        await source.getSuggestions(),
+        const VetVisitSuggestions(clinicNames: [], veterinarianNames: []),
+      );
+    },
+  );
+
+  test('identifier and clinic strings cannot change SQL query scope', () async {
+    const injected = "' OR 1=1 --";
+    final entry = visit(clinicName: injected, veterinarianName: 'Dr. Smith');
+    await source.createVetVisit(entry);
+    expect(await source.getVetVisits(injected), isEmpty);
+    for (final ids in [(injected, entry.id), (entry.petId, injected)]) {
+      await expectLater(
+        source.getVetVisitById(ids.$1, ids.$2),
+        throwsA(isA<LocalDataNotFoundException>()),
+      );
+      await expectLater(
+        source.updateVetVisit(visit(petId: ids.$1, id: ids.$2)),
+        throwsA(isA<LocalDataNotFoundException>()),
+      );
+      await expectLater(
+        source.deleteVetVisit(ids.$1, ids.$2),
+        throwsA(isA<LocalDataNotFoundException>()),
+      );
+    }
+    expect(await source.getVetVisits('pet-1'), [entry]);
+    expect(
+      (await source.getSuggestions(clinicName: injected)).veterinarianNames,
+      ['Dr. Smith'],
+    );
+  });
+
+  for (final operation in [
+    'list',
+    'read',
+    'create',
+    'update',
+    'delete',
+    'suggestions',
+  ]) {
+    test('maps SQLite errors for $operation', () async {
+      await db.execute('DROP TABLE ${DatabaseTables.vetVisits}');
+      final result = switch (operation) {
+        'list' => source.getVetVisits('pet-1'),
+        'read' => source.getVetVisitById('pet-1', 'visit-1'),
+        'create' => source.createVetVisit(visit()),
+        'update' => source.updateVetVisit(visit()),
+        'delete' => source.deleteVetVisit('pet-1', 'visit-1'),
+        _ => source.getSuggestions(),
+      };
+      await expectLater(result, throwsA(isA<LocalDataSourceException>()));
+    });
+  }
+}
