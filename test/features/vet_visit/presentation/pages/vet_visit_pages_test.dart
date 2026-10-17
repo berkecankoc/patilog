@@ -67,6 +67,7 @@ void main() {
     currency: VetVisitCurrency.turkishLira,
   );
   late MockVetRepository repository;
+  late MockPetRepository pets;
   late List<VetVisit> visits;
 
   VetVisit stored(VetVisit value) => VetVisitModel.fromJson(
@@ -136,7 +137,7 @@ void main() {
     });
     final ids = MockIds();
     when(ids.generate).thenReturn('new-visit');
-    final pets = MockPetRepository();
+    pets = MockPetRepository();
     when(pets.getPets).thenAnswer((_) async => const Success([pet]));
     when(
       () => pets.getPetById(any()),
@@ -227,6 +228,105 @@ void main() {
     'Veterinarian (optional)',
   );
 
+  testWidgets(
+    'visit list, detail and both forms keep the pet name in the app bar',
+    (tester) async {
+      await pumpRouter(tester);
+      clearInteractions(pets);
+      final name = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text(pet.name),
+      );
+      expect(name.hitTestable(), findsOneWidget);
+      await tester.tap(find.byTooltip('Add visit'));
+      await tester.pumpAndSettle();
+      expect(name.hitTestable(), findsOneWidget);
+      expect(
+        tester.widget<VetVisitFormPage>(find.byType(VetVisitFormPage)).visit,
+        isNull,
+      );
+      verifyNever(() => pets.getPetById(any()));
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      await openDetail(tester);
+      expect(name.hitTestable(), findsOneWidget);
+      final date = MaterialLocalizations.of(
+        tester.element(find.byType(VetVisitDetailPage)),
+      ).formatShortDate(visit.visitedOn);
+      final icon = tester.getRect(find.byIcon(Icons.event_note_outlined));
+      expect(
+        tester.getRect(find.text(date)).center.dy,
+        closeTo(icon.center.dy, 1),
+      );
+      expect(find.text('Visit date'), findsNothing);
+      await tester.tap(find.byTooltip('Edit visit'));
+      await tester.pumpAndSettle();
+      expect(name.hitTestable(), findsOneWidget);
+      expect(
+        tester.widget<VetVisitFormPage>(find.byType(VetVisitFormPage)).visit,
+        visit,
+      );
+      verifyNever(() => pets.getPetById(any()));
+    },
+  );
+
+  testWidgets(
+    'direct visit URLs show the selected pet after changing pet IDs',
+    (tester) async {
+      const other = Pet(
+        id: 'pet-2',
+        name: 'Luna',
+        species: PetSpecies.bird,
+        sex: PetSex.unknown,
+        reproductiveStatus: ReproductiveStatus.unknown,
+      );
+      when(
+        () => pets.getPetById(other.id),
+      ).thenAnswer((_) async => Success(other));
+      final router = await pumpRouter(
+        tester,
+        location: AppRoutes.vetVisitDetail(pet.id, visit.id),
+      );
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text(pet.name)),
+        findsOneWidget,
+      );
+      final secondVisit = VetVisit(
+        id: 'visit-2',
+        petId: pet.id,
+        visitedOn: DateTime(2026, 10, 15),
+        reason: 'Dental checkup',
+      );
+      visits.add(secondVisit);
+      router.go(AppRoutes.vetVisitDetail(pet.id, secondVisit.id));
+      await tester.pumpAndSettle();
+      expect(find.text(secondVisit.reason), findsOneWidget);
+      expect(find.text(visit.reason), findsNothing);
+      router.go(AppRoutes.vetVisits(other.id));
+      await tester.pumpAndSettle();
+      expect(
+        find
+            .descendant(
+              of: find.byType(AppBar),
+              matching: find.text(other.name),
+            )
+            .hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.text(pet.name), findsNothing);
+      expect(find.text(visit.reason), findsNothing);
+      router.go(AppRoutes.vetVisits(pet.id));
+      await tester.pumpAndSettle();
+      expect(
+        find
+            .descendant(of: find.byType(AppBar), matching: find.text(pet.name))
+            .hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.text(visit.reason), findsOneWidget);
+    },
+  );
+
   testWidgets('profile opens visits and a detail URL loads without extra', (
     tester,
   ) async {
@@ -234,6 +334,7 @@ void main() {
       tester,
       location: AppRoutes.petDetail(pet.id),
     );
+    clearInteractions(pets);
     await tester.ensureVisible(find.text('Vet visits'));
     await tester.tap(find.text('Vet visits'));
     await tester.pumpAndSettle();
@@ -244,6 +345,7 @@ void main() {
     await tester.ensureVisible(find.text('1250.50 TRY'));
     expect(find.text('1250.50 TRY'), findsOneWidget);
     verify(() => repository.getVetVisitById(pet.id, visit.id)).called(1);
+    verifyNever(() => pets.getPetById(any()));
   });
 
   testWidgets('empty list opens a form with today and optional fields', (
@@ -868,7 +970,7 @@ void main() {
       expect(find.byType(Card), findsOneWidget);
       expect(find.byType(ExpansionTile), findsNothing);
       expect(find.text('Visit details'), findsNothing);
-      expect(find.text('Visit date'), findsOneWidget);
+      expect(find.text('Visit date'), findsNothing);
       final date = MaterialLocalizations.of(
         tester.element(find.byType(VetVisitDetailPage)),
       ).formatShortDate(visit.visitedOn);
@@ -1156,7 +1258,16 @@ void main() {
         await tester.ensureVisible(delete);
         await tester.pumpAndSettle();
         final addRect = tester.getRect(find.byType(FloatingActionButton));
-        expect(tester.getRect(delete).overlaps(addRect), isFalse);
+        expect(
+          tester.getRect(delete).bottom,
+          lessThanOrEqualTo(addRect.top + 1),
+        );
+        expect(delete.hitTestable(), findsOneWidget);
+        await tester.tap(delete);
+        await tester.pumpAndSettle();
+        expect(find.text('Delete visit?'), findsOneWidget);
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
         final message = find.text('Failed to delete vet visit');
         final textViewport = find.ancestor(
           of: message,

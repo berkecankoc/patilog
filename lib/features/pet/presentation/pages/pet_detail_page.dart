@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
@@ -27,8 +28,11 @@ class PetDetailPage extends StatelessWidget {
     }
   }
 
-  Future<void> _openWeightHistory(BuildContext context) async {
-    await context.push(AppRoutes.weightHistory(petId));
+  Future<void> _openWeightHistory(BuildContext context, Pet pet) async {
+    await context.push(
+      AppRoutes.weightHistory(petId),
+      extra: PetCareRouteExtra(petId: petId, petName: pet.name),
+    );
     if (context.mounted) {
       await context.read<PetCubit>().getPetById(petId);
     }
@@ -106,9 +110,14 @@ class PetDetailPage extends StatelessWidget {
                       child: _PetView(
                         pet: pet,
                         onEdit: deleting ? null : () => _editPet(context, pet),
-                        onWeightHistory: () => _openWeightHistory(context),
-                        onVetVisits: () =>
-                            context.push(AppRoutes.vetVisits(petId)),
+                        onWeightHistory: () => _openWeightHistory(context, pet),
+                        onVetVisits: () => context.push(
+                          AppRoutes.vetVisits(petId),
+                          extra: PetCareRouteExtra(
+                            petId: petId,
+                            petName: pet.name,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -309,7 +318,9 @@ class _PetView extends StatelessWidget {
                       ].indexed) ...[
                         if (index > 0)
                           const Padding(
-                            padding: EdgeInsetsDirectional.only(start: 72),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                            ),
                             child: Divider(height: 1),
                           ),
                         ListTile(

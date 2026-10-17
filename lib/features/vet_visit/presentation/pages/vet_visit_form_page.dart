@@ -6,6 +6,7 @@ import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_form_actions.dart';
+import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
@@ -16,8 +17,14 @@ import 'package:petlytics/features/vet_visit/presentation/widgets/vet_visit_name
 class VetVisitFormPage extends StatefulWidget {
   final String petId;
   final VetVisit? visit;
+  final String? petName;
 
-  const VetVisitFormPage({super.key, required this.petId, this.visit});
+  const VetVisitFormPage({
+    super.key,
+    required this.petId,
+    this.visit,
+    this.petName,
+  });
 
   @override
   State<VetVisitFormPage> createState() => _VetVisitFormPageState();
@@ -182,7 +189,11 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
           },
           child: Scaffold(
             appBar: AppBar(
-              title: Text(widget.visit == null ? 'Add visit' : 'Edit visit'),
+              toolbarHeight: PetCareTitle.toolbarHeight(context),
+              title: PetCareTitle(
+                title: widget.visit == null ? 'Add visit' : 'Edit visit',
+                petName: widget.petName,
+              ),
               leading: IconButton(
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                 onPressed: saving ? null : _requestExit,

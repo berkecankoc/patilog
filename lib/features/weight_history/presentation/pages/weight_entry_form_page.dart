@@ -5,6 +5,8 @@ import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
+import 'package:petlytics/core/widgets/app_form_actions.dart';
+import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
@@ -12,8 +14,14 @@ import 'package:petlytics/features/weight_history/presentation/cubit/weight_hist
 class WeightEntryFormPage extends StatefulWidget {
   final String petId;
   final WeightEntry? entry;
+  final String? petName;
 
-  const WeightEntryFormPage({super.key, required this.petId, this.entry});
+  const WeightEntryFormPage({
+    super.key,
+    required this.petId,
+    this.entry,
+    this.petName,
+  });
 
   @override
   State<WeightEntryFormPage> createState() => _WeightEntryFormPageState();
@@ -138,8 +146,12 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
           },
           child: Scaffold(
             appBar: AppBar(
-              title: Text(
-                widget.entry == null ? 'Add measurement' : 'Edit measurement',
+              toolbarHeight: PetCareTitle.toolbarHeight(context),
+              title: PetCareTitle(
+                title: widget.entry == null
+                    ? 'Add measurement'
+                    : 'Edit measurement',
+                petName: widget.petName,
               ),
               leading: IconButton(
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -148,27 +160,74 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
               ),
             ),
             body: SafeArea(
-              child: Center(
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 640),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          child: AbsorbPointer(
-                            absorbing: saving,
-                            child: Form(
-                              key: _formKey,
-                              onChanged: () => setState(() {}),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  if (_saveError != null) ...[
-                                    Semantics(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: AbsorbPointer(
+                      absorbing: saving,
+                      child: Form(
+                        key: _formKey,
+                        onChanged: () => setState(() {}),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: _weightController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _submit(),
+                              decoration: const InputDecoration(
+                                labelText: 'Weight',
+                                suffixText: 'kg',
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Weight is required';
+                                }
+                                final weight = double.tryParse(value.trim());
+                                if (weight == null ||
+                                    !weight.isFinite ||
+                                    weight <= 0) {
+                                  return 'Enter a weight greater than zero';
+                                }
+                                return null;
+                              },
+                            ),
+                            VerticalGap.md,
+                            AppDateField(
+                              labelText: 'Measurement date',
+                              value: _measuredAt,
+                              firstDate: DateTime(1900),
+                              lastDate: DateTime.now(),
+                              onChanged: (date) {
+                                // Reselecting the same day must not erase the measurement time.
+                                if (date == null ||
+                                    DateUtils.isSameDay(date, _measuredAt)) {
+                                  return;
+                                }
+                                setState(() => _measuredAt = date);
+                              },
+                            ),
+                            VerticalGap.lg,
+                            AppFormActions(
+                              label: widget.entry == null
+                                  ? 'Save'
+                                  : 'Save changes',
+                              saving: saving,
+                              onPressed: widget.entry != null && !_hasChanges
+                                  ? null
+                                  : _submit,
+                              feedback: _saveError == null
+                                  ? null
+                                  : Semantics(
                                       key: _saveErrorKey,
                                       liveRegion: true,
                                       child: Text(
@@ -180,94 +239,11 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
                                         ),
                                       ),
                                     ),
-                                    VerticalGap.md,
-                                  ],
-                                  Text(
-                                    'Record the weight and the date it was measured.',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
-                                  ),
-                                  VerticalGap.lg,
-                                  TextFormField(
-                                    controller: _weightController,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    textInputAction: TextInputAction.done,
-                                    onFieldSubmitted: (_) => _submit(),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Weight (kg)',
-                                    ),
-                                    validator: (value) {
-                                      if (value == null ||
-                                          value.trim().isEmpty) {
-                                        return 'Weight is required';
-                                      }
-                                      final weight = double.tryParse(
-                                        value.trim(),
-                                      );
-                                      if (weight == null ||
-                                          !weight.isFinite ||
-                                          weight <= 0) {
-                                        return 'Enter a weight greater than zero';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  VerticalGap.md,
-                                  AppDateField(
-                                    labelText: 'Measurement date',
-                                    value: _measuredAt,
-                                    firstDate: DateTime(1900),
-                                    lastDate: DateTime.now(),
-                                    onChanged: (date) {
-                                      // Reselecting the same day must not erase the measurement time.
-                                      if (date == null ||
-                                          DateUtils.isSameDay(
-                                            date,
-                                            _measuredAt,
-                                          )) {
-                                        return;
-                                      }
-                                      setState(() => _measuredAt = date);
-                                    },
-                                  ),
-                                ],
-                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                          vertical: AppSpacing.md,
-                        ),
-                        child: ElevatedButton(
-                          onPressed:
-                              saving || (widget.entry != null && !_hasChanges)
-                              ? null
-                              : _submit,
-                          child: saving
-                              ? const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox.square(
-                                      dimension: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                    HorizontalGap.sm,
-                                    Flexible(child: Text('Saving…')),
-                                  ],
-                                )
-                              : const Text('Save'),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),

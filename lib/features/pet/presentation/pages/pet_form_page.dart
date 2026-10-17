@@ -117,6 +117,8 @@ class PetFormPage extends StatefulWidget {
 }
 
 class _PetFormPageState extends State<PetFormPage> {
+  static const _nameMaxLength = 20;
+
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
@@ -420,6 +422,10 @@ class _PetFormPageState extends State<PetFormPage> {
                                       if (value == null ||
                                           value.trim().isEmpty) {
                                         return 'Name is required';
+                                      }
+                                      if (value.trim().characters.length >
+                                          _nameMaxLength) {
+                                        return 'Keep name within $_nameMaxLength characters';
                                       }
 
                                       return null;
