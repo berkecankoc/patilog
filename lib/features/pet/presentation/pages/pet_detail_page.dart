@@ -318,7 +318,9 @@ class _PetView extends StatelessWidget {
                       ].indexed) ...[
                         if (index > 0)
                           const Padding(
-                            padding: EdgeInsetsDirectional.only(start: 72),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                            ),
                             child: Divider(height: 1),
                           ),
                         ListTile(

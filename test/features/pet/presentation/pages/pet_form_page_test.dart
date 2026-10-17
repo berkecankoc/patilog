@@ -128,6 +128,75 @@ void main() {
 
   for (final editing in [false, true]) {
     final label = editing ? 'Save changes' : 'Add pet';
+    for (final (scenario, input, expected) in [
+      ('20 visible characters', '🐈‍⬛' * 20, '🐈‍⬛' * 20),
+      ('surrounding whitespace', '  ${'a' * 20}  ', 'a' * 20),
+    ]) {
+      testWidgets('$label pet name handles $scenario', (tester) async {
+        await pumpForm(tester, existing: editing ? pet : null);
+        await changeName(tester, input);
+        final button = find.widgetWithText(ElevatedButton, label);
+        await tester.ensureVisible(button);
+        await tester.pumpAndSettle();
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(await routeResult, isTrue);
+        if (editing) {
+          final params =
+              verify(() => update(pet, captureAny())).captured.single
+                  as UpdatePetParams;
+          expect(params.name, expected);
+        } else {
+          final params =
+              verify(() => create(captureAny())).captured.single
+                  as CreatePetParams;
+          expect(params.name, expected);
+        }
+      });
+    }
+    testWidgets(
+      '$label rejects a pet name over 20 characters without cutting input',
+      (tester) async {
+        await pumpForm(tester, existing: editing ? pet : null);
+        final tooLong = 'a' * 21;
+        await changeName(tester, tooLong);
+        final button = find.widgetWithText(ElevatedButton, label);
+        await tester.ensureVisible(button);
+        await tester.pumpAndSettle();
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Keep name within 20 characters').hitTestable(),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .widget<TextFormField>(find.byType(TextFormField).first)
+              .controller!
+              .text,
+          tooLong,
+        );
+        verifyNever(() => create(any()));
+        verifyNever(() => update(pet, any()));
+        await changeName(tester, 'a' * 20);
+        await tester.ensureVisible(button);
+        await tester.pumpAndSettle();
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(await routeResult, isTrue);
+        if (editing) {
+          final params =
+              verify(() => update(pet, captureAny())).captured.single
+                  as UpdatePetParams;
+          expect(params.name, 'a' * 20);
+        } else {
+          final params =
+              verify(() => create(captureAny())).captured.single
+                  as CreatePetParams;
+          expect(params.name, 'a' * 20);
+        }
+      },
+    );
     testWidgets(
       editing
           ? 'edit saves from basic details with fixed actions'
