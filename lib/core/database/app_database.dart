@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' show join;
 
 const _databaseName = 'petlytics.db';
-const _databaseVersion = 2;
+const _databaseVersion = 3;
 
 Future<Database> openAppDatabase() async {
   final dbPath = await getDatabasesPath();
@@ -41,9 +41,11 @@ Future<Database> openAppDatabase() async {
         )
       ''');
       await _createVetVisitsTable(db);
+      await _createVaccinationsTable(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) await _createVetVisitsTable(db);
+      if (oldVersion < 3) await _createVaccinationsTable(db);
     },
   );
 }
@@ -67,6 +69,23 @@ Future<void> _createVetVisitsTable(Database db) async {
           AND cost_minor_units >= 0 AND currency IS NOT NULL
           AND currency IN ('TRY', 'USD', 'EUR'))
       )
+    )
+  ''');
+}
+
+Future<void> _createVaccinationsTable(Database db) async {
+  await db.execute('''
+    CREATE TABLE ${DatabaseTables.vaccinations} (
+      id TEXT PRIMARY KEY,
+      pet_id TEXT NOT NULL REFERENCES ${DatabaseTables.pets}(id) ON DELETE CASCADE,
+      vaccine_name TEXT NOT NULL CHECK (length(trim(vaccine_name)) > 0),
+      status TEXT NOT NULL CHECK (status IN ('planned', 'administered')),
+      date TEXT NOT NULL,
+      clinic_name TEXT,
+      veterinarian_name TEXT,
+      notes TEXT,
+      vet_visit_id TEXT REFERENCES ${DatabaseTables.vetVisits}(id) ON DELETE SET NULL,
+      CHECK (status = 'administered' OR vet_visit_id IS NULL)
     )
   ''');
 }
