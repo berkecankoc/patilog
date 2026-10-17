@@ -2,25 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
+import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
 
 class WeightHistoryPage extends StatelessWidget {
   final String petId;
+  final String? petName;
 
-  const WeightHistoryPage({super.key, required this.petId});
+  const WeightHistoryPage({super.key, required this.petId, this.petName});
 
   Future<void> _openForm(BuildContext context, [WeightEntry? entry]) async {
     final saved = await context.push<bool>(
       AppRoutes.addEditWeightEntry(petId),
-      extra: entry,
+      extra: WeightEntryFormExtra(petId: petId, petName: petName, entry: entry),
     );
     if (saved == true && context.mounted) {
       await context.read<WeightHistoryCubit>().loadWeightHistory(petId);
@@ -53,7 +56,8 @@ class WeightHistoryPage extends StatelessWidget {
           canPop: !deleting,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Weight history'),
+              toolbarHeight: PetCareTitle.toolbarHeight(context),
+              title: PetCareTitle(title: 'Weight history', petName: petName),
               leading: deleting
                   ? IconButton(
                       tooltip: MaterialLocalizations.of(
@@ -80,7 +84,7 @@ class WeightHistoryPage extends StatelessWidget {
                   : null,
               icon: const Icon(Icons.add),
               tooltip: 'Add measurement',
-              label: const Text('Add weight'),
+              label: const Text('Add measurement'),
             ),
             body: SafeArea(
               child: Center(

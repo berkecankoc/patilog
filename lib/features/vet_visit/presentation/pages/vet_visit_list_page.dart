@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
+import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
@@ -13,11 +15,15 @@ import 'package:petlytics/features/vet_visit/presentation/utils/confirm_vet_visi
 
 class VetVisitListPage extends StatelessWidget {
   final String petId;
+  final String? petName;
 
-  const VetVisitListPage({super.key, required this.petId});
+  const VetVisitListPage({super.key, required this.petId, this.petName});
 
   Future<void> _addVisit(BuildContext context) async {
-    final saved = await context.push<bool>(AppRoutes.addEditVetVisit(petId));
+    final saved = await context.push<bool>(
+      AppRoutes.addEditVetVisit(petId),
+      extra: VetVisitFormExtra(petId: petId, petName: petName),
+    );
     if (saved == true && context.mounted) {
       await context.read<VetVisitCubit>().loadVetVisits(petId);
     }
@@ -26,6 +32,7 @@ class VetVisitListPage extends StatelessWidget {
   Future<void> _openVisit(BuildContext context, VetVisit visit) async {
     final deletedId = await context.push<String>(
       AppRoutes.vetVisitDetail(petId, visit.id),
+      extra: PetCareRouteExtra(petId: petId, petName: petName),
     );
     if (!context.mounted) return;
     final cubit = context.read<VetVisitCubit>();
@@ -55,7 +62,8 @@ class VetVisitListPage extends StatelessWidget {
           canPop: !deleting,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Vet visits'),
+              toolbarHeight: PetCareTitle.toolbarHeight(context),
+              title: PetCareTitle(title: 'Vet visits', petName: petName),
               leading: deleting
                   ? IconButton(
                       tooltip: MaterialLocalizations.of(

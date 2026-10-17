@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
+import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
@@ -16,17 +18,19 @@ import 'package:petlytics/features/vet_visit/presentation/utils/vet_visit_cost.d
 class VetVisitDetailPage extends StatelessWidget {
   final String petId;
   final String visitId;
+  final String? petName;
 
   const VetVisitDetailPage({
     super.key,
     required this.petId,
     required this.visitId,
+    this.petName,
   });
 
   Future<void> _edit(BuildContext context, VetVisit visit) async {
     final saved = await context.push<bool>(
       AppRoutes.addEditVetVisit(petId),
-      extra: visit,
+      extra: VetVisitFormExtra(petId: petId, petName: petName, visit: visit),
     );
     if (saved == true && context.mounted) {
       await context.read<VetVisitCubit>().loadVetVisit(petId, visitId);
@@ -80,7 +84,8 @@ class VetVisitDetailPage extends StatelessWidget {
           canPop: !deleting,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Vet visit'),
+              toolbarHeight: PetCareTitle.toolbarHeight(context),
+              title: PetCareTitle(title: 'Vet visit', petName: petName),
               leading: deleting
                   ? IconButton(
                       tooltip: MaterialLocalizations.of(
@@ -155,16 +160,20 @@ class VetVisitDetailPage extends StatelessWidget {
                                               color: colors.onSurfaceVariant,
                                             ),
                                           ),
-                                          HorizontalGap.md,
+                                          HorizontalGap.sm,
                                           Expanded(
-                                            child: _field(
-                                              context,
-                                              'Visit date',
+                                            child: Text(
                                               MaterialLocalizations.of(
                                                 context,
                                               ).formatShortDate(
                                                 visit.visitedOn,
                                               ),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                             ),
                                           ),
                                           IconButton(

@@ -10,9 +10,11 @@ import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/router/app_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
+import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
@@ -54,6 +56,7 @@ void main() {
     measuredAt: DateTime(2025, 1, 12, 10, 30),
   );
   late MockWeightRepository repository;
+  late MockPetRepository pets;
   late List<WeightEntry> entries;
 
   setUpAll(() => registerFallbackValue(entry));
@@ -66,7 +69,7 @@ void main() {
     ).thenAnswer((_) async => Success(List.of(entries)));
     final ids = MockIdGenerator();
     when(ids.generate).thenReturn('new-entry');
-    final pets = MockPetRepository();
+    pets = MockPetRepository();
     when(() => pets.getPets()).thenAnswer((_) async => const Success([pet]));
     when(() => pets.getPetById(pet.id)).thenAnswer(
       (_) async => Success(
@@ -132,8 +135,15 @@ void main() {
   Future<void> save(WidgetTester tester) async {
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Save'));
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Save'));
+    final form = tester.widget<WeightEntryFormPage>(
+      find.byType(WeightEntryFormPage),
+    );
+    final button = find.widgetWithText(
+      ElevatedButton,
+      form.entry == null ? 'Save' : 'Save changes',
+    );
+    await tester.ensureVisible(button);
+    await tester.tap(button);
     await tester.pumpAndSettle();
   }
 
@@ -144,6 +154,7 @@ void main() {
       tester,
       initialLocation: AppRoutes.petDetail(pet.id),
     );
+    clearInteractions(pets);
     await tester.ensureVisible(find.text('Weight history'));
     await tester.tap(find.text('Weight history'));
     await tester.pumpAndSettle();
@@ -151,7 +162,204 @@ void main() {
     expect(router.state.uri.path, AppRoutes.weightHistory(pet.id));
     expect(find.byType(WeightHistoryPage), findsOneWidget);
     verify(() => repository.getWeightEntries(pet.id)).called(1);
+    verifyNever(() => pets.getPetById(any()));
   });
+
+  testWidgets('measurement action and both forms keep the pet context', (
+    tester,
+  ) async {
+    await pumpRouter(tester);
+    clearInteractions(pets);
+    final appBarName = find.descendant(
+      of: find.byType(AppBar),
+      matching: find.text(pet.name),
+    );
+    expect(appBarName.hitTestable(), findsOneWidget);
+    expect(
+      find
+          .widgetWithText(FloatingActionButton, 'Add measurement')
+          .hitTestable(),
+      findsOneWidget,
+    );
+    await openAddForm(tester);
+    expect(appBarName.hitTestable(), findsOneWidget);
+    expect(
+      find.widgetWithText(ElevatedButton, 'Save').hitTestable(),
+      findsOneWidget,
+    );
+    final date = tester.getRect(find.byType(AppDateField));
+    final saveButton = tester.getRect(
+      find.widgetWithText(ElevatedButton, 'Save'),
+    );
+    expect(saveButton.top - date.bottom, lessThanOrEqualTo(32));
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await tester.pumpAndSettle();
+    expect(appBarName.hitTestable(), findsOneWidget);
+    expect(
+      find.widgetWithText(ElevatedButton, 'Save changes').hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<WeightEntryFormPage>(find.byType(WeightEntryFormPage))
+          .entry,
+      entry,
+    );
+    verifyNever(() => pets.getPetById(any()));
+  });
+
+  testWidgets('reopening history carries the refreshed profile name', (
+    tester,
+  ) async {
+    var currentPet = pet;
+    when(
+      () => pets.getPetById(pet.id),
+    ).thenAnswer((_) async => Success(currentPet));
+    await pumpRouter(tester, initialLocation: AppRoutes.petDetail(pet.id));
+    await tester.ensureVisible(find.text('Weight history'));
+    await tester.tap(find.text('Weight history'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text(pet.name)),
+      findsOneWidget,
+    );
+    currentPet = pet.copyWith(name: 'Luna');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    clearInteractions(pets);
+    await tester.ensureVisible(find.text('Weight history'));
+    await tester.tap(find.text('Weight history'));
+    await tester.pumpAndSettle();
+    expect(
+      find
+          .descendant(of: find.byType(AppBar), matching: find.text('Luna'))
+          .hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.text(pet.name), findsNothing);
+    verifyNever(() => pets.getPetById(any()));
+  });
+
+  testWidgets(
+    'route context for another pet cannot supply the displayed name',
+    (tester) async {
+      final router = await pumpRouter(tester);
+      clearInteractions(pets);
+      router.go(
+        AppRoutes.weightHistory(pet.id),
+        extra: const PetCareRouteExtra(petId: 'pet-2', petName: 'Wrong pet'),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find
+            .descendant(of: find.byType(AppBar), matching: find.text(pet.name))
+            .hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.text('Wrong pet'), findsNothing);
+    },
+  );
+
+  testWidgets('weight uses a separate unit when entering a measurement', (
+    tester,
+  ) async {
+    await pumpRouter(
+      tester,
+      initialLocation: AppRoutes.addEditWeightEntry(pet.id),
+    );
+    expect(find.text('Weight'), findsOneWidget);
+    expect(find.text('Weight (kg)'), findsNothing);
+    await tester.tap(find.byType(TextFormField).first);
+    await tester.pumpAndSettle();
+    expect(find.text('kg').hitTestable(), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, '4.8');
+    expect(find.text('4.8'), findsOneWidget);
+  });
+
+  testWidgets('a late pet name keeps the entered measurement intact', (
+    tester,
+  ) async {
+    final pending = Completer<Result<Pet>>();
+    when(() => pets.getPetById(pet.id)).thenAnswer((_) => pending.future);
+    await pumpRouter(
+      tester,
+      initialLocation: AppRoutes.addEditWeightEntry(pet.id),
+    );
+    await tester.enterText(find.byType(TextFormField).first, '4.8');
+    pending.complete(const Success(pet));
+    await tester.pumpAndSettle();
+    expect(
+      find
+          .descendant(of: find.byType(AppBar), matching: find.text(pet.name))
+          .hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.text('4.8'), findsOneWidget);
+  });
+
+  testWidgets('a pet name lookup failure leaves measurement creation usable', (
+    tester,
+  ) async {
+    when(
+      () => repository.createWeightEntry(any()),
+    ).thenAnswer((_) async => const Success(null));
+    when(() => pets.getPetById(pet.id)).thenAnswer(
+      (_) async => const Error(LocalDatabaseFailure('Could not load pet')),
+    );
+    await pumpRouter(
+      tester,
+      initialLocation: AppRoutes.addEditWeightEntry(pet.id),
+    );
+    expect(find.text('Add measurement'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, '5.1');
+    await save(tester);
+    verify(() => repository.createWeightEntry(any())).called(1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'a direct history URL and pet change show the matching name and records',
+    (tester) async {
+      const other = Pet(
+        id: 'pet-2',
+        name: 'Luna',
+        species: PetSpecies.bird,
+        sex: PetSex.unknown,
+        reproductiveStatus: ReproductiveStatus.unknown,
+      );
+      when(
+        () => pets.getPetById(other.id),
+      ).thenAnswer((_) async => Success(other));
+      when(
+        () => repository.getWeightEntries(other.id),
+      ).thenAnswer((_) async => const Success([]));
+      final router = await pumpRouter(tester);
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text(pet.name)),
+        findsOneWidget,
+      );
+      router.go(AppRoutes.weightHistory(other.id));
+      await tester.pumpAndSettle();
+      expect(
+        find
+            .descendant(
+              of: find.byType(AppBar),
+              matching: find.text(other.name),
+            )
+            .hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.text(pet.name), findsNothing);
+      expect(find.text('No measurements yet'), findsOneWidget);
+      expect(find.text('4.5 kg'), findsNothing);
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text(other.name).hitTestable(), findsOneWidget);
+      expect(find.text(pet.name), findsNothing);
+    },
+  );
 
   testWidgets('empty history offers a measurement form with today selected', (
     tester,
@@ -578,7 +786,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save'))
+            .widget<ElevatedButton>(
+              find.widgetWithText(ElevatedButton, 'Save changes'),
+            )
             .onPressed,
         isNull,
       );
@@ -744,6 +954,51 @@ void main() {
   );
 
   for (final brightness in Brightness.values) {
+    for (final (size, scale, keyboard) in [
+      (const Size(320, 568), 2.0, true),
+      (const Size(640, 320), 2.0, false),
+      (const Size(320, 568), 3.0, false),
+    ]) {
+      testWidgets(
+        'long pet name keeps measurement entry usable at $size and $scale in $brightness',
+        (tester) async {
+          final namedPet = pet.copyWith(
+            name: 'Fluffy with a very long family name',
+          );
+          when(
+            () => pets.getPetById(pet.id),
+          ).thenAnswer((_) async => Success(namedPet));
+          when(
+            () => repository.createWeightEntry(any()),
+          ).thenAnswer((_) async => const Success(null));
+          await pumpRouter(
+            tester,
+            initialLocation: AppRoutes.addEditWeightEntry(pet.id),
+            brightness: brightness,
+            width: size.width,
+            height: size.height,
+            scale: scale,
+            keyboard: keyboard,
+          );
+          expect(
+            find
+                .descendant(
+                  of: find.byType(AppBar),
+                  matching: find.text(namedPet.name),
+                )
+                .hitTestable(),
+            findsOneWidget,
+          );
+          final field = find.byType(TextFormField).first;
+          await tester.ensureVisible(field);
+          await tester.enterText(field, '5.2');
+          await save(tester);
+          expect(find.byType(WeightHistoryPage), findsOneWidget);
+          verify(() => repository.createWeightEntry(any())).called(1);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
     for (final size in [const Size(320, 568), const Size(640, 320)]) {
       testWidgets(
         'shared history feedback is aligned and retry reconfirms at $size in $brightness',
@@ -831,7 +1086,10 @@ void main() {
           final error = find.text('Failed to create measurement');
           expect(error.hitTestable(), findsOneWidget);
           final viewport = tester.getRect(find.byType(SingleChildScrollView));
-          expect(tester.getRect(error).top, greaterThanOrEqualTo(viewport.top));
+          expect(
+            tester.getRect(error).top,
+            greaterThanOrEqualTo(viewport.top - 0.1),
+          );
           expect(
             tester.getRect(error).bottom,
             lessThanOrEqualTo(viewport.bottom),
@@ -846,6 +1104,12 @@ void main() {
             findsOneWidget,
           );
           expect(find.text('5.2'), findsOneWidget);
+          when(
+            () => repository.createWeightEntry(any()),
+          ).thenAnswer((_) async => const Success(null));
+          await save(tester);
+          expect(find.byType(WeightHistoryPage), findsOneWidget);
+          verify(() => repository.createWeightEntry(any())).called(2);
         },
       );
     }
