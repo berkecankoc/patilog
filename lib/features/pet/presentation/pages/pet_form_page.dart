@@ -416,7 +416,7 @@ class _PetFormPageState extends State<PetFormPage> {
                                   TextFormField(
                                     controller: _nameController,
                                     decoration: const InputDecoration(
-                                      labelText: 'Name*',
+                                      labelText: 'Name',
                                     ),
                                     validator: (value) {
                                       if (value == null ||
@@ -489,7 +489,7 @@ class _PetFormPageState extends State<PetFormPage> {
                                   TextFormField(
                                     controller: _breedController,
                                     decoration: const InputDecoration(
-                                      labelText: 'Breed',
+                                      labelText: 'Breed (optional)',
                                     ),
                                   ),
 
@@ -529,7 +529,7 @@ class _PetFormPageState extends State<PetFormPage> {
                                   Column(
                                     children: [
                                       AppDateField(
-                                        labelText: 'Birth date',
+                                        labelText: 'Birth date (optional)',
                                         value: _birthDate,
                                         firstDate: DateTime(1980),
                                         lastDate: DateTime.now(),
@@ -547,7 +547,7 @@ class _PetFormPageState extends State<PetFormPage> {
                                               decimal: true,
                                             ),
                                         decoration: const InputDecoration(
-                                          labelText: 'Weight',
+                                          labelText: 'Weight (optional)',
                                           suffixText: 'kg',
                                         ),
                                         validator: (value) {
@@ -585,7 +585,7 @@ class _PetFormPageState extends State<PetFormPage> {
                                   TextFormField(
                                     controller: _microchipIdController,
                                     decoration: const InputDecoration(
-                                      labelText: 'Microchip ID',
+                                      labelText: 'Microchip ID (optional)',
                                     ),
                                   ),
                                   if (widget.pet == null) ...[

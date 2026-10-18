@@ -208,7 +208,10 @@ void main() {
         await changeName(tester);
         if (editing) {
           expect(button.hitTestable(), findsOneWidget);
-          expect(find.text('Microchip ID').hitTestable(), findsNothing);
+          expect(
+            find.text('Microchip ID (optional)').hitTestable(),
+            findsNothing,
+          );
           expect(tester.getRect(button), bounds);
         } else {
           expect(button.hitTestable(), findsNothing);
@@ -217,7 +220,9 @@ void main() {
           expect(button.hitTestable(), findsOneWidget);
           expect(
             tester.getTopLeft(button).dy,
-            greaterThan(tester.getBottomRight(find.text('Microchip ID')).dy),
+            greaterThan(
+              tester.getBottomRight(find.text('Microchip ID (optional)')).dy,
+            ),
           );
         }
         await tester.tap(button);
@@ -329,7 +334,7 @@ void main() {
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await changeName(tester);
-    expect(find.text('Weight').hitTestable(), findsNothing);
+    expect(find.text('Weight (optional)').hitTestable(), findsNothing);
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
     expect(

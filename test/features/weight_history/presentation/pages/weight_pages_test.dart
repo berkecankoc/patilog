@@ -378,6 +378,57 @@ void main() {
     expect(find.text(today), findsOneWidget);
   });
 
+  for (final brightness in Brightness.values) {
+    for (final size in [const Size(320, 568), const Size(640, 320)]) {
+      testWidgets(
+        'empty history centers and remains usable at $size in $brightness',
+        (tester) async {
+          entries = [];
+          await pumpRouter(
+            tester,
+            width: size.width,
+            height: size.height,
+            scale: 2,
+            brightness: brightness,
+          );
+          final scroll = find.byType(SingleChildScrollView);
+          final viewport = find
+              .ancestor(of: scroll, matching: find.byType(Expanded))
+              .first;
+          expect(
+            tester.getRect(scroll).center,
+            tester.getRect(viewport).center,
+          );
+          await tester.ensureVisible(find.text('No measurements yet'));
+          await tester.pumpAndSettle();
+          expect(
+            find.text('No measurements yet').hitTestable(),
+            findsOneWidget,
+          );
+          final description = find.text(
+            'Add a weight measurement to start the history.',
+          );
+          await tester.ensureVisible(description);
+          await tester.pumpAndSettle();
+          expect(description.hitTestable(), findsOneWidget);
+          expect(
+            tester
+                .getRect(description)
+                .overlaps(tester.getRect(find.byType(FloatingActionButton))),
+            isFalse,
+          );
+          expect(
+            find.byTooltip('Add measurement').hitTestable(),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+          await openAddForm(tester);
+          expect(find.byType(WeightEntryFormPage), findsOneWidget);
+        },
+      );
+    }
+  }
+
   for (final input in ['', '0', '-1', 'NaN', 'Infinity', 'abc']) {
     testWidgets('invalid weight "$input" never reaches the repository', (
       tester,

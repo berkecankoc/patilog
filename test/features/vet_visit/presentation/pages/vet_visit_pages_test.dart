@@ -31,6 +31,7 @@ import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_list_p
 import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_detail_page.dart';
 import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_form_page.dart';
 import 'package:petlytics/core/widgets/app_suggestion_field.dart';
+import 'package:petlytics/core/widgets/app_date_field.dart';
 
 class MockVetRepository extends Mock implements VetVisitRepository {}
 
@@ -397,6 +398,50 @@ void main() {
 
   for (final editing in [false, true]) {
     testWidgets(
+      'visit reason precedes the date and validates 100 visible characters in ${editing ? 'edit' : 'add'}',
+      (tester) async {
+        await pumpRouter(tester);
+        if (editing) {
+          await openDetail(tester);
+          await tester.tap(find.byTooltip('Edit visit'));
+          await tester.pumpAndSettle();
+        } else {
+          await openAdd(tester);
+        }
+        expect(
+          tester.getTopLeft(reasonField).dy,
+          lessThan(tester.getTopLeft(find.byType(AppDateField)).dy),
+        );
+        final tooLong = '🐈‍⬛' * 101;
+        await fill(tester, reasonField, tooLong);
+        await save(tester);
+        expect(
+          find.text('Keep reason within 100 characters').hitTestable(),
+          findsOneWidget,
+        );
+        expect(
+          tester.widget<TextFormField>(reasonField).controller!.text,
+          tooLong,
+        );
+        verifyNever(() => repository.createVetVisit(any()));
+        verifyNever(() => repository.updateVetVisit(any()));
+        final valid = '🐈‍⬛' * 100;
+        await fill(tester, reasonField, valid);
+        await save(tester);
+        final saved =
+            verify(
+                  () => editing
+                      ? repository.updateVetVisit(captureAny())
+                      : repository.createVetVisit(captureAny()),
+                ).captured.single
+                as VetVisit;
+        expect(saved.reason, valid);
+      },
+    );
+  }
+
+  for (final editing in [false, true]) {
+    testWidgets(
       editing
           ? 'edit visit saves from the first fields with fixed actions'
           : 'add visit saves only after the final form fields',
@@ -550,17 +595,16 @@ void main() {
       await openAdd(tester);
       await fill(tester, veterinarianField, 'My veterinarian');
       await fill(tester, clinicField, 'Clinic');
-      await tester.ensureVisible(find.widgetWithText(ActionChip, 'Clinic B'));
-      await tester.tap(find.widgetWithText(ActionChip, 'Clinic B'));
+      await tester.tap(find.widgetWithText(MenuItemButton, 'Clinic B'));
       await tester.pumpAndSettle();
       expect(
         tester.widget<TextFormField>(veterinarianField).controller!.text,
         'My veterinarian',
       );
       await fill(tester, veterinarianField, 'Dr.');
-      expect(find.widgetWithText(ActionChip, 'Dr. Jones'), findsOneWidget);
-      expect(find.widgetWithText(ActionChip, 'Dr. Smith'), findsNothing);
-      await tester.tap(find.widgetWithText(ActionChip, 'Dr. Jones'));
+      expect(find.widgetWithText(MenuItemButton, 'Dr. Jones'), findsOneWidget);
+      expect(find.widgetWithText(MenuItemButton, 'Dr. Smith'), findsNothing);
+      await tester.tap(find.widgetWithText(MenuItemButton, 'Dr. Jones'));
       await tester.pumpAndSettle();
       await fill(tester, reasonField, 'Follow-up');
       await save(tester);
@@ -994,6 +1038,63 @@ void main() {
 
   for (final brightness in Brightness.values) {
     for (final size in [const Size(320, 568), const Size(640, 320)]) {
+      testWidgets(
+        'suggestion loading preserves form positions and input at $size in $brightness',
+        (tester) async {
+          await pumpRouter(
+            tester,
+            width: size.width,
+            height: size.height,
+            scale: 2,
+            brightness: brightness,
+            keyboard: size.width == 320,
+          );
+          await openAdd(tester);
+          await fill(tester, reasonField, 'Checkup');
+          await fill(tester, veterinarianField, 'My veterinarian');
+          await fill(tester, clinicField, 'C');
+          final neighbor = tester.getRect(veterinarianField);
+          final height = tester.getSize(clinicField).height;
+          final pending = Completer<Result<VetVisitSuggestions>>();
+          when(
+            () => repository.getSuggestions(clinicName: 'Cli'),
+          ).thenAnswer((_) => pending.future);
+          await tester.enterText(clinicField, 'Cli');
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(tester.getRect(veterinarianField), neighbor);
+          expect(tester.getSize(clinicField).height, height);
+          pending.complete(
+            const Success(
+              VetVisitSuggestions(
+                clinicNames: ['Clinic A', 'Clinic B'],
+                veterinarianNames: [],
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(tester.getRect(veterinarianField), neighbor);
+          final clinic = find.widgetWithText(MenuItemButton, 'Clinic B');
+          await tester.ensureVisible(clinic);
+          await tester.pumpAndSettle();
+          await tester.tap(clinic);
+          await tester.pumpAndSettle();
+          expect(
+            tester.widget<TextFormField>(veterinarianField).controller!.text,
+            'My veterinarian',
+          );
+          await save(tester);
+          final saved =
+              verify(
+                    () => repository.createVetVisit(captureAny()),
+                  ).captured.single
+                  as VetVisit;
+          expect(saved.clinicName, 'Clinic B');
+          expect(saved.veterinarianName, 'My veterinarian');
+          expect(tester.takeException(), isNull);
+        },
+      );
+
       testWidgets(
         'long visit cards remain readable and open detail at $size in $brightness',
         (tester) async {

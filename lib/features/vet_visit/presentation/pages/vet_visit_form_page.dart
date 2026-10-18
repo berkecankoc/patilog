@@ -240,6 +240,27 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
                                     icon: Icons.event_note_outlined,
                                   ),
                                   VerticalGap.md,
+                                  TextFormField(
+                                    key: const Key('visit-reason'),
+                                    controller: _reason,
+                                    textCapitalization:
+                                        TextCapitalization.sentences,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Reason for visit',
+                                    ),
+                                    minLines: 1,
+                                    maxLines: 3,
+                                    validator: (value) {
+                                      final reason = value?.trim() ?? '';
+                                      if (reason.isEmpty) {
+                                        return 'Enter a reason for the visit';
+                                      }
+                                      return reason.characters.length > 100
+                                          ? 'Keep reason within 100 characters'
+                                          : null;
+                                    },
+                                  ),
+                                  VerticalGap.md,
                                   AppDateField(
                                     labelText: 'Visit date',
                                     value: _visitedOn,
@@ -251,22 +272,6 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
                                       }
                                     },
                                   ),
-                                  VerticalGap.md,
-                                  TextFormField(
-                                    key: const Key('visit-reason'),
-                                    controller: _reason,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Reason for visit',
-                                    ),
-                                    minLines: 1,
-                                    maxLines: 3,
-                                    validator: (value) =>
-                                        value == null || value.trim().isEmpty
-                                        ? 'Enter a reason for the visit'
-                                        : null,
-                                  ),
                                   VerticalGap.xl,
                                   const AppSectionHeading(
                                     title: 'Clinic & veterinarian',
@@ -275,6 +280,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
                                   VerticalGap.md,
                                   AppSuggestionField(
                                     label: 'Clinic (optional)',
+                                    loading: state.isLoadingSuggestions,
                                     controller: _clinic,
                                     suggestions: state.suggestions.clinicNames,
                                     onChanged: (value) => context
@@ -288,12 +294,6 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
                                     suggestions:
                                         state.suggestions.veterinarianNames,
                                   ),
-                                  if (state.isLoadingSuggestions) ...[
-                                    VerticalGap.sm,
-                                    const LinearProgressIndicator(
-                                      semanticsLabel: 'Loading suggestions',
-                                    ),
-                                  ],
                                   if (state.suggestionsError != null) ...[
                                     VerticalGap.sm,
                                     Semantics(

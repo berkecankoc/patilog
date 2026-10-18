@@ -110,37 +110,41 @@ class WeightHistoryPage extends StatelessWidget {
                             child: AbsorbPointer(
                               absorbing: deleting,
                               child: entries.isEmpty
-                                  ? SingleChildScrollView(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        24,
-                                        24,
-                                        24,
-                                        96,
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.monitor_weight_outlined,
-                                            size: 48,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                          VerticalGap.md,
-                                          Text(
-                                            'No measurements yet',
-                                            textAlign: TextAlign.center,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.titleLarge,
-                                          ),
-                                          VerticalGap.sm,
-                                          const Text(
-                                            'Add a weight measurement to start the history.',
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
+                                  ? Center(
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          24,
+                                          24,
+                                          24,
+                                          96,
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ExcludeSemantics(
+                                              child: Icon(
+                                                Icons.monitor_weight_outlined,
+                                                size: 48,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                            VerticalGap.md,
+                                            Text(
+                                              'No measurements yet',
+                                              textAlign: TextAlign.center,
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.titleLarge,
+                                            ),
+                                            VerticalGap.sm,
+                                            const Text(
+                                              'Add a weight measurement to start the history.',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     )
                                   : _Measurements(
