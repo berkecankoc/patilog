@@ -82,10 +82,23 @@ void main() {
           status: VaccinationStatus.administered,
           date: DateTime(2020, 1, 2),
           vetVisitId: 'visit-1',
-          nextDoseDate: DateTime(2021, 1, 2),
+          clinicName: 'New clinic',
+          veterinarianName: 'Dr. New',
+          nextDoseDate: DateTime.now().add(const Duration(days: 1)),
         ),
       );
       expect(form.state.isSaved, isTrue);
+      expect(
+        await getIt<VetVisitRepository>().getSuggestions(
+          clinicName: 'New clinic',
+        ),
+        const Success(
+          VetVisitSuggestions(
+            clinicNames: ['Clinic', 'New clinic'],
+            veterinarianNames: ['Dr. New'],
+          ),
+        ),
+      );
       expect(otherForm.state, const VaccinationFormState());
       await list.loadVaccinations('pet-1');
       final rows = (list.state as VaccinationsLoaded).vaccinations;

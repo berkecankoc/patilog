@@ -4,6 +4,8 @@ import 'package:petlytics/features/vaccination/domain/entities/vaccination_sugge
 
 /// Single-record reads, updates and deletes must match both pet and record IDs.
 /// A missing match returns NotFoundFailure. Linked visits must belong to the pet.
+/// Writes require planned dates on/after today and administered dates on/before
+/// today. Existing overdue plans can still be read.
 abstract interface class VaccinationRepository {
   /// Planned records first (date ascending), then history (date descending).
   /// Ties use newest insertion first; content edits do not change insertion order.
@@ -32,8 +34,8 @@ abstract interface class VaccinationRepository {
   Future<Result<void>> deleteVaccination(String petId, String vaccinationId);
 
   /// Saved vaccine names across all pets; clinic/vet names also include vet visits.
-  /// Non-blank names are trimmed, deduplicated and sorted case-insensitively.
+  /// Non-blank names are deduplicated and sorted case-insensitively.
   /// Returns all vaccines and clinics; vets match the clinic ignoring case and
-  /// surrounding whitespace, or include all when [clinicName] is blank/null.
+  /// normalized whitespace, or include all when [clinicName] is blank/null.
   Future<Result<VaccinationSuggestions>> getSuggestions({String? clinicName});
 }

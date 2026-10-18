@@ -15,6 +15,11 @@ void main() {
   late Database db;
   late VaccinationLocalDataSourceImpl source;
 
+  DateTime day(int offset) {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day + offset);
+  }
+
   VaccinationModel vaccination({
     String id = 'vaccination-1',
     String petId = 'pet-1',
@@ -30,7 +35,9 @@ void main() {
     petId: petId,
     vaccineName: vaccineName,
     status: status,
-    date: date ?? DateTime(2020, 1, 2),
+    date:
+        date ??
+        (status == VaccinationStatus.planned ? day(1) : DateTime(2020, 1, 2)),
     clinicName: clinicName,
     veterinarianName: veterinarianName,
     notes: notes,
@@ -40,7 +47,7 @@ void main() {
   VaccinationModel nextDose() => vaccination(
     id: 'next-dose',
     status: VaccinationStatus.planned,
-    date: DateTime(2021, 1, 2),
+    date: day(2),
   );
 
   Future<void> addVisit({
@@ -144,7 +151,7 @@ void main() {
         vaccination(
           id: 'planned',
           status: VaccinationStatus.planned,
-          date: DateTime(2019, 1, 1),
+          date: day(0),
         ),
       );
       expect((await source.getVaccinations('pet-1')).first.id, 'planned');
@@ -253,12 +260,22 @@ void main() {
   );
 
   test(
-    'allows past and future plans but rejects future administration',
+    'allows only current or future plans and rejects future administration',
     () async {
       final now = DateTime.now();
       final tomorrow = DateTime(now.year, now.month, now.day + 1);
+      await expectLater(
+        source.createVaccination(
+          vaccination(status: VaccinationStatus.planned, date: day(-1)),
+        ),
+        throwsA(isA<LocalDataSourceException>()),
+      );
       await source.createVaccination(
-        vaccination(id: 'past-plan', status: VaccinationStatus.planned),
+        vaccination(
+          id: 'today-plan',
+          status: VaccinationStatus.planned,
+          date: day(0),
+        ),
       );
       await source.createVaccination(
         vaccination(
@@ -282,6 +299,54 @@ void main() {
         (await source.getVaccinationById('pet-1', 'vaccination-1')).date,
         DateTime(now.year, now.month, now.day),
       );
+    },
+  );
+
+  test(
+    'overdue plans remain readable but must be rescheduled when edited',
+    () async {
+      final overdue = vaccination(
+        status: VaccinationStatus.planned,
+        date: day(-1),
+      );
+      // Simulate a plan that has naturally become overdue since it was saved.
+      await db.insert(DatabaseTables.vaccinations, overdue.toJson());
+      expect(await source.getVaccinationById('pet-1', overdue.id), overdue);
+      await expectLater(
+        source.updateVaccination(
+          vaccination(
+            status: VaccinationStatus.planned,
+            date: day(-1),
+            notes: 'Changed',
+          ),
+        ),
+        throwsA(isA<LocalDataSourceException>()),
+      );
+      expect(await source.getVaccinationById('pet-1', overdue.id), overdue);
+      final rescheduled = vaccination(
+        status: VaccinationStatus.planned,
+        date: day(0),
+      );
+      await source.updateVaccination(rescheduled);
+      expect(await source.getVaccinationById('pet-1', overdue.id), rescheduled);
+    },
+  );
+
+  test(
+    'a historical administration cannot create a past next-dose plan',
+    () async {
+      await expectLater(
+        source.createVaccination(
+          vaccination(),
+          nextDose: vaccination(
+            id: 'next',
+            status: VaccinationStatus.planned,
+            date: day(-1),
+          ),
+        ),
+        throwsA(isA<LocalDataSourceException>()),
+      );
+      expect(await source.getVaccinations('pet-1'), isEmpty);
     },
   );
 
@@ -365,13 +430,13 @@ void main() {
           id: 'next',
           petId: 'pet-2',
           status: VaccinationStatus.planned,
-          date: DateTime(2021),
+          date: day(2),
         ),
         vaccination(
           id: 'next',
           vaccineName: 'Different',
           status: VaccinationStatus.planned,
-          date: DateTime(2021),
+          date: day(2),
         ),
         vaccination(
           id: 'next',

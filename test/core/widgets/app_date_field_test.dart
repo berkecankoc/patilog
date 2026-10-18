@@ -4,6 +4,68 @@ import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 
 void main() {
+  testWidgets(
+    'an empty future-date field opens on today rather than the upper limit',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppDateField(
+              labelText: 'Next dose',
+              value: null,
+              firstDate: DateTime(1900),
+              lastDate: DateTime(2100),
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Choose next dose'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<DatePickerDialog>(find.byType(DatePickerDialog))
+            .initialDate,
+        DateUtils.dateOnly(DateTime.now()),
+      );
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'changed bounds clamp picker initial date without changing the stored value on cancel',
+    (tester) async {
+      DateTime? selected = DateTime(2030, 1, 2);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppDateField(
+              labelText: 'Date',
+              value: selected,
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2020),
+              onChanged: (value) => selected = value,
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Choose date'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<DatePickerDialog>(find.byType(DatePickerDialog))
+            .initialDate,
+        DateTime(2020),
+      );
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(selected, DateTime(2030, 1, 2));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   Future<void> pumpField(
     WidgetTester tester,
     ValueNotifier<DateTime?> value,

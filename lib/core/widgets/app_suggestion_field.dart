@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 
-class VetVisitNameField extends StatefulWidget {
+class AppSuggestionField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final List<String> suggestions;
   final ValueChanged<String>? onChanged;
+  final FormFieldValidator<String>? validator;
 
-  const VetVisitNameField({
+  const AppSuggestionField({
     super.key,
     required this.label,
     required this.controller,
     required this.suggestions,
     this.onChanged,
+    this.validator,
   });
 
   @override
-  State<VetVisitNameField> createState() => _VetVisitNameFieldState();
+  State<AppSuggestionField> createState() => _AppSuggestionFieldState();
 }
 
-class _VetVisitNameFieldState extends State<VetVisitNameField> {
+class _AppSuggestionFieldState extends State<AppSuggestionField> {
   final _focus = FocusNode();
 
   @override
@@ -61,6 +63,7 @@ class _VetVisitNameFieldState extends State<VetVisitNameField> {
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(labelText: widget.label),
           onChanged: widget.onChanged,
+          validator: widget.validator,
         ),
         if (options.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),

@@ -12,7 +12,7 @@ import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_state.dart';
 import 'package:petlytics/features/vet_visit/presentation/utils/vet_visit_cost.dart';
-import 'package:petlytics/features/vet_visit/presentation/widgets/vet_visit_name_field.dart';
+import 'package:petlytics/core/widgets/app_suggestion_field.dart';
 
 class VetVisitFormPage extends StatefulWidget {
   final String petId;
@@ -273,7 +273,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
                                     icon: Icons.local_hospital_outlined,
                                   ),
                                   VerticalGap.md,
-                                  VetVisitNameField(
+                                  AppSuggestionField(
                                     label: 'Clinic (optional)',
                                     controller: _clinic,
                                     suggestions: state.suggestions.clinicNames,
@@ -282,7 +282,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
                                         .loadSuggestions(clinicName: value),
                                   ),
                                   VerticalGap.md,
-                                  VetVisitNameField(
+                                  AppSuggestionField(
                                     label: 'Veterinarian (optional)',
                                     controller: _veterinarian,
                                     suggestions:
