@@ -1,3 +1,4 @@
+import 'package:petlytics/core/database/care_name_suggestions.dart';
 import 'package:petlytics/core/database/database_tables.dart';
 import 'package:petlytics/core/error/exception.dart';
 import 'package:petlytics/features/vet_visit/data/models/vet_visit_model.dart';
@@ -90,33 +91,10 @@ final class VetVisitLocalDataSourceImpl implements VetVisitLocalDataSource {
   @override
   Future<VetVisitSuggestions> getSuggestions({String? clinicName}) async {
     try {
-      final rows = await db.query(
-        DatabaseTables.vetVisits,
-        columns: ['clinic_name', 'veterinarian_name'],
-        orderBy: 'rowid DESC',
-      );
-      final clinics = <String, String>{};
-      final veterinarians = <String, String>{};
-      final selectedClinic = clinicName?.trim().toLowerCase() ?? '';
-      for (final row in rows) {
-        final clinic = (row['clinic_name'] as String?)?.trim() ?? '';
-        final veterinarian =
-            (row['veterinarian_name'] as String?)?.trim() ?? '';
-        final clinicKey = clinic.toLowerCase();
-        if (clinic.isNotEmpty) clinics.putIfAbsent(clinicKey, () => clinic);
-        if (veterinarian.isNotEmpty &&
-            (selectedClinic.isEmpty || selectedClinic == clinicKey)) {
-          veterinarians.putIfAbsent(
-            veterinarian.toLowerCase(),
-            () => veterinarian,
-          );
-        }
-      }
-      int compareNames(String a, String b) =>
-          a.toLowerCase().compareTo(b.toLowerCase());
+      final names = await readCareNameSuggestions(db, clinicName: clinicName);
       return VetVisitSuggestions(
-        clinicNames: clinics.values.toList()..sort(compareNames),
-        veterinarianNames: veterinarians.values.toList()..sort(compareNames),
+        clinicNames: names.clinicNames,
+        veterinarianNames: names.veterinarianNames,
       );
     } on DatabaseException {
       throw const LocalDataSourceException();

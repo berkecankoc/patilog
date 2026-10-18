@@ -29,9 +29,10 @@ void main() {
     'fresh installation creates care tables and enables foreign keys',
     () async {
       db = await openAppDatabase();
-      expect(await db!.getVersion(), 2);
+      expect(await db!.getVersion(), 3);
       expect(await db!.query(DatabaseTables.weightEntries), isEmpty);
       expect(await db!.query('vet_visits'), isEmpty);
+      expect(await db!.query(DatabaseTables.vaccinations), isEmpty);
       expect(
         (await db!.rawQuery('PRAGMA foreign_keys')).single['foreign_keys'],
         1,
@@ -46,18 +47,31 @@ void main() {
       )).single;
       expect(visitForeignKey['table'], DatabaseTables.pets);
       expect(visitForeignKey['on_delete'], 'CASCADE');
+      final vaccinationForeignKeys = await db!.rawQuery(
+        'PRAGMA foreign_key_list(vaccinations)',
+      );
+      expect(
+        vaccinationForeignKeys.map(
+          (key) => (key['from'], key['table'], key['on_delete']),
+        ),
+        unorderedEquals([
+          ('pet_id', DatabaseTables.pets, 'CASCADE'),
+          ('vet_visit_id', DatabaseTables.vetVisits, 'SET NULL'),
+        ]),
+      );
     },
   );
 
-  test(
-    'version 1 upgrade preserves pets and measurements across reopen',
-    () async {
-      final legacy = await databaseFactory.openDatabase(
-        join(directory.path, 'petlytics.db'),
-        options: OpenDatabaseOptions(
-          version: 1,
-          onCreate: (db, _) async {
-            await db.execute('''
+  for (final legacyVersion in [1, 2]) {
+    test(
+      'version $legacyVersion upgrade preserves existing care data across reopen',
+      () async {
+        final legacy = await databaseFactory.openDatabase(
+          join(directory.path, 'petlytics.db'),
+          options: OpenDatabaseOptions(
+            version: legacyVersion,
+            onCreate: (db, _) async {
+              await db.execute('''
             CREATE TABLE pets (
               id TEXT PRIMARY KEY,
               name TEXT NOT NULL,
@@ -70,7 +84,7 @@ void main() {
               image_path TEXT
             )
           ''');
-            await db.execute('''
+              await db.execute('''
             CREATE TABLE weight_entries (
               id TEXT PRIMARY KEY,
               pet_id TEXT NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
@@ -78,48 +92,99 @@ void main() {
               measured_at TEXT NOT NULL
             )
           ''');
-          },
-        ),
-      );
-      final pet = {
-        'id': 'pet-1',
-        'name': 'Milo',
-        'species': 'cat',
-        'sex': 'male',
-        'reproductive_status': 'intact',
-        'breed': 'Tabby',
-        'birth_date': '2024-05-01',
-        'microchip_id': 'chip-1',
-        'image_path': 'milo.jpg',
-      };
-      final weight = {
-        'id': 'weight-1',
-        'pet_id': 'pet-1',
-        'weight': 4.5,
-        'measured_at': '2026-10-15T10:00:00.000000Z',
-      };
-      await legacy.insert('pets', pet);
-      await legacy.insert('weight_entries', weight);
-      await legacy.close();
+              if (legacyVersion >= 2) {
+                await db.execute('''
+                CREATE TABLE vet_visits (
+                  id TEXT PRIMARY KEY,
+                  pet_id TEXT NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+                  visited_on TEXT NOT NULL,
+                  reason TEXT NOT NULL CHECK (length(trim(reason)) > 0),
+                  clinic_name TEXT,
+                  veterinarian_name TEXT,
+                  diagnosis TEXT,
+                  notes TEXT,
+                  cost_minor_units INTEGER,
+                  currency TEXT,
+                  CHECK (
+                    (cost_minor_units IS NULL AND currency IS NULL) OR
+                    (cost_minor_units IS NOT NULL AND typeof(cost_minor_units) = 'integer'
+                      AND cost_minor_units >= 0 AND currency IS NOT NULL
+                      AND currency IN ('TRY', 'USD', 'EUR'))
+                  )
+                )
+              ''');
+              }
+            },
+          ),
+        );
+        final pet = {
+          'id': 'pet-1',
+          'name': 'Milo',
+          'species': 'cat',
+          'sex': 'male',
+          'reproductive_status': 'intact',
+          'breed': 'Tabby',
+          'birth_date': '2024-05-01',
+          'microchip_id': 'chip-1',
+          'image_path': 'milo.jpg',
+        };
+        final weight = {
+          'id': 'weight-1',
+          'pet_id': 'pet-1',
+          'weight': 4.5,
+          'measured_at': '2026-10-15T10:00:00.000000Z',
+        };
+        final visit = {
+          'id': 'visit-1',
+          'pet_id': 'pet-1',
+          'visited_on': '2026-10-15',
+          'reason': 'Checkup',
+          'clinic_name': 'Clinic',
+          'veterinarian_name': 'Dr. Smith',
+          'diagnosis': 'Healthy',
+          'notes': 'Routine visit',
+          'cost_minor_units': 125050,
+          'currency': 'TRY',
+        };
+        await legacy.insert('pets', pet);
+        await legacy.insert('weight_entries', weight);
+        if (legacyVersion >= 2) await legacy.insert('vet_visits', visit);
+        await legacy.close();
 
-      db = await openAppDatabase();
-      expect(await db!.getVersion(), 2);
-      expect(await db!.query('pets'), [pet]);
-      expect(await db!.query('weight_entries'), [weight]);
-      expect(await db!.query('vet_visits'), isEmpty);
-      await db!.insert('vet_visits', {
-        'id': 'visit-1',
-        'pet_id': 'pet-1',
-        'visited_on': '2026-10-15',
-        'reason': 'Checkup',
-      });
-      await db!.close();
+        db = await openAppDatabase();
+        expect(await db!.getVersion(), 3);
+        expect(await db!.query('pets'), [pet]);
+        expect(await db!.query('weight_entries'), [weight]);
+        expect(await db!.query(DatabaseTables.vaccinations), isEmpty);
+        if (legacyVersion == 1) {
+          expect(await db!.query('vet_visits'), isEmpty);
+          await db!.insert('vet_visits', visit);
+        } else {
+          expect(await db!.query('vet_visits'), [visit]);
+        }
+        await db!.insert(DatabaseTables.vaccinations, {
+          'id': 'vaccination-1',
+          'pet_id': 'pet-1',
+          'vaccine_name': 'Rabies',
+          'status': 'administered',
+          'date': '2026-10-15',
+          'vet_visit_id': 'visit-1',
+        });
+        await db!.close();
 
-      db = await openAppDatabase();
-      expect(await db!.query('vet_visits'), hasLength(1));
-      await db!.delete('pets', where: 'id = ?', whereArgs: ['pet-1']);
-      expect(await db!.query('vet_visits'), isEmpty);
-      expect(await db!.query('weight_entries'), isEmpty);
-    },
-  );
+        db = await openAppDatabase();
+        expect(await db!.query('pets'), [pet]);
+        expect(await db!.query('weight_entries'), [weight]);
+        expect(await db!.query('vet_visits'), [visit]);
+        expect(
+          (await db!.query(DatabaseTables.vaccinations)).single['vet_visit_id'],
+          'visit-1',
+        );
+        await db!.delete('pets', where: 'id = ?', whereArgs: ['pet-1']);
+        expect(await db!.query('vet_visits'), isEmpty);
+        expect(await db!.query('weight_entries'), isEmpty);
+        expect(await db!.query(DatabaseTables.vaccinations), isEmpty);
+      },
+    );
+  }
 }

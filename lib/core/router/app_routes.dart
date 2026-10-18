@@ -10,4 +10,10 @@ abstract final class AppRoutes {
   static String addEditVetVisit(String petId) => '${vetVisits(petId)}/form';
   static String vetVisitDetail(String petId, String visitId) =>
       '${vetVisits(petId)}/$visitId';
+  static String vaccinations(String petId) =>
+      '${petDetail(petId)}/vaccinations';
+  static String addEditVaccination(String petId) =>
+      '${vaccinations(petId)}/form';
+  static String vaccinationDetail(String petId, String vaccinationId) =>
+      '${vaccinations(petId)}/$vaccinationId';
 }

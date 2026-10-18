@@ -17,10 +17,10 @@ abstract interface class VetVisitRepository {
 
   Future<Result<void>> deleteVetVisit(String petId, String visitId);
 
-  /// Non-blank names from saved visits across all pets, trimmed, deduplicated and
-  /// sorted case-insensitively; the latest inserted spelling wins.
+  /// Non-blank names from saved visits and vaccinations across all pets,
+  /// deduplicated and sorted case-insensitively using the same shared history.
   /// Returns all clinics; veterinarians match clinicName exactly ignoring case
-  /// and surrounding whitespace, or include all when clinicName is blank/null.
-  /// Names disappear when their last source visit is deleted.
+  /// and normalized whitespace, or include all when clinicName is blank/null.
+  /// Names disappear when their last source record is deleted.
   Future<Result<VetVisitSuggestions>> getSuggestions({String? clinicName});
 }

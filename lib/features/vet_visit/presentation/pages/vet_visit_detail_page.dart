@@ -5,6 +5,7 @@ import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
+import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
@@ -42,31 +43,6 @@ class VetVisitDetailPage extends StatelessWidget {
     if (confirmed && context.mounted) {
       await context.read<VetVisitCubit>().deleteVetVisit();
     }
-  }
-
-  Widget _field(BuildContext context, String label, String? value) {
-    final theme = Theme.of(context);
-    final hasValue = value != null && value.trim().isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        VerticalGap.xs,
-        Text(
-          hasValue ? value : 'Not provided',
-          style: hasValue
-              ? theme.textTheme.bodyLarge
-              : theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-        ),
-      ],
-    );
   }
 
   @override
@@ -189,10 +165,9 @@ class VetVisitDetailPage extends StatelessWidget {
                                         ],
                                       ),
                                       VerticalGap.md,
-                                      _field(
-                                        context,
-                                        'Reason for visit',
-                                        visit.reason,
+                                      AppDetailField(
+                                        label: 'Reason for visit',
+                                        value: visit.reason,
                                       ),
                                       const Divider(height: AppSpacing.xxl),
                                       const AppSectionHeading(
@@ -200,16 +175,14 @@ class VetVisitDetailPage extends StatelessWidget {
                                         icon: Icons.local_hospital_outlined,
                                       ),
                                       VerticalGap.md,
-                                      _field(
-                                        context,
-                                        'Clinic',
-                                        visit.clinicName,
+                                      AppDetailField(
+                                        label: 'Clinic',
+                                        value: visit.clinicName,
                                       ),
                                       VerticalGap.md,
-                                      _field(
-                                        context,
-                                        'Veterinarian',
-                                        visit.veterinarianName,
+                                      AppDetailField(
+                                        label: 'Veterinarian',
+                                        value: visit.veterinarianName,
                                       ),
                                       const Divider(height: AppSpacing.xxl),
                                       const AppSectionHeading(
@@ -218,23 +191,24 @@ class VetVisitDetailPage extends StatelessWidget {
                                             Icons.medical_information_outlined,
                                       ),
                                       VerticalGap.md,
-                                      _field(
-                                        context,
-                                        'Diagnosis',
-                                        visit.diagnosis,
+                                      AppDetailField(
+                                        label: 'Diagnosis',
+                                        value: visit.diagnosis,
                                       ),
                                       VerticalGap.md,
-                                      _field(context, 'Notes', visit.notes),
+                                      AppDetailField(
+                                        label: 'Notes',
+                                        value: visit.notes,
+                                      ),
                                       const Divider(height: AppSpacing.xxl),
                                       const AppSectionHeading(
                                         title: 'Cost',
                                         icon: Icons.payments_outlined,
                                       ),
                                       VerticalGap.md,
-                                      _field(
-                                        context,
-                                        'Amount',
-                                        visit.costMinorUnits == null
+                                      AppDetailField(
+                                        label: 'Amount',
+                                        value: visit.costMinorUnits == null
                                             ? null
                                             : '${formatVetVisitCost(visit.costMinorUnits!)} ${visit.currency!.code}',
                                       ),

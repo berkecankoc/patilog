@@ -7,6 +7,7 @@ class AppDateField extends StatefulWidget {
   final DateTime lastDate;
   final ValueChanged<DateTime?> onChanged;
   final bool clearable;
+  final String? errorText;
 
   const AppDateField({
     super.key,
@@ -16,6 +17,7 @@ class AppDateField extends StatefulWidget {
     required this.lastDate,
     required this.onChanged,
     this.clearable = false,
+    this.errorText,
   });
 
   @override
@@ -51,9 +53,17 @@ class _AppDateFieldState extends State<AppDateField> {
 
   Future<void> _pickDate() async {
     FocusScope.of(context).unfocus();
+    final candidate = DateUtils.dateOnly(widget.value ?? DateTime.now());
+    final first = DateUtils.dateOnly(widget.firstDate);
+    final last = DateUtils.dateOnly(widget.lastDate);
+    final initial = candidate.isBefore(first)
+        ? first
+        : candidate.isAfter(last)
+        ? last
+        : candidate;
     final date = await showDatePicker(
       context: context,
-      initialDate: widget.value ?? widget.lastDate,
+      initialDate: initial,
       firstDate: widget.firstDate,
       lastDate: widget.lastDate,
     );
@@ -69,6 +79,7 @@ class _AppDateFieldState extends State<AppDateField> {
       onTap: _pickDate,
       decoration: InputDecoration(
         labelText: widget.labelText,
+        errorText: widget.errorText,
         suffixIcon: IconButton(
           tooltip:
               '${canClear ? 'Clear' : 'Choose'} ${widget.labelText.toLowerCase()}',

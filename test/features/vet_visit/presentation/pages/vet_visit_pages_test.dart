@@ -30,7 +30,7 @@ import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_c
 import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_list_page.dart';
 import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_detail_page.dart';
 import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_form_page.dart';
-import 'package:petlytics/features/vet_visit/presentation/widgets/vet_visit_name_field.dart';
+import 'package:petlytics/core/widgets/app_suggestion_field.dart';
 
 class MockVetRepository extends Mock implements VetVisitRepository {}
 
@@ -1465,6 +1465,6 @@ void main() {
     await fill(tester, clinicField, 'Clinic');
     await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
     await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-    expect(find.byType(VetVisitNameField), findsNWidgets(2));
+    expect(find.byType(AppSuggestionField), findsNWidgets(2));
   });
 }

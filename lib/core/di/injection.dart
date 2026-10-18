@@ -11,6 +11,12 @@ import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
+import 'package:petlytics/features/vaccination/data/repositories/vaccination_repository_impl.dart';
+import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_form_cubit.dart';
 import 'package:petlytics/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
 import 'package:petlytics/features/vet_visit/data/repositories/vet_visit_repository_impl.dart';
 import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
@@ -49,6 +55,18 @@ Future<void> setupDependencies() async {
 
   getIt.registerLazySingleton<VetVisitRepository>(
     () => VetVisitRepositoryImpl(getIt<VetVisitLocalDataSource>()),
+  );
+
+  getIt.registerLazySingleton<VaccinationLocalDataSource>(
+    () => VaccinationLocalDataSourceImpl(getIt<Database>()),
+  );
+
+  getIt.registerLazySingleton<VaccinationRepository>(
+    () => VaccinationRepositoryImpl(getIt<VaccinationLocalDataSource>()),
+  );
+
+  getIt.registerLazySingleton<SaveVaccination>(
+    () => SaveVaccination(getIt<VaccinationRepository>(), getIt<IdGenerator>()),
   );
 
   getIt.registerLazySingleton<WeightHistoryLocalDataSource>(
@@ -101,5 +119,17 @@ Future<void> setupDependencies() async {
 
   getIt.registerFactory<VetVisitFormCubit>(
     () => VetVisitFormCubit(getIt<VetVisitRepository>(), getIt<IdGenerator>()),
+  );
+
+  getIt.registerFactory<VaccinationCubit>(
+    () => VaccinationCubit(getIt<VaccinationRepository>()),
+  );
+
+  getIt.registerFactory<VaccinationFormCubit>(
+    () => VaccinationFormCubit(
+      getIt<VaccinationRepository>(),
+      getIt<VetVisitRepository>(),
+      getIt<SaveVaccination>(),
+    ),
   );
 }

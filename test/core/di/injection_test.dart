@@ -5,6 +5,13 @@ import 'package:petlytics/core/database/database_tables.dart';
 import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_form_cubit.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_form_state.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_state.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
 import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
@@ -33,6 +40,92 @@ void main() {
     await getIt.reset();
     await directory.delete(recursive: true);
   });
+
+  test(
+    'vaccination factories use the shared persistence and independent state',
+    () async {
+      final db = getIt<Database>();
+      await db.insert(DatabaseTables.pets, {
+        'id': 'pet-1',
+        'name': 'Milo',
+        'species': 'cat',
+        'sex': 'male',
+        'reproductive_status': 'intact',
+      });
+      await getIt<VetVisitRepository>().createVetVisit(
+        VetVisit(
+          id: 'visit-1',
+          petId: 'pet-1',
+          visitedOn: DateTime(2020, 1, 2),
+          reason: 'Checkup',
+          clinicName: 'Clinic',
+          veterinarianName: 'Dr. Smith',
+        ),
+      );
+      final list = getIt<VaccinationCubit>();
+      final otherList = getIt<VaccinationCubit>();
+      final form = getIt<VaccinationFormCubit>();
+      final otherForm = getIt<VaccinationFormCubit>();
+      for (final cubit in [list, otherList, form, otherForm]) {
+        addTearDown(cubit.close);
+      }
+      expect(identical(list, otherList), isFalse);
+      expect(identical(form, otherForm), isFalse);
+      await form.loadVisits('pet-1');
+      await form.loadSuggestions();
+      expect(form.state.visits.single.id, 'visit-1');
+      expect(form.state.suggestions.clinicNames, ['Clinic']);
+      await form.saveVaccination(
+        SaveVaccinationParams(
+          petId: 'pet-1',
+          vaccineName: 'Rabies',
+          status: VaccinationStatus.administered,
+          date: DateTime(2020, 1, 2),
+          vetVisitId: 'visit-1',
+          clinicName: 'New clinic',
+          veterinarianName: 'Dr. New',
+          nextDoseDate: DateTime.now().add(const Duration(days: 1)),
+        ),
+      );
+      expect(form.state.isSaved, isTrue);
+      expect(
+        await getIt<VetVisitRepository>().getSuggestions(
+          clinicName: 'New clinic',
+        ),
+        const Success(
+          VetVisitSuggestions(
+            clinicNames: ['Clinic', 'New clinic'],
+            veterinarianNames: ['Dr. New'],
+          ),
+        ),
+      );
+      expect(otherForm.state, const VaccinationFormState());
+      await list.loadVaccinations('pet-1');
+      final rows = (list.state as VaccinationsLoaded).vaccinations;
+      expect(rows, hasLength(2));
+      expect(rows.map((row) => row.id).toSet(), hasLength(2));
+      expect(
+        rows.every((row) => row.id.isNotEmpty && row.petId == 'pet-1'),
+        isTrue,
+      );
+      expect(rows.first.status, VaccinationStatus.planned);
+      expect(rows.first.vetVisitId, isNull);
+      expect(rows.last.status, VaccinationStatus.administered);
+      expect(rows.last.vetVisitId, 'visit-1');
+      expect(otherList.state, const VaccinationInitial());
+      final repository = getIt<VaccinationRepository>();
+      expect(
+        await repository.getVaccinationById('pet-1', rows.last.id),
+        Success(rows.last),
+      );
+      expect(
+        await repository.getVaccinationById('pet-2', rows.last.id),
+        const Error<Vaccination>(NotFoundFailure('Vaccination not found')),
+      );
+      await repository.deleteVaccination('pet-1', rows.last.id);
+      expect(await repository.getVaccinations('pet-1'), Success([rows.first]));
+    },
+  );
 
   test(
     'Cubit factories provide independent state and use the registered repository',

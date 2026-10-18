@@ -4,6 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/database/app_database.dart';
 import 'package:petlytics/core/database/database_tables.dart';
 import 'package:petlytics/core/error/exception.dart';
+import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
+import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
 import 'package:petlytics/features/vet_visit/data/models/vet_visit_model.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
@@ -293,6 +296,59 @@ void main() {
         await source.getSuggestions(),
         const VetVisitSuggestions(clinicNames: [], veterinarianNames: []),
       );
+    },
+  );
+
+  test(
+    'both features share names, clinic filters and removal of the last source',
+    () async {
+      final vaccinations = VaccinationLocalDataSourceImpl(db);
+      await source.createVetVisit(
+        visit(clinicName: ' Clinic   A ', veterinarianName: 'Dr. Smith'),
+      );
+      await vaccinations.createVaccination(
+        VaccinationModel(
+          id: 'vaccination-1',
+          petId: 'pet-2',
+          vaccineName: 'Rabies',
+          status: VaccinationStatus.administered,
+          date: DateTime(2020),
+          clinicName: 'clinic a',
+          veterinarianName: ' Dr.  Jones ',
+        ),
+      );
+      await vaccinations.createVaccination(
+        VaccinationModel(
+          id: 'vaccination-2',
+          petId: 'pet-1',
+          vaccineName: 'Booster',
+          status: VaccinationStatus.administered,
+          date: DateTime(2020),
+          clinicName: 'Clinic B',
+          veterinarianName: 'Dr. Brown',
+        ),
+      );
+      for (final clinic in [null, ' CLINIC   A ', 'Clinic B', "' OR 1=1 --"]) {
+        final visits = await source.getSuggestions(clinicName: clinic);
+        final vaccines = await vaccinations.getSuggestions(clinicName: clinic);
+        expect(visits.clinicNames, vaccines.clinicNames);
+        expect(visits.veterinarianNames, vaccines.veterinarianNames);
+      }
+      expect(
+        await source.getSuggestions(clinicName: ' Clinic A '),
+        const VetVisitSuggestions(
+          clinicNames: ['clinic a', 'Clinic B'],
+          veterinarianNames: ['Dr. Jones', 'Dr. Smith'],
+        ),
+      );
+      await vaccinations.deleteVaccination('pet-1', 'vaccination-2');
+      expect((await source.getSuggestions()).clinicNames, ['clinic a']);
+      await vaccinations.deleteVaccination('pet-2', 'vaccination-1');
+      expect((await source.getSuggestions()).clinicNames, ['Clinic A']);
+      expect((await source.getSuggestions()).veterinarianNames, ['Dr. Smith']);
+      await source.deleteVetVisit('pet-1', 'visit-1');
+      expect((await vaccinations.getSuggestions()).clinicNames, isEmpty);
+      expect((await vaccinations.getSuggestions()).veterinarianNames, isEmpty);
     },
   );
 
