@@ -40,6 +40,7 @@ void main() {
             species: PetSpecies.cat,
             sex: PetSex.female,
             reproductiveStatus: ReproductiveStatus.sterilized,
+            weight: 0.125,
             microchipId: '123456789012345',
             imagePath: '/missing-pet-photo.jpg',
           );
@@ -159,7 +160,8 @@ void main() {
               findsOneWidget,
             );
           }
-          expect(find.text('Not provided'), findsNWidgets(3));
+          expect(find.text('0.125 kg'), findsOneWidget);
+          expect(find.text('Not provided'), findsNWidgets(2));
           expect(tester.takeException(), isNull);
 
           await tester.ensureVisible(find.text(pet.microchipId!));

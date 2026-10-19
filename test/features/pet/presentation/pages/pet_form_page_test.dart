@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -128,6 +129,77 @@ void main() {
 
   for (final editing in [false, true]) {
     final label = editing ? 'Save changes' : 'Add pet';
+    for (final input in ['4.125', '4,125', '0.001']) {
+      testWidgets('$label accepts gram precision in weight "$input"', (
+        tester,
+      ) async {
+        await pumpForm(tester, existing: editing ? pet : null);
+        if (!editing) await changeName(tester, 'Buddy');
+        final field = find.widgetWithText(TextFormField, 'Weight (optional)');
+        await tester.ensureVisible(field);
+        await tester.enterText(field, input);
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+        final button = find.widgetWithText(ElevatedButton, label);
+        await tester.ensureVisible(button);
+        await tester.pumpAndSettle();
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(await routeResult, isTrue);
+        final double? saved;
+        if (editing) {
+          saved =
+              (verify(() => update(pet, captureAny())).captured.single
+                      as UpdatePetParams)
+                  .weight;
+        } else {
+          saved =
+              (verify(() => create(captureAny())).captured.single
+                      as CreatePetParams)
+                  .weight;
+        }
+        expect(saved, input == '0.001' ? 0.001 : 4.125);
+      });
+    }
+    testWidgets('$label rejects excess weight decimals without cutting input', (
+      tester,
+    ) async {
+      await pumpForm(
+        tester,
+        existing: editing ? pet : null,
+        width: 320,
+        scale: 2,
+      );
+      if (!editing) await changeName(tester, 'Buddy');
+      final field = find.widgetWithText(TextFormField, 'Weight (optional)');
+      for (final input in ['4.1256', '4,1256', '0.0001', '1e-4']) {
+        await tester.ensureVisible(field);
+        await tester.enterText(field, input);
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+        final button = find.widgetWithText(ElevatedButton, label);
+        await tester.ensureVisible(button);
+        await tester.pumpAndSettle();
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Use up to 3 decimal places').hitTestable(),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .renderObject<RenderParagraph>(
+                find.text('Use up to 3 decimal places'),
+              )
+              .didExceedMaxLines,
+          isFalse,
+        );
+        expect(tester.widget<TextFormField>(field).controller!.text, input);
+        expect(tester.takeException(), isNull);
+      }
+      verifyNever(() => create(any()));
+      verifyNever(() => update(pet, any()));
+    });
     for (final (scenario, input, expected) in [
       ('20 visible characters', '🐈‍⬛' * 20, '🐈‍⬛' * 20),
       ('surrounding whitespace', '  ${'a' * 20}  ', 'a' * 20),
@@ -208,7 +280,10 @@ void main() {
         await changeName(tester);
         if (editing) {
           expect(button.hitTestable(), findsOneWidget);
-          expect(find.text('Microchip ID').hitTestable(), findsNothing);
+          expect(
+            find.text('Microchip ID (optional)').hitTestable(),
+            findsNothing,
+          );
           expect(tester.getRect(button), bounds);
         } else {
           expect(button.hitTestable(), findsNothing);
@@ -217,7 +292,9 @@ void main() {
           expect(button.hitTestable(), findsOneWidget);
           expect(
             tester.getTopLeft(button).dy,
-            greaterThan(tester.getBottomRight(find.text('Microchip ID')).dy),
+            greaterThan(
+              tester.getBottomRight(find.text('Microchip ID (optional)')).dy,
+            ),
           );
         }
         await tester.tap(button);
@@ -329,7 +406,7 @@ void main() {
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await changeName(tester);
-    expect(find.text('Weight').hitTestable(), findsNothing);
+    expect(find.text('Weight (optional)').hitTestable(), findsNothing);
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
     expect(

@@ -218,6 +218,52 @@ void main() {
   });
 
   test(
+    'pet use cases share storage precision and skip equivalent weights',
+    () async {
+      final repository = PetRepositoryImpl(source);
+      final ids = SequenceIds();
+      final images = MockImageStorage();
+      final create = CreatePet(repository, ids, images);
+      final update = UpdatePet(repository, images, ids);
+      expect(
+        await create(
+          const CreatePetParams(
+            name: 'Fluffy',
+            species: PetSpecies.cat,
+            sex: PetSex.female,
+            reproductiveStatus: ReproductiveStatus.intact,
+            weight: 4.1236,
+          ),
+        ),
+        const Success<void>(null),
+      );
+      final initial =
+          (await repository.getPets() as Success<List<Pet>>).data.single;
+      expect(initial.weight, 4.124);
+      for (final weight in [4.124000000000001, 4.5678]) {
+        expect(
+          await update(
+            initial,
+            UpdatePetParams(
+              name: 'Updated',
+              species: initial.species,
+              sex: initial.sex,
+              reproductiveStatus: initial.reproductiveStatus,
+              weight: weight,
+            ),
+          ),
+          const Success<void>(null),
+        );
+      }
+      final stored = await history.getWeightEntries(initial.id);
+      expect(stored.map((e) => e.weight), [4.568, 4.124]);
+      expect((await source.getPetById(initial.id)).weight, 4.568);
+      expect((await source.getPetById(initial.id)).name, 'Updated');
+      verifyZeroInteractions(images);
+    },
+  );
+
+  test(
     'pet deletion cascades its measurements and leaves other pets intact',
     () async {
       const other = PetModel(

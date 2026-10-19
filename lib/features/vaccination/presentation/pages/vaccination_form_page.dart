@@ -396,6 +396,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
     AppSuggestionField(
       key: const Key('vaccination-clinic'),
       label: 'Clinic (optional)',
+      loading: state.isLoadingSuggestions,
       controller: _clinic,
       suggestions: state.suggestions.clinicNames,
       onChanged: (value) => context
@@ -409,10 +410,6 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       controller: _veterinarian,
       suggestions: state.suggestions.veterinarianNames,
     ),
-    if (state.isLoadingSuggestions) ...[
-      VerticalGap.sm,
-      const LinearProgressIndicator(semanticsLabel: 'Loading suggestions'),
-    ],
     if (state.suggestionsError != null) ...[
       VerticalGap.sm,
       _error(state.suggestionsError!),

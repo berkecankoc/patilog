@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -378,6 +379,57 @@ void main() {
     expect(find.text(today), findsOneWidget);
   });
 
+  for (final brightness in Brightness.values) {
+    for (final size in [const Size(320, 568), const Size(640, 320)]) {
+      testWidgets(
+        'empty history centers and remains usable at $size in $brightness',
+        (tester) async {
+          entries = [];
+          await pumpRouter(
+            tester,
+            width: size.width,
+            height: size.height,
+            scale: 2,
+            brightness: brightness,
+          );
+          final scroll = find.byType(SingleChildScrollView);
+          final viewport = find
+              .ancestor(of: scroll, matching: find.byType(Expanded))
+              .first;
+          expect(
+            tester.getRect(scroll).center,
+            tester.getRect(viewport).center,
+          );
+          await tester.ensureVisible(find.text('No measurements yet'));
+          await tester.pumpAndSettle();
+          expect(
+            find.text('No measurements yet').hitTestable(),
+            findsOneWidget,
+          );
+          final description = find.text(
+            'Add a weight measurement to start the history.',
+          );
+          await tester.ensureVisible(description);
+          await tester.pumpAndSettle();
+          expect(description.hitTestable(), findsOneWidget);
+          expect(
+            tester
+                .getRect(description)
+                .overlaps(tester.getRect(find.byType(FloatingActionButton))),
+            isFalse,
+          );
+          expect(
+            find.byTooltip('Add measurement').hitTestable(),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+          await openAddForm(tester);
+          expect(find.byType(WeightEntryFormPage), findsOneWidget);
+        },
+      );
+    }
+  }
+
   for (final input in ['', '0', '-1', 'NaN', 'Infinity', 'abc']) {
     testWidgets('invalid weight "$input" never reaches the repository', (
       tester,
@@ -397,6 +449,136 @@ void main() {
       );
       verifyNever(() => repository.createWeightEntry(any()));
     });
+  }
+
+  for (final editing in [false, true]) {
+    for (final input in ['4.125', '4,125', '0.001']) {
+      testWidgets('measurement ${editing ? 'edit' : 'add'} accepts "$input"', (
+        tester,
+      ) async {
+        when(
+          () => repository.createWeightEntry(any()),
+        ).thenAnswer((_) async => const Success(null));
+        when(
+          () => repository.updateWeightEntry(any()),
+        ).thenAnswer((_) async => const Success(null));
+        await pumpRouter(tester);
+        if (editing) {
+          await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+          await tester.pumpAndSettle();
+        } else {
+          await openAddForm(tester);
+        }
+        await tester.enterText(find.byType(TextFormField).first, input);
+        await save(tester);
+        expect(find.byType(WeightHistoryPage), findsOneWidget);
+        final saved =
+            (editing
+                        ? verify(
+                            () => repository.updateWeightEntry(captureAny()),
+                          )
+                        : verify(
+                            () => repository.createWeightEntry(captureAny()),
+                          ))
+                    .captured
+                    .single
+                as WeightEntry;
+        expect(saved.weight, input == '0.001' ? 0.001 : 4.125);
+        if (editing) {
+          expect(saved.id, entry.id);
+          expect(saved.measuredAt, entry.measuredAt);
+        }
+      });
+    }
+    testWidgets(
+      'measurement ${editing ? 'edit' : 'add'} preserves invalid decimal input',
+      (tester) async {
+        await pumpRouter(tester, width: 320, scale: 2);
+        if (editing) {
+          final row = find.widgetWithText(ListTile, '4.5 kg');
+          await tester.scrollUntilVisible(row, 200);
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(row);
+          await tester.pumpAndSettle();
+          await tester.tap(row);
+          await tester.pumpAndSettle();
+        } else {
+          await openAddForm(tester);
+        }
+        final field = find.byType(TextFormField).first;
+        for (final input in ['4.1256', '4,1256', '0.0001', '1e-4']) {
+          await tester.enterText(field, input);
+          await save(tester);
+          expect(
+            find.text('Use up to 3 decimal places').hitTestable(),
+            findsOneWidget,
+          );
+          expect(
+            tester
+                .renderObject<RenderParagraph>(
+                  find.text('Use up to 3 decimal places'),
+                )
+                .didExceedMaxLines,
+            isFalse,
+          );
+          expect(tester.widget<TextFormField>(field).controller!.text, input);
+          expect(tester.takeException(), isNull);
+        }
+        verifyNever(() => repository.createWeightEntry(any()));
+        verifyNever(() => repository.updateWeightEntry(any()));
+      },
+    );
+  }
+
+  for (final brightness in Brightness.values) {
+    for (final (weight, text) in [(0.125, '0.125'), (4.0, '4')]) {
+      testWidgets('history, form and deletion show $text kg in $brightness', (
+        tester,
+      ) async {
+        entries = [
+          WeightEntry(
+            id: entry.id,
+            petId: pet.id,
+            weight: weight,
+            measuredAt: entry.measuredAt,
+          ),
+        ];
+        await pumpRouter(tester, brightness: brightness);
+        expect(find.text('$text kg'), findsNWidgets(2));
+        await tester.tap(
+          find.byTooltip('Delete $text kg measurement from Jan 12, 2025'),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Remove the $text kg measurement from Jan 12, 2025?'),
+          findsOneWidget,
+        );
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+        verifyNever(() => repository.deleteWeightEntry(any()));
+        await tester.tap(find.widgetWithText(ListTile, '$text kg'));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<TextFormField>(find.byType(TextFormField).first)
+              .controller!
+              .text,
+          text,
+        );
+        expect(
+          tester
+              .widget<ElevatedButton>(
+                find.widgetWithText(ElevatedButton, 'Save changes'),
+              )
+              .onPressed,
+          isNull,
+        );
+        await tester.tap(find.byTooltip('Back'));
+        await tester.pumpAndSettle();
+        expect(find.text('Discard changes?'), findsNothing);
+        expect(find.byType(WeightHistoryPage), findsOneWidget);
+      });
+    }
   }
 
   testWidgets('creation returns to refreshed history', (tester) async {

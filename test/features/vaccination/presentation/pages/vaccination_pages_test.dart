@@ -897,6 +897,62 @@ void main() {
     },
   );
 
+  for (final brightness in Brightness.values) {
+    for (final (size, scale) in [
+      (const Size(390, 844), 1.0),
+      (const Size(320, 568), 2.0),
+    ]) {
+      testWidgets(
+        'linked visit icons center on the title at $size in $brightness',
+        (tester) async {
+          final linked = Vaccination(
+            id: administered.id,
+            petId: pet.id,
+            vaccineName: administered.vaccineName,
+            status: administered.status,
+            date: administered.date,
+            vetVisitId: visit.id,
+          );
+          records = [linked];
+          await pumpRouter(
+            tester,
+            size: size,
+            scale: scale,
+            brightness: brightness,
+          );
+          await open(tester, linked);
+          final row = find.widgetWithText(ListTile, 'Linked vet visit');
+          await tester.ensureVisible(row);
+          await tester.pumpAndSettle();
+          final titleCenter = tester
+              .getCenter(find.text('Linked vet visit'))
+              .dy;
+          for (final icon in [Icons.link_outlined, Icons.chevron_right]) {
+            expect(
+              tester.getSize(
+                find.descendant(of: row, matching: find.byIcon(icon)),
+              ),
+              const Size(20, 20),
+            );
+            expect(
+              tester
+                  .getCenter(
+                    find.descendant(of: row, matching: find.byIcon(icon)),
+                  )
+                  .dy,
+              closeTo(titleCenter, 0.1),
+            );
+          }
+          expect(row.hitTestable(), findsOneWidget);
+          await tester.tap(row);
+          await tester.pumpAndSettle();
+          expect(find.text('Checkup'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   testWidgets(
     'a linked visit opens with context and its deletion refreshes only the link',
     (tester) async {
@@ -1214,6 +1270,76 @@ void main() {
 
   for (final brightness in Brightness.values) {
     for (final size in [const Size(320, 568), const Size(640, 320)]) {
+      testWidgets(
+        'clinical suggestions stay stable through pending loads at $size in $brightness',
+        (tester) async {
+          await pumpRouter(
+            tester,
+            size: size,
+            scale: 2,
+            brightness: brightness,
+            keyboard: size.width == 320,
+          );
+          await add(tester);
+          await fill(tester, name, 'Care vaccine');
+          await fill(tester, clinic, 'C');
+          final neighbor = tester.getRect(vet);
+          final height = tester.getSize(clinic).height;
+          final pending = Completer<Result<VaccinationSuggestions>>();
+          when(
+            () => repository.getSuggestions(clinicName: 'Cli'),
+          ).thenAnswer((_) => pending.future);
+          await tester.enterText(clinic, 'Cli');
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(tester.getRect(vet), neighbor);
+          expect(tester.getSize(clinic).height, height);
+          pending.complete(
+            const Success(
+              VaccinationSuggestions(
+                vaccineNames: ['Rabies'],
+                clinicNames: ['Clinic A', 'Clinic B'],
+                veterinarianNames: [],
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(tester.getRect(vet), neighbor);
+          final option = find.widgetWithText(MenuItemButton, 'Clinic B');
+          await tester.ensureVisible(option);
+          await tester.pumpAndSettle();
+          expect(option.hitTestable(), findsOneWidget);
+          await tester.tap(option);
+          await tester.pumpAndSettle();
+          expect(
+            tester.widget<TextFormField>(clinic).controller!.text,
+            'Clinic B',
+          );
+          expect(
+            tester
+                .element(find.byType(VaccinationFormPage))
+                .read<VaccinationFormCubit>()
+                .state
+                .suggestions
+                .veterinarianNames,
+            ['Dr. Jones'],
+          );
+          await fill(tester, vet, 'Dr.');
+          final veterinarian = find.widgetWithText(MenuItemButton, 'Dr. Jones');
+          expect(veterinarian, findsOneWidget);
+          expect(veterinarian.hitTestable(), findsOneWidget);
+          await tester.tap(veterinarian);
+          await tester.pumpAndSettle();
+          await submit(tester);
+          final saved = records.singleWhere(
+            (v) => v.vaccineName == 'Care vaccine',
+          );
+          expect(saved.clinicName, 'Clinic B');
+          expect(saved.veterinarianName, 'Dr. Jones');
+          expect(tester.takeException(), isNull);
+        },
+      );
+
       testWidgets(
         'planned detail action stays outside the card and recovery remains reachable at $size in $brightness',
         (tester) async {

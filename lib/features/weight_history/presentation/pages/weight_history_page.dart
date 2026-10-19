@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
@@ -38,7 +39,8 @@ class WeightHistoryPage extends StatelessWidget {
       context: context,
       builder: (context) => AppConfirmationDialog(
         title: 'Delete measurement?',
-        message: 'Remove the ${entry.weight} kg measurement from $date?',
+        message:
+            'Remove the ${formatWeight(entry.weight)} kg measurement from $date?',
         confirmLabel: 'Delete',
       ),
     );
@@ -110,37 +112,41 @@ class WeightHistoryPage extends StatelessWidget {
                             child: AbsorbPointer(
                               absorbing: deleting,
                               child: entries.isEmpty
-                                  ? SingleChildScrollView(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        24,
-                                        24,
-                                        24,
-                                        96,
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.monitor_weight_outlined,
-                                            size: 48,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                          VerticalGap.md,
-                                          Text(
-                                            'No measurements yet',
-                                            textAlign: TextAlign.center,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.titleLarge,
-                                          ),
-                                          VerticalGap.sm,
-                                          const Text(
-                                            'Add a weight measurement to start the history.',
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
+                                  ? Center(
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          24,
+                                          24,
+                                          24,
+                                          96,
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ExcludeSemantics(
+                                              child: Icon(
+                                                Icons.monitor_weight_outlined,
+                                                size: 48,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                            VerticalGap.md,
+                                            Text(
+                                              'No measurements yet',
+                                              textAlign: TextAlign.center,
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.titleLarge,
+                                            ),
+                                            VerticalGap.sm,
+                                            const Text(
+                                              'Add a weight measurement to start the history.',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     )
                                   : _Measurements(
@@ -218,7 +224,7 @@ class _Measurements extends StatelessWidget {
                         ),
                         VerticalGap.sm,
                         Text(
-                          '${latest.weight} kg',
+                          '${formatWeight(latest.weight)} kg',
                           style: theme.textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -270,7 +276,7 @@ class _Measurements extends StatelessWidget {
                     end: AppSpacing.sm,
                   ),
                   minVerticalPadding: AppSpacing.md,
-                  title: Text('${entry.weight} kg'),
+                  title: Text('${formatWeight(entry.weight)} kg'),
                   subtitle: Text(date),
                   onTap: onEdit == null ? null : () => onEdit!(entry),
                   trailing: deletingEntryId == entry.id
@@ -283,7 +289,7 @@ class _Measurements extends StatelessWidget {
                         )
                       : IconButton(
                           tooltip:
-                              'Delete ${entry.weight} kg measurement from $date',
+                              'Delete ${formatWeight(entry.weight)} kg measurement from $date',
                           icon: const Icon(Icons.delete_outline),
                           onPressed: onDelete == null
                               ? null
