@@ -4,6 +4,7 @@ import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestio
 
 /// Single-visit reads, updates and deletes must match both pet and visit IDs.
 /// A missing match returns NotFoundFailure.
+/// Writes require a visit date on or before today.
 abstract interface class VetVisitRepository {
   /// Returns this pet's visits by date descending, latest insertion first on ties.
   Future<Result<List<VetVisit>>> getVetVisits(String petId);
@@ -13,6 +14,7 @@ abstract interface class VetVisitRepository {
   Future<Result<void>> createVetVisit(VetVisit visit);
 
   /// Preserves the existing row's insertion order.
+  /// Date corrections atomically update dates of this pet's linked vaccinations.
   Future<Result<void>> updateVetVisit(VetVisit visit);
 
   Future<Result<void>> deleteVetVisit(String petId, String visitId);

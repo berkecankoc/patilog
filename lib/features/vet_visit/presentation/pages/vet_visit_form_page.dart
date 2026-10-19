@@ -119,11 +119,12 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
     );
   }
 
-  void _leave([bool? result]) {
+  void _leave({bool? result}) {
     if (_allowPop) return;
     setState(() => _allowPop = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.pop(result);
+      if (!mounted) return;
+      context.pop(result);
     });
   }
 
@@ -134,7 +135,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
       return;
     }
     if (!_hasChanges) {
-      context.pop();
+      _leave();
       return;
     }
     _confirmingDiscard = true;
@@ -166,7 +167,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
           previous.saveError != current.saveError,
       listener: (context, state) {
         if (state.isSaved) {
-          _leave(true);
+          _leave(result: true);
         } else if (state.saveError != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final errorContext = _saveErrorKey.currentContext;
@@ -272,6 +273,19 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
                                       }
                                     },
                                   ),
+                                  if (widget.visit != null &&
+                                      !DateUtils.isSameDay(
+                                        _visitedOn,
+                                        _initialDate,
+                                      )) ...[
+                                    VerticalGap.xs,
+                                    Text(
+                                      'Dates of any linked vaccinations will also change.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
                                   VerticalGap.xl,
                                   const AppSectionHeading(
                                     title: 'Clinic & veterinarian',

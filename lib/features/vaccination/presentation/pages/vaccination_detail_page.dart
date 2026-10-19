@@ -8,6 +8,7 @@ import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_form_actions.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/my_pets_button.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
@@ -16,6 +17,8 @@ import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cu
 import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_state.dart';
 import 'package:petlytics/features/vaccination/presentation/utils/confirm_vaccination_deletion.dart';
 import 'package:petlytics/features/vaccination/presentation/widgets/vaccination_status_badge.dart';
+import 'package:petlytics/features/vaccination/presentation/widgets/linked_vet_visit_section.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
 
 class VaccinationDetailPage extends StatelessWidget {
   final String petId;
@@ -62,6 +65,12 @@ class VaccinationDetailPage extends StatelessWidget {
         petId,
         vaccinationId,
       );
+      if (!context.mounted) return;
+      final state = context.read<VaccinationCubit>().state;
+      if (state is VaccinationLoaded &&
+          state.vaccination.vetVisitId == visitId) {
+        await context.read<VetVisitCubit>().loadVetVisit(petId, visitId);
+      }
     }
   }
 
@@ -139,21 +148,6 @@ class VaccinationDetailPage extends StatelessWidget {
               label: 'Veterinarian',
               value: vaccination.veterinarianName,
             ),
-            if (vaccination.vetVisitId != null) ...[
-              VerticalGap.sm,
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                titleAlignment: ListTileTitleAlignment.center,
-                minLeadingWidth: 20,
-                horizontalTitleGap: AppSpacing.sm,
-                leading: const Icon(Icons.link_outlined, size: 20),
-                title: const Text('Linked vet visit'),
-                trailing: const Icon(Icons.chevron_right, size: 20),
-                onTap: busy
-                    ? null
-                    : () => _openVisit(context, vaccination.vetVisitId!),
-              ),
-            ],
             const Divider(height: AppSpacing.xl),
             const AppSectionHeading(title: 'Notes', icon: Icons.notes_outlined),
             VerticalGap.md,
@@ -212,6 +206,7 @@ class VaccinationDetailPage extends StatelessWidget {
                   )
                 : null,
             actions: [
+              MyPetsButton(enabled: !busy),
               if (state case VaccinationLoaded(:final vaccination))
                 IconButton(
                   tooltip: 'Delete vaccination',
@@ -264,6 +259,22 @@ class VaccinationDetailPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   _card(context, vaccination, busy),
+                                  if (vaccination.vetVisitId != null) ...[
+                                    VerticalGap.md,
+                                    LinkedVetVisitSection(
+                                      petId: petId,
+                                      visitId: vaccination.vetVisitId!,
+                                      parentClinicName: vaccination.clinicName,
+                                      parentVeterinarianName:
+                                          vaccination.veterinarianName,
+                                      onOpen: busy
+                                          ? null
+                                          : () => _openVisit(
+                                              context,
+                                              vaccination.vetVisitId!,
+                                            ),
+                                    ),
+                                  ],
                                   if (planned && !fixedAction) ...[
                                     VerticalGap.lg,
                                     _recordAction(

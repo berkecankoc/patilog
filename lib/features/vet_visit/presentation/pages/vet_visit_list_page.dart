@@ -6,6 +6,7 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/my_pets_button.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
@@ -64,6 +65,7 @@ class VetVisitListPage extends StatelessWidget {
             appBar: AppBar(
               toolbarHeight: PetCareTitle.toolbarHeight(context),
               title: PetCareTitle(title: 'Vet visits', petName: petName),
+              actions: [MyPetsButton(enabled: !busy)],
               leading: deleting
                   ? IconButton(
                       tooltip: MaterialLocalizations.of(

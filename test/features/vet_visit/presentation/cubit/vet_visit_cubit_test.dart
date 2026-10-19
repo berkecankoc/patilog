@@ -36,6 +36,22 @@ void main() {
   setUp(() => repository = MockVetVisitRepository());
   VetVisitCubit makeCubit() => VetVisitCubit(repository);
 
+  blocTest<VetVisitCubit, VetVisitState>(
+    'does not retain a visit removed through nested navigation',
+    build: () {
+      when(() => repository.getVetVisitById(visit.petId, visit.id)).thenAnswer(
+        (_) async => const Error(NotFoundFailure('Vet visit not found')),
+      );
+      return makeCubit();
+    },
+    seed: () => VetVisitLoaded(visit),
+    act: (cubit) => cubit.loadVetVisit(visit.petId, visit.id),
+    expect: () => [
+      VetVisitLoaded(visit, isRefreshing: true),
+      const VetVisitError('Vet visit not found'),
+    ],
+  );
+
   test('starts in the initial state', () {
     final cubit = makeCubit();
     addTearDown(cubit.close);

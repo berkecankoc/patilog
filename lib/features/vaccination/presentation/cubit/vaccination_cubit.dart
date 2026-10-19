@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
@@ -19,11 +20,14 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
         _ => true,
       };
 
-  Future<void> loadVaccinations(String petId) async {
+  Future<void> loadVaccinations(String petId, {String? vetVisitId}) async {
     if (!_canLoad) return;
     final request = ++_loadRequest;
     final current = state;
-    final previous = current is VaccinationsLoaded && current.petId == petId
+    final previous =
+        current is VaccinationsLoaded &&
+            current.petId == petId &&
+            current.vetVisitId == vetVisitId
         ? current
         : null;
     emit(
@@ -32,15 +36,19 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
           : VaccinationsLoaded(
               petId,
               previous.vaccinations,
+              vetVisitId: vetVisitId,
               isRefreshing: true,
             ),
     );
-    final result = await repository.getVaccinations(petId);
+    final result = await repository.getVaccinations(
+      petId,
+      vetVisitId: vetVisitId,
+    );
     if (isClosed || request != _loadRequest) return;
 
     switch (result) {
       case Success<List<Vaccination>>():
-        emit(VaccinationsLoaded(petId, result.data));
+        emit(VaccinationsLoaded(petId, result.data, vetVisitId: vetVisitId));
       case Error<List<Vaccination>>():
         emit(
           previous == null
@@ -48,6 +56,7 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
               : VaccinationsLoaded(
                   petId,
                   previous.vaccinations,
+                  vetVisitId: vetVisitId,
                   refreshError: result.failure.message,
                 ),
         );
@@ -77,7 +86,7 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
         emit(VaccinationLoaded(result.data));
       case Error<Vaccination>():
         emit(
-          previous == null
+          previous == null || result.failure is NotFoundFailure
               ? VaccinationError(result.failure.message)
               : VaccinationLoaded(
                   previous.vaccination,
@@ -128,6 +137,7 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
       VaccinationsLoaded(
         current.petId,
         current.vaccinations,
+        vetVisitId: current.vetVisitId,
         isDeleting: true,
         deletionVaccination: target,
       ),
@@ -141,6 +151,7 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
           VaccinationsLoaded(
             current.petId,
             current.vaccinations.where((item) => item.id != target.id).toList(),
+            vetVisitId: current.vetVisitId,
           ),
         );
       case Error<void>():
@@ -148,6 +159,7 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
           VaccinationsLoaded(
             current.petId,
             current.vaccinations,
+            vetVisitId: current.vetVisitId,
             deletionVaccination: target,
             deleteError: result.failure.message,
           ),
@@ -166,6 +178,7 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
       VaccinationsLoaded(
         current.petId,
         current.vaccinations.where((item) => item.id != vaccinationId).toList(),
+        vetVisitId: current.vetVisitId,
       ),
     );
   }

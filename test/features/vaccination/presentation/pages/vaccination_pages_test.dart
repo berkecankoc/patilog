@@ -35,6 +35,11 @@ import 'package:petlytics/features/vaccination/presentation/pages/vaccination_li
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_detail_page.dart';
+import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
+import 'package:petlytics/core/widgets/app_related_records_section.dart';
+import 'package:petlytics/core/widgets/app_related_clinical_details.dart';
 
 class MockVaccinations extends Mock implements VaccinationRepository {}
 
@@ -101,7 +106,20 @@ void main() {
     VaccinationModel.fromEntity(v).toJson(),
   ).toEntity();
 
-  setUpAll(() => registerFallbackValue(administered));
+  Vaccination linkedRecord({String id = 'linked', String vaccine = 'Rabies'}) =>
+      Vaccination(
+        id: id,
+        petId: pet.id,
+        vaccineName: vaccine,
+        status: VaccinationStatus.administered,
+        date: visit.visitedOn,
+        vetVisitId: visit.id,
+      );
+
+  setUpAll(() {
+    registerFallbackValue(administered);
+    registerFallbackValue(visit);
+  });
   setUp(() {
     records = [planned, administered];
     repository = MockVaccinations();
@@ -112,9 +130,21 @@ void main() {
       (i) async =>
           Success(i.positionalArguments.first == otherPet.id ? otherPet : pet),
     );
-    when(() => repository.getVaccinations(any())).thenAnswer(
+    when(
+      () => repository.getVaccinations(
+        any(),
+        vetVisitId: any(named: 'vetVisitId'),
+      ),
+    ).thenAnswer(
       (i) async => Success(
-        records.where((v) => v.petId == i.positionalArguments.first).toList(),
+        records
+            .where(
+              (v) =>
+                  v.petId == i.positionalArguments.first &&
+                  (i.namedArguments[#vetVisitId] == null ||
+                      v.vetVisitId == i.namedArguments[#vetVisitId]),
+            )
+            .toList(),
       ),
     );
     when(() => repository.getVaccinationById(any(), any())).thenAnswer((
@@ -200,6 +230,20 @@ void main() {
       ),
     );
     getIt.registerFactory<VetVisitCubit>(() => VetVisitCubit(visitRepository));
+    getIt.registerFactory<VetVisitFormCubit>(
+      () => VetVisitFormCubit(visitRepository, ids),
+    );
+    when(
+      () =>
+          visitRepository.getSuggestions(clinicName: any(named: 'clinicName')),
+    ).thenAnswer(
+      (_) async => const Success(
+        VetVisitSuggestions(
+          clinicNames: ['Clinic A'],
+          veterinarianNames: ['Dr. Smith'],
+        ),
+      ),
+    );
   });
   tearDown(() async => getIt.reset());
 
@@ -246,6 +290,15 @@ void main() {
   final notes = find.byKey(const Key('vaccination-notes'));
   final clinic = find.widgetWithText(TextFormField, 'Clinic (optional)');
   final vet = find.widgetWithText(TextFormField, 'Veterinarian (optional)');
+
+  Future<void> expandRelated(WidgetTester tester, String title) async {
+    final row = find.widgetWithText(ListTile, title);
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+  }
+
   Future<void> fill(WidgetTester tester, Finder field, String value) async {
     await tester.ensureVisible(field);
     await tester.enterText(field, value);
@@ -255,6 +308,7 @@ void main() {
   Future<void> add(WidgetTester tester) async {
     await tester.tap(find.byTooltip('Add vaccination'));
     await tester.pumpAndSettle();
+    expect(find.byTooltip('My pets'), findsNothing);
   }
 
   Future<void> open(WidgetTester tester, Vaccination record) async {
@@ -289,6 +343,294 @@ void main() {
     }
   }
 
+  testWidgets(
+    'linked visit loads on expansion, retries locally and stays cached on reopen',
+    (tester) async {
+      records = [linkedRecord()];
+      await pumpRouter(
+        tester,
+        location: AppRoutes.vaccinationDetail(pet.id, records.single.id),
+      );
+      verifyNever(() => visitRepository.getVetVisitById(any(), any()));
+      when(() => visitRepository.getVetVisitById(pet.id, visit.id)).thenAnswer(
+        (_) async =>
+            const Error(LocalDatabaseFailure('Could not load linked visit')),
+      );
+      await expandRelated(tester, 'Linked vet visit');
+      expect(find.text('Could not load linked visit'), findsOneWidget);
+      expect(find.text('Rabies'), findsOneWidget);
+      when(
+        () => visitRepository.getVetVisitById(pet.id, visit.id),
+      ).thenAnswer((_) async => Success(visit));
+      await tester.ensureVisible(find.text('Retry visit'));
+      await tester.tap(find.text('Retry visit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Checkup'), findsOneWidget);
+      await expandRelated(tester, 'Linked vet visit');
+      await expandRelated(tester, 'Linked vet visit');
+      verify(() => visitRepository.getVetVisitById(pet.id, visit.id)).called(2);
+    },
+  );
+
+  testWidgets(
+    'linked vaccination edit, unlink and deletion refresh the expanded visit section',
+    (tester) async {
+      records = [linkedRecord()];
+      await pumpRouter(
+        tester,
+        location: AppRoutes.vetVisitDetail(pet.id, visit.id),
+      );
+      verifyNever(
+        () => repository.getVaccinations(pet.id, vetVisitId: visit.id),
+      );
+      await expandRelated(tester, 'Linked vaccinations');
+      final arrow = find.byTooltip('Open vaccination: Rabies');
+      await tester.ensureVisible(arrow);
+      await tester.tap(arrow);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Edit vaccination'));
+      await tester.pumpAndSettle();
+      await fill(tester, name, 'Updated vaccine');
+      await submit(tester);
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('Updated vaccine'), findsOneWidget);
+      final updatedArrow = find.byTooltip('Open vaccination: Updated vaccine');
+      await tester.ensureVisible(updatedArrow);
+      await tester.tap(updatedArrow);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Edit vaccination'));
+      await tester.pumpAndSettle();
+      final visitField = find.byType(DropdownButtonFormField<String>);
+      await tester.ensureVisible(visitField);
+      await tester.tap(visitField);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('No linked visit').last);
+      await tester.pumpAndSettle();
+      await submit(tester);
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('No vaccinations linked to this visit.'),
+        findsOneWidget,
+      );
+      records = [linkedRecord()];
+      // Re-enter the visit with a newly linked record, then delete from its detail.
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Checkup'));
+      await tester.pumpAndSettle();
+      await expandRelated(tester, 'Linked vaccinations');
+      await tester.ensureVisible(arrow);
+      await tester.tap(arrow);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Delete vaccination'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete').last);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('No vaccinations linked to this visit.'),
+        findsOneWidget,
+      );
+      verify(() => repository.deleteVaccination(pet.id, 'linked')).called(1);
+    },
+  );
+
+  testWidgets(
+    'visit linked errors retry without replacing details and many records scroll',
+    (tester) async {
+      records = List.generate(
+        40,
+        (i) => linkedRecord(id: 'linked-$i', vaccine: 'Vaccine $i'),
+      );
+      when(
+        () => repository.getVaccinations(pet.id, vetVisitId: visit.id),
+      ).thenAnswer(
+        (_) async =>
+            const Error(LocalDatabaseFailure('Linked vaccines failed')),
+      );
+      await pumpRouter(
+        tester,
+        location: AppRoutes.vetVisitDetail(pet.id, visit.id),
+      );
+      await expandRelated(tester, 'Linked vaccinations');
+      expect(find.text('Linked vaccines failed'), findsOneWidget);
+      expect(find.text('Checkup'), findsOneWidget);
+      when(
+        () => repository.getVaccinations(pet.id, vetVisitId: visit.id),
+      ).thenAnswer((_) async => Success(records));
+      await tester.ensureVisible(find.text('Retry vaccinations'));
+      await tester.tap(find.text('Retry vaccinations'));
+      await tester.pumpAndSettle();
+      final section = find.widgetWithText(
+        AppRelatedRecordsSection,
+        'Linked vaccinations',
+      );
+      final scrollable = find
+          .descendant(of: section, matching: find.byType(Scrollable))
+          .last;
+      final last = find.byTooltip('Open vaccination: Vaccine 39');
+      await tester.ensureVisible(scrollable);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(last, 200, scrollable: scrollable);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(last);
+      await tester.pumpAndSettle();
+      expect(last.hitTestable(), findsOneWidget);
+      await tester.tap(last);
+      await tester.pumpAndSettle();
+      expect(find.byType(VaccinationDetailPage), findsOneWidget);
+      expect(find.text('Vaccine 39'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('editing a linked visit refreshes its open preview', (
+    tester,
+  ) async {
+    records = [linkedRecord()];
+    when(() => visitRepository.updateVetVisit(any())).thenAnswer((
+      invocation,
+    ) async {
+      final updated = invocation.positionalArguments.single as VetVisit;
+      records = [
+        for (final record in records)
+          if (record.vetVisitId == updated.id)
+            VaccinationModel.fromJson({
+              ...VaccinationModel.fromEntity(record).toJson(),
+              'date': updated.visitedOn.toIso8601String(),
+            }).toEntity()
+          else
+            record,
+      ];
+      when(
+        () => visitRepository.getVetVisitById(pet.id, visit.id),
+      ).thenAnswer((_) async => Success(updated));
+      return const Success(null);
+    });
+    await pumpRouter(
+      tester,
+      location: AppRoutes.vaccinationDetail(pet.id, records.single.id),
+    );
+    await expandRelated(tester, 'Linked vet visit');
+    await tester.ensureVisible(find.byTooltip('Open vet visit'));
+    await tester.tap(find.byTooltip('Open vet visit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Edit visit'));
+    await tester.pumpAndSettle();
+    await fill(
+      tester,
+      find.byKey(const Key('visit-reason')),
+      'Updated visit reason',
+    );
+    expect(find.byTooltip('My pets'), findsNothing);
+    await tester.ensureVisible(find.byTooltip('Choose visit date'));
+    await tester.tap(find.byTooltip('Choose visit date'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3').last);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Dates of any linked vaccinations will also change.'),
+      findsOneWidget,
+    );
+    await submit(tester);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.byType(VaccinationDetailPage), findsOneWidget);
+    expect(find.text('Updated visit reason'), findsOneWidget);
+    expect(find.text('Jan 3, 2020'), findsOneWidget);
+    await tester.ensureVisible(find.text('Updated visit reason'));
+    await tester.pumpAndSettle();
+    expect(find.text('Updated visit reason').hitTestable(), findsOneWidget);
+    verify(() => visitRepository.updateVetVisit(any())).called(1);
+  });
+
+  for (final linkedVisit in [false, true]) {
+    testWidgets(
+      'My pets safely leaves a pending linked ${linkedVisit ? 'visit' : 'vaccination'} read',
+      (tester) async {
+        final visitRead = Completer<Result<VetVisit>>();
+        final vaccinesRead = Completer<Result<List<Vaccination>>>();
+        records = [linkedRecord()];
+        if (linkedVisit) {
+          when(
+            () => visitRepository.getVetVisitById(pet.id, visit.id),
+          ).thenAnswer((_) => visitRead.future);
+        } else {
+          when(
+            () => repository.getVaccinations(pet.id, vetVisitId: visit.id),
+          ).thenAnswer((_) => vaccinesRead.future);
+        }
+        final router = await pumpRouter(
+          tester,
+          location: linkedVisit
+              ? AppRoutes.vaccinationDetail(pet.id, records.single.id)
+              : AppRoutes.vetVisitDetail(pet.id, visit.id),
+        );
+        final header = find.widgetWithText(
+          ListTile,
+          linkedVisit ? 'Linked vet visit' : 'Linked vaccinations',
+        );
+        await tester.ensureVisible(header);
+        await tester.tap(header);
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.byTooltip('My pets'));
+        await tester.pumpAndSettle();
+        expect(router.state.uri.path, AppRoutes.pets);
+        expect(router.canPop(), isFalse);
+        if (linkedVisit) {
+          visitRead.complete(Success(visit));
+        } else {
+          vaccinesRead.complete(Success(records));
+        }
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final brightness in Brightness.values) {
+    testWidgets(
+      'short landscape linked retry and record action work in $brightness',
+      (tester) async {
+        records = [linkedRecord()];
+        when(
+          () => repository.getVaccinations(pet.id, vetVisitId: visit.id),
+        ).thenAnswer(
+          (_) async => const Error(
+            LocalDatabaseFailure('Could not load linked vaccinations'),
+          ),
+        );
+        await pumpRouter(
+          tester,
+          location: AppRoutes.vetVisitDetail(pet.id, visit.id),
+          size: const Size(640, 320),
+          scale: 2,
+          brightness: brightness,
+        );
+        await expandRelated(tester, 'Linked vaccinations');
+        final retry = find.text('Retry vaccinations');
+        await tester.ensureVisible(retry);
+        await tester.pumpAndSettle();
+        expect(retry.hitTestable(), findsOneWidget);
+        when(
+          () => repository.getVaccinations(pet.id, vetVisitId: visit.id),
+        ).thenAnswer((_) async => Success(records));
+        await tester.tap(retry);
+        await tester.pumpAndSettle();
+        final arrow = find.byTooltip('Open vaccination: Rabies');
+        await tester.ensureVisible(arrow);
+        await tester.pumpAndSettle();
+        expect(arrow.hitTestable(), findsOneWidget);
+        await tester.tap(arrow);
+        await tester.pumpAndSettle();
+        expect(find.byType(VaccinationDetailPage), findsOneWidget);
+        expect(find.text('Rabies'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   Future<void> pickDate(
     WidgetTester tester,
     String label,
@@ -317,6 +659,154 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(label).last);
     await tester.pumpAndSettle();
+  }
+
+  for (final editing in [false, true]) {
+    testWidgets(
+      'linked ${editing ? 'edit' : 'add'} inherits visit date and unlocks on unlink',
+      (tester) async {
+        final second = VetVisit(
+          id: 'visit-2',
+          petId: pet.id,
+          visitedOn: DateTime(2020, 2, 3),
+          reason: 'Follow-up visit',
+        );
+        when(
+          () => visitRepository.getVetVisits(pet.id),
+        ).thenAnswer((_) async => Success([visit, second]));
+        records = [linkedRecord()];
+        await pumpRouter(tester);
+        if (editing) {
+          await open(tester, records.single);
+          await tester.tap(find.byTooltip('Edit vaccination'));
+          await tester.pumpAndSettle();
+        } else {
+          await add(tester);
+        }
+        expect(find.byTooltip('My pets'), findsNothing);
+        await fill(tester, name, 'Linked vaccine');
+        final dateFinder = find.byKey(const Key('vaccination-date'));
+        AppDateField date() => tester.widget<AppDateField>(dateFinder);
+        Future<void> select(String reason) async {
+          final field = find.byType(DropdownButtonFormField<String>);
+          await tester.ensureVisible(field);
+          await tester.tap(field);
+          await tester.pumpAndSettle();
+          await tester.tap(find.textContaining(reason).last);
+          await tester.pumpAndSettle();
+        }
+
+        await select('Checkup');
+        expect(date().value, visit.visitedOn);
+        expect(date().readOnly, isTrue);
+        expect(find.text('Date from linked vet visit'), findsOneWidget);
+        await tester.ensureVisible(dateFinder);
+        await tester.tap(
+          find.descendant(of: dateFinder, matching: find.byType(TextField)),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(DatePickerDialog), findsNothing);
+        expect(find.byTooltip('Choose administration date'), findsNothing);
+        await select('Follow-up visit');
+        expect(date().value, second.visitedOn);
+        await select('No linked visit');
+        expect(date().value, second.visitedOn);
+        expect(date().readOnly, isFalse);
+        expect(find.text('Date from linked vet visit'), findsNothing);
+        await tester.ensureVisible(
+          find.byTooltip('Choose administration date'),
+        );
+        await tester.tap(find.byTooltip('Choose administration date'));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<DatePickerDialog>(find.byType(DatePickerDialog))
+              .initialDate,
+          second.visitedOn,
+        );
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+        await select('Follow-up visit');
+        await submit(tester);
+        final saved = records.singleWhere(
+          (record) => record.vaccineName == 'Linked vaccine',
+        );
+        expect(saved.date, second.visitedOn);
+        expect(saved.vetVisitId, second.id);
+      },
+    );
+  }
+
+  for (final visitDetail in [false, true]) {
+    testWidgets(
+      '${visitDetail ? 'visit' : 'vaccination'} preview hides shared dates and names but shows clinical differences',
+      (tester) async {
+        final linked = Vaccination(
+          id: 'linked',
+          petId: pet.id,
+          vaccineName: 'Rabies',
+          status: VaccinationStatus.administered,
+          date: visit.visitedOn,
+          vetVisitId: visit.id,
+          clinicName: ' clinic   a ',
+          veterinarianName: 'Dr. Jones',
+        );
+        records = [linked];
+        await pumpRouter(
+          tester,
+          location: visitDetail
+              ? AppRoutes.vetVisitDetail(pet.id, visit.id)
+              : AppRoutes.vaccinationDetail(pet.id, linked.id),
+        );
+        final home = find.byTooltip('My pets');
+        final delete = find.byTooltip(
+          visitDetail ? 'Delete visit' : 'Delete vaccination',
+        );
+        expect(
+          find.widgetWithIcon(IconButton, Icons.home_outlined),
+          findsOneWidget,
+        );
+        expect(
+          tester.getCenter(home).dx,
+          lessThan(tester.getCenter(delete).dx),
+        );
+        await expandRelated(
+          tester,
+          visitDetail ? 'Linked vaccinations' : 'Linked vet visit',
+        );
+        final section = find.byType(AppRelatedRecordsSection);
+        final details = find.descendant(
+          of: section,
+          matching: find.byType(AppRelatedClinicalDetails),
+        );
+        expect(
+          find.descendant(of: details, matching: find.text('Clinic')),
+          findsNothing,
+        );
+        expect(
+          find.descendant(
+            of: details,
+            matching: find.text(visitDetail ? 'Dr. Jones' : 'Dr. Smith'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Jan 2, 2020'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: section,
+            matching: find.byIcon(Icons.chevron_right),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: section,
+            matching: find.byIcon(Icons.open_in_new_outlined),
+          ),
+          findsNothing,
+        );
+      },
+    );
   }
 
   testWidgets(
@@ -849,6 +1339,7 @@ void main() {
       action.onPressed!();
       await tester.binding.handlePopRoute();
       await tester.pump();
+      expect(find.byTooltip('My pets'), findsNothing);
       expect(find.byType(VaccinationFormPage), findsOneWidget);
       expect(find.text('Discard changes?'), findsNothing);
       pending.complete(const Error(LocalDatabaseFailure('Save failed')));
@@ -921,13 +1412,21 @@ void main() {
             brightness: brightness,
           );
           await open(tester, linked);
+          final sectionStyle = tester
+              .widget<Text>(find.text('Clinic & veterinarian'))
+              .style!;
+          final linkedVisitStyle = tester
+              .widget<Text>(find.text('Linked vet visit'))
+              .style!;
+          expect(linkedVisitStyle.fontSize, sectionStyle.fontSize);
+          expect(linkedVisitStyle.fontWeight, sectionStyle.fontWeight);
           final row = find.widgetWithText(ListTile, 'Linked vet visit');
           await tester.ensureVisible(row);
           await tester.pumpAndSettle();
           final titleCenter = tester
               .getCenter(find.text('Linked vet visit'))
               .dy;
-          for (final icon in [Icons.link_outlined, Icons.chevron_right]) {
+          for (final icon in [Icons.link_outlined]) {
             expect(
               tester.getSize(
                 find.descendant(of: row, matching: find.byIcon(icon)),
@@ -944,9 +1443,43 @@ void main() {
             );
           }
           expect(row.hitTestable(), findsOneWidget);
+          clearInteractions(visitRepository);
           await tester.tap(row);
           await tester.pumpAndSettle();
           expect(find.text('Checkup'), findsOneWidget);
+          expect(find.byType(VaccinationDetailPage), findsOneWidget);
+          verify(
+            () => visitRepository.getVetVisitById(pet.id, visit.id),
+          ).called(1);
+          final arrow = find.byTooltip('Open vet visit');
+          await tester.ensureVisible(arrow);
+          await tester.pumpAndSettle();
+          expect(arrow.hitTestable(), findsOneWidget);
+          await tester.tap(arrow);
+          await tester.pumpAndSettle();
+          expect(find.byType(VetVisitDetailPage), findsOneWidget);
+          final visitSectionStyle = tester
+              .widget<Text>(find.text('Clinic & veterinarian'))
+              .style!;
+          final vaccinationsStyle = tester
+              .widget<Text>(find.text('Linked vaccinations'))
+              .style!;
+          expect(vaccinationsStyle.fontSize, visitSectionStyle.fontSize);
+          expect(vaccinationsStyle.fontWeight, visitSectionStyle.fontWeight);
+          await expandRelated(tester, 'Linked vaccinations');
+          final vaccineArrow = find.byTooltip('Open vaccination: Rabies');
+          await tester.ensureVisible(vaccineArrow);
+          await tester.pumpAndSettle();
+          expect(vaccineArrow.hitTestable(), findsOneWidget);
+          await tester.tap(vaccineArrow);
+          await tester.pumpAndSettle();
+          expect(find.byType(VaccinationDetailPage), findsOneWidget);
+          await tester.tap(find.byTooltip('My pets'));
+          await tester.pumpAndSettle();
+          expect(
+            find.text('Choose a pet to view its profile and care overview.'),
+            findsOneWidget,
+          );
           expect(tester.takeException(), isNull);
         },
       );
@@ -981,14 +1514,14 @@ void main() {
         tester.getTopLeft(link).dy,
         greaterThan(tester.getTopLeft(find.text('Veterinarian')).dy),
       );
-      expect(
-        tester.getBottomLeft(link).dy,
-        lessThanOrEqualTo(tester.getTopLeft(find.text('Notes')).dy),
-      );
       clearInteractions(pets);
       await tester.tap(link);
       await tester.pumpAndSettle();
       expect(find.text('Checkup'), findsOneWidget);
+      await tester.ensureVisible(find.byTooltip('Open vet visit'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Open vet visit'));
+      await tester.pumpAndSettle();
       verifyNever(() => pets.getPetById(any()));
       await tester.tap(find.byTooltip('Delete visit'));
       await tester.pumpAndSettle();

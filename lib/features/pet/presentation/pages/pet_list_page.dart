@@ -11,16 +11,48 @@ import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
 import 'package:petlytics/features/pet/presentation/extensions/pet_display_extensions.dart';
 import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
 
-Future<void> _openAddPet(BuildContext context) async {
-  final created = await context.push(AppRoutes.addEditPet);
+void _openAddPet(BuildContext context) => context.push(AppRoutes.addEditPet);
 
-  if (created == true && context.mounted) {
-    context.read<PetCubit>().loadPets();
-  }
+class PetListPage extends StatefulWidget {
+  const PetListPage({super.key});
+
+  @override
+  State<PetListPage> createState() => _PetListPageState();
 }
 
-class PetListPage extends StatelessWidget {
-  const PetListPage({super.key});
+class _PetListPageState extends State<PetListPage> {
+  GoRouter? _router;
+  bool _active = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final router = GoRouter.maybeOf(context);
+    if (identical(router, _router)) return;
+    _router?.routerDelegate.removeListener(_routeChanged);
+    _router = router;
+    _active = router?.state.uri.path == AppRoutes.pets;
+    router?.routerDelegate.addListener(_routeChanged);
+  }
+
+  void _routeChanged() {
+    final active = _router!.state.uri.path == AppRoutes.pets;
+    if (active && !_active) {
+      // Both Back and My pets can reveal a retained list route.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _router!.state.uri.path == AppRoutes.pets) {
+          context.read<PetCubit>().loadPets();
+        }
+      });
+    }
+    _active = active;
+  }
+
+  @override
+  void dispose() {
+    _router?.routerDelegate.removeListener(_routeChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,13 +202,7 @@ class _PetListItem extends StatelessWidget {
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () async {
-          await context.push(AppRoutes.petDetail(pet.id));
-          if (context.mounted) {
-            // The detail route has its own Cubit, so reload edits into this list.
-            await context.read<PetCubit>().loadPets();
-          }
-        },
+        onTap: () => context.push(AppRoutes.petDetail(pet.id)),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(

@@ -22,6 +22,7 @@ final class VaccinationLoading extends VaccinationState {
 final class VaccinationsLoaded extends VaccinationState {
   final String petId;
   final List<Vaccination> vaccinations;
+  final String? vetVisitId;
   final bool isRefreshing;
   final String? refreshError;
   final bool isDeleting;
@@ -31,6 +32,7 @@ final class VaccinationsLoaded extends VaccinationState {
   const VaccinationsLoaded(
     this.petId,
     this.vaccinations, {
+    this.vetVisitId,
     this.isRefreshing = false,
     this.refreshError,
     this.isDeleting = false,
@@ -42,6 +44,7 @@ final class VaccinationsLoaded extends VaccinationState {
   List<Object?> get props => [
     petId,
     vaccinations,
+    vetVisitId,
     isRefreshing,
     refreshError,
     isDeleting,

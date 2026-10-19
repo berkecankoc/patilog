@@ -79,6 +79,157 @@ void main() {
     },
   );
 
+  for (final updating in [false, true]) {
+    test(
+      'rejects a future visit during ${updating ? 'update' : 'create'}',
+      () async {
+        final original = visit();
+        if (updating) await source.createVetVisit(original);
+        final now = DateTime.now();
+        final future = VetVisitModel(
+          id: original.id,
+          petId: original.petId,
+          visitedOn: DateTime(now.year, now.month, now.day + 1),
+          reason: 'Future',
+        );
+        await expectLater(
+          updating
+              ? source.updateVetVisit(future)
+              : source.createVetVisit(future),
+          throwsA(isA<LocalDataSourceException>()),
+        );
+        expect(
+          await source.getVetVisits(original.petId),
+          updating ? [original] : isEmpty,
+        );
+      },
+    );
+  }
+
+  test(
+    'date correction changes only linked vaccination dates and preserves row order',
+    () async {
+      final vaccines = VaccinationLocalDataSourceImpl(db);
+      await source.createVetVisit(visit());
+      await source.createVetVisit(visit(id: 'other-visit'));
+      await source.createVetVisit(visit(id: 'other-pet-visit', petId: 'pet-2'));
+      final now = DateTime.now();
+      final entries = [
+        for (final id in ['linked-a', 'linked-b'])
+          VaccinationModel(
+            id: id,
+            petId: 'pet-1',
+            vaccineName: id,
+            status: VaccinationStatus.administered,
+            date: visit().visitedOn,
+            vetVisitId: 'visit-1',
+            clinicName: 'Original clinic',
+            veterinarianName: 'Original vet',
+            notes: 'Original note',
+          ),
+        VaccinationModel(
+          id: 'unlinked',
+          petId: 'pet-1',
+          vaccineName: 'Unlinked',
+          status: VaccinationStatus.administered,
+          date: visit().visitedOn,
+        ),
+        VaccinationModel(
+          id: 'other-link',
+          petId: 'pet-1',
+          vaccineName: 'Other link',
+          status: VaccinationStatus.administered,
+          date: visit().visitedOn,
+          vetVisitId: 'other-visit',
+        ),
+        VaccinationModel(
+          id: 'other-pet',
+          petId: 'pet-2',
+          vaccineName: 'Other pet',
+          status: VaccinationStatus.administered,
+          date: visit().visitedOn,
+          vetVisitId: 'other-pet-visit',
+        ),
+        VaccinationModel(
+          id: 'next-dose',
+          petId: 'pet-1',
+          vaccineName: 'linked-a',
+          status: VaccinationStatus.planned,
+          date: DateTime(now.year, now.month, now.day + 1),
+        ),
+      ];
+      for (final entry in entries) {
+        await vaccines.createVaccination(entry);
+      }
+      final before = await db.rawQuery(
+        'SELECT id, rowid AS insertion_order FROM vaccinations ORDER BY rowid',
+      );
+      await source.updateVetVisit(
+        visit(
+          day: 16,
+          clinicName: 'Changed visit clinic',
+          veterinarianName: 'Changed visit vet',
+        ),
+      );
+      for (final entry in entries) {
+        final stored = await vaccines.getVaccinationById(entry.petId, entry.id);
+        expect(stored.toJson(), {
+          ...entry.toJson(),
+          if (entry.vetVisitId == 'visit-1') 'date': '2026-10-16',
+        });
+      }
+      expect(
+        await db.rawQuery(
+          'SELECT id, rowid AS insertion_order FROM vaccinations ORDER BY rowid',
+        ),
+        before,
+      );
+      expect(
+        (await vaccines.getVaccinations(
+          'pet-1',
+          vetVisitId: 'visit-1',
+        )).map((v) => v.id),
+        ['linked-b', 'linked-a'],
+      );
+    },
+  );
+
+  test(
+    'failed linked date correction rolls back visit and every vaccination',
+    () async {
+      await source.createVetVisit(visit());
+      final vaccines = VaccinationLocalDataSourceImpl(db);
+      for (final id in ['linked-a', 'linked-b']) {
+        await vaccines.createVaccination(
+          VaccinationModel(
+            id: id,
+            petId: 'pet-1',
+            vaccineName: id,
+            status: VaccinationStatus.administered,
+            date: visit().visitedOn,
+            vetVisitId: 'visit-1',
+          ),
+        );
+      }
+      final before = await vaccines.getVaccinations('pet-1');
+      await db.execute(
+        "CREATE TRIGGER reject_linked_date BEFORE UPDATE OF date ON vaccinations WHEN OLD.id = 'linked-b' BEGIN SELECT RAISE(ABORT, 'test failure'); END",
+      );
+      await expectLater(
+        source.updateVetVisit(visit(day: 16, reason: 'Changed')),
+        throwsA(isA<LocalDataSourceException>()),
+      );
+      expect(await source.getVetVisitById('pet-1', 'visit-1'), visit());
+      expect(await vaccines.getVaccinations('pet-1'), before);
+      await source.updateVetVisit(visit(reason: 'Reason only'));
+      expect(
+        (await source.getVetVisitById('pet-1', 'visit-1')).reason,
+        'Reason only',
+      );
+      expect(await vaccines.getVaccinations('pet-1'), before);
+    },
+  );
+
   test('lists only this pet by calendar date then insertion order', () async {
     final original = visit();
     final older = visit(id: 'older', day: 14);

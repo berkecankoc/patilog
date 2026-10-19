@@ -468,65 +468,65 @@ void main() {
     verify(() => createPet(any())).called(1);
   });
 
-  for (final systemBack in [false, true]) {
-    testWidgets(
-      'updated pet name appears in list after ${systemBack ? 'system' : 'app bar'} back',
-      (tester) async {
-        var currentPet = pet;
-        final repository = MockRepository();
-        final update = MockUpdatePet();
-        when(
-          () => repository.getPets(),
-        ).thenAnswer((_) async => Success([currentPet]));
-        when(
-          () => repository.getPetById(pet.id),
-        ).thenAnswer((_) async => Success(currentPet));
-        when(() => update(pet, any())).thenAnswer((invocation) async {
-          final params = invocation.positionalArguments[1] as UpdatePetParams;
-          currentPet = pet.copyWith(name: params.name);
-          return const Success<void>(null);
-        });
-        getIt.registerFactory<PetCubit>(
-          () => PetCubit(repository, MockCreatePet(), update, MockDeletePet()),
-        );
-        addTearDown(() => getIt.unregister<PetCubit>());
-        final router = GoRouter(
-          initialLocation: AppRoutes.pets,
-          routes: appRouter.configuration.routes,
-        );
-        addTearDown(router.dispose);
-        await tester.pumpWidget(
-          MaterialApp.router(theme: AppTheme.light, routerConfig: router),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.text(pet.name));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(find.byTooltip('Edit profile'));
-        await tester.tap(find.byTooltip('Edit profile'));
-        await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byType(TextFormField).first,
-          'Updated pet name',
-        );
-        FocusManager.instance.primaryFocus?.unfocus();
-        await tester.pumpAndSettle();
-        expect(find.text('Save changes').hitTestable(), findsOneWidget);
-        await tester.tap(find.text('Save changes'));
-        await tester.pumpAndSettle();
-        expect(find.text('Updated pet name'), findsOneWidget);
-        if (systemBack) {
-          await tester.binding.handlePopRoute();
-        } else {
-          await tester.tap(find.byType(BackButton));
-        }
-        await tester.pumpAndSettle();
-        expect(find.byType(PetListPage), findsOneWidget);
-        expect(find.text('Updated pet name'), findsOneWidget);
-        expect(find.text(pet.name), findsNothing);
-        verify(() => repository.getPets()).called(2);
-        expect(tester.takeException(), isNull);
-      },
-    );
+  for (final exit in ['system', 'app bar', 'My pets']) {
+    testWidgets('updated pet name appears in list after $exit', (tester) async {
+      var currentPet = pet;
+      final repository = MockRepository();
+      final update = MockUpdatePet();
+      when(
+        () => repository.getPets(),
+      ).thenAnswer((_) async => Success([currentPet]));
+      when(
+        () => repository.getPetById(pet.id),
+      ).thenAnswer((_) async => Success(currentPet));
+      when(() => update(pet, any())).thenAnswer((invocation) async {
+        final params = invocation.positionalArguments[1] as UpdatePetParams;
+        currentPet = pet.copyWith(name: params.name);
+        return const Success<void>(null);
+      });
+      getIt.registerFactory<PetCubit>(
+        () => PetCubit(repository, MockCreatePet(), update, MockDeletePet()),
+      );
+      addTearDown(() => getIt.unregister<PetCubit>());
+      final router = GoRouter(
+        initialLocation: AppRoutes.pets,
+        routes: appRouter.configuration.routes,
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(pet.name));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byTooltip('Edit profile'));
+      await tester.tap(find.byTooltip('Edit profile'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'Updated pet name',
+      );
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      expect(find.text('Save changes').hitTestable(), findsOneWidget);
+      await tester.tap(find.text('Save changes'));
+      await tester.pumpAndSettle();
+      expect(find.text('Updated pet name'), findsOneWidget);
+      if (exit == 'system') {
+        await tester.binding.handlePopRoute();
+      } else if (exit == 'My pets') {
+        await tester.tap(find.byTooltip('My pets'));
+      } else {
+        await tester.tap(find.byType(BackButton));
+      }
+      await tester.pumpAndSettle();
+      expect(find.byType(PetListPage), findsOneWidget);
+      expect(find.text('Updated pet name'), findsOneWidget);
+      expect(find.text(pet.name), findsNothing);
+      verify(() => repository.getPets()).called(2);
+      expect(router.canPop(), isFalse);
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets('pet card opens the selected profile', (tester) async {

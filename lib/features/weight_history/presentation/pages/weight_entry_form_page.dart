@@ -63,7 +63,11 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
 
   void _submit() {
     final cubit = context.read<WeightHistoryCubit>();
-    if (_allowPop || cubit.state is WeightHistoryLoading) return;
+    if (_allowPop ||
+        _confirmingDiscard ||
+        cubit.state is WeightHistoryLoading) {
+      return;
+    }
     if (widget.entry != null && !_hasChanges) return;
     final invalidFields = _formKey.currentState!.validateGranularly();
     if (invalidFields.isNotEmpty) {
@@ -89,11 +93,13 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
     }
   }
 
-  void _leave([bool? result]) {
+  void _leave({bool? result}) {
+    if (_allowPop) return;
     setState(() => _allowPop = true);
     // Update the pop guard before leaving after save or confirmed discard.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.pop(result);
+      if (!mounted) return;
+      context.pop(result);
     });
   }
 
@@ -104,7 +110,7 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
       return;
     }
     if (!_hasChanges) {
-      context.pop();
+      _leave();
       return;
     }
     _confirmingDiscard = true;
@@ -126,7 +132,7 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
     return BlocConsumer<WeightHistoryCubit, WeightHistoryState>(
       listener: (context, state) {
         if (state case WeightEntryCreated() || WeightEntryUpdated()) {
-          _leave(true);
+          _leave(result: true);
         } else if (state case WeightHistoryError(:final message)) {
           setState(() => _saveError = message);
           WidgetsBinding.instance.addPostFrameCallback((_) {

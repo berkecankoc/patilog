@@ -7,6 +7,7 @@ class AppDateField extends StatefulWidget {
   final DateTime lastDate;
   final ValueChanged<DateTime?> onChanged;
   final bool clearable;
+  final bool readOnly;
   final String? errorText;
 
   const AppDateField({
@@ -17,6 +18,7 @@ class AppDateField extends StatefulWidget {
     required this.lastDate,
     required this.onChanged,
     this.clearable = false,
+    this.readOnly = false,
     this.errorText,
   });
 
@@ -52,6 +54,7 @@ class _AppDateFieldState extends State<AppDateField> {
   }
 
   Future<void> _pickDate() async {
+    if (widget.readOnly) return;
     FocusScope.of(context).unfocus();
     final candidate = DateUtils.dateOnly(widget.value ?? DateTime.now());
     final first = DateUtils.dateOnly(widget.firstDate);
@@ -67,25 +70,30 @@ class _AppDateFieldState extends State<AppDateField> {
       firstDate: widget.firstDate,
       lastDate: widget.lastDate,
     );
-    if (date != null && mounted) widget.onChanged(date);
+    if (date != null && mounted && !widget.readOnly) widget.onChanged(date);
   }
 
   @override
   Widget build(BuildContext context) {
-    final canClear = widget.clearable && widget.value != null;
+    final canClear =
+        !widget.readOnly && widget.clearable && widget.value != null;
     return TextField(
       controller: _controller,
       readOnly: true,
-      onTap: _pickDate,
+      onTap: widget.readOnly ? null : _pickDate,
       decoration: InputDecoration(
         labelText: widget.labelText,
         errorText: widget.errorText,
-        suffixIcon: IconButton(
-          tooltip:
-              '${canClear ? 'Clear' : 'Choose'} ${widget.labelText.toLowerCase()}',
-          onPressed: canClear ? () => widget.onChanged(null) : _pickDate,
-          icon: Icon(canClear ? Icons.clear : Icons.calendar_today_outlined),
-        ),
+        suffixIcon: widget.readOnly
+            ? const Icon(Icons.calendar_today_outlined)
+            : IconButton(
+                tooltip:
+                    '${canClear ? 'Clear' : 'Choose'} ${widget.labelText.toLowerCase()}',
+                onPressed: canClear ? () => widget.onChanged(null) : _pickDate,
+                icon: Icon(
+                  canClear ? Icons.clear : Icons.calendar_today_outlined,
+                ),
+              ),
       ),
     );
   }

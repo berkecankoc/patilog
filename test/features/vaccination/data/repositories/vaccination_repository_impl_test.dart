@@ -47,6 +47,27 @@ void main() {
   });
 
   group('getVaccinations', () {
+    test('forwards visit scope, maps records and storage failures', () async {
+      when(
+        () => source.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+      ).thenAnswer((_) async => [model]);
+      expect(
+        await repository.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+        Success([vaccination]),
+      );
+      when(
+        () => source.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+      ).thenThrow(const LocalDataSourceException());
+      expect(
+        await repository.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+        const Error<List<Vaccination>>(
+          LocalDatabaseFailure('Failed to load vaccinations'),
+        ),
+      );
+      verify(
+        () => source.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+      ).called(2);
+    });
     test('maps all fields and preserves the data source order', () async {
       when(
         () => source.getVaccinations('pet-1'),

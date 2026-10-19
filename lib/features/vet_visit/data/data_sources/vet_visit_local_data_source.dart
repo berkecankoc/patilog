@@ -52,6 +52,7 @@ final class VetVisitLocalDataSourceImpl implements VetVisitLocalDataSource {
 
   @override
   Future<void> createVetVisit(VetVisitModel visit) async {
+    _validateDate(visit);
     try {
       await db.insert(DatabaseTables.vetVisits, visit.toJson());
     } on DatabaseException {
@@ -61,14 +62,33 @@ final class VetVisitLocalDataSourceImpl implements VetVisitLocalDataSource {
 
   @override
   Future<void> updateVetVisit(VetVisitModel visit) async {
+    _validateDate(visit);
     try {
-      final affectedRows = await db.update(
-        DatabaseTables.vetVisits,
-        visit.toJson(),
-        where: 'pet_id = ? AND id = ?',
-        whereArgs: [visit.petId, visit.id],
-      );
-      if (affectedRows == 0) throw const LocalDataNotFoundException();
+      await db.transaction((txn) async {
+        final rows = await txn.query(
+          DatabaseTables.vetVisits,
+          columns: ['visited_on'],
+          where: 'pet_id = ? AND id = ?',
+          whereArgs: [visit.petId, visit.id],
+          limit: 1,
+        );
+        if (rows.isEmpty) throw const LocalDataNotFoundException();
+        final values = visit.toJson();
+        await txn.update(
+          DatabaseTables.vetVisits,
+          values,
+          where: 'pet_id = ? AND id = ?',
+          whereArgs: [visit.petId, visit.id],
+        );
+        if (rows.single['visited_on'] != values['visited_on']) {
+          await txn.update(
+            DatabaseTables.vaccinations,
+            {'date': values['visited_on']},
+            where: 'pet_id = ? AND vet_visit_id = ?',
+            whereArgs: [visit.petId, visit.id],
+          );
+        }
+      });
     } on DatabaseException {
       throw const LocalDataSourceException();
     }
@@ -84,6 +104,18 @@ final class VetVisitLocalDataSourceImpl implements VetVisitLocalDataSource {
       );
       if (affectedRows == 0) throw const LocalDataNotFoundException();
     } on DatabaseException {
+      throw const LocalDataSourceException();
+    }
+  }
+
+  void _validateDate(VetVisitModel visit) {
+    final date = visit.visitedOn;
+    final now = DateTime.now();
+    if (DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).isAfter(DateTime(now.year, now.month, now.day))) {
       throw const LocalDataSourceException();
     }
   }
