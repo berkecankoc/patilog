@@ -143,11 +143,12 @@ class VaccinationDetailPage extends StatelessWidget {
               VerticalGap.sm,
               ListTile(
                 contentPadding: EdgeInsets.zero,
+                titleAlignment: ListTileTitleAlignment.center,
                 minLeadingWidth: 20,
                 horizontalTitleGap: AppSpacing.sm,
-                leading: const Icon(Icons.link_outlined),
+                leading: const Icon(Icons.link_outlined, size: 20),
                 title: const Text('Linked vet visit'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(Icons.chevron_right, size: 20),
                 onTap: busy
                     ? null
                     : () => _openVisit(context, vaccination.vetVisitId!),

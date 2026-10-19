@@ -897,6 +897,62 @@ void main() {
     },
   );
 
+  for (final brightness in Brightness.values) {
+    for (final (size, scale) in [
+      (const Size(390, 844), 1.0),
+      (const Size(320, 568), 2.0),
+    ]) {
+      testWidgets(
+        'linked visit icons center on the title at $size in $brightness',
+        (tester) async {
+          final linked = Vaccination(
+            id: administered.id,
+            petId: pet.id,
+            vaccineName: administered.vaccineName,
+            status: administered.status,
+            date: administered.date,
+            vetVisitId: visit.id,
+          );
+          records = [linked];
+          await pumpRouter(
+            tester,
+            size: size,
+            scale: scale,
+            brightness: brightness,
+          );
+          await open(tester, linked);
+          final row = find.widgetWithText(ListTile, 'Linked vet visit');
+          await tester.ensureVisible(row);
+          await tester.pumpAndSettle();
+          final titleCenter = tester
+              .getCenter(find.text('Linked vet visit'))
+              .dy;
+          for (final icon in [Icons.link_outlined, Icons.chevron_right]) {
+            expect(
+              tester.getSize(
+                find.descendant(of: row, matching: find.byIcon(icon)),
+              ),
+              const Size(20, 20),
+            );
+            expect(
+              tester
+                  .getCenter(
+                    find.descendant(of: row, matching: find.byIcon(icon)),
+                  )
+                  .dy,
+              closeTo(titleCenter, 0.1),
+            );
+          }
+          expect(row.hitTestable(), findsOneWidget);
+          await tester.tap(row);
+          await tester.pumpAndSettle();
+          expect(find.text('Checkup'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   testWidgets(
     'a linked visit opens with context and its deletion refreshes only the link',
     (tester) async {
