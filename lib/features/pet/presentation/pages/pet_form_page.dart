@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
@@ -142,7 +143,8 @@ class _PetFormPageState extends State<PetFormPage> {
     final pet = widget.pet;
     return _nameController.text != (pet?.name ?? '') ||
         _breedController.text != (pet?.breed ?? '') ||
-        _weightController.text != (pet?.weight?.toString() ?? '') ||
+        _weightController.text !=
+            (pet?.weight == null ? '' : formatWeight(pet!.weight!)) ||
         _microchipIdController.text != (pet?.microchipId ?? '') ||
         _species != (pet?.species ?? PetSpecies.dog) ||
         _sex != (pet?.sex ?? PetSex.male) ||
@@ -169,7 +171,7 @@ class _PetFormPageState extends State<PetFormPage> {
         _birthDate = pet.birthDate;
       }
       if (pet.weight != null) {
-        _weightController.text = pet.weight.toString();
+        _weightController.text = formatWeight(pet.weight!);
       }
       _microchipIdController.text = pet.microchipId ?? '';
       _pickedImagePath = pet.imagePath;
@@ -212,7 +214,7 @@ class _PetFormPageState extends State<PetFormPage> {
     final birthDate = _birthDate;
 
     final weightText = _weightController.text.trim();
-    final weight = weightText.isEmpty ? null : double.parse(weightText);
+    final weight = weightText.isEmpty ? null : parseWeight(weightText)!;
 
     final microchipIdText = _microchipIdController.text.trim();
     final microchipId = microchipIdText.isEmpty ? null : microchipIdText;
@@ -549,6 +551,7 @@ class _PetFormPageState extends State<PetFormPage> {
                                         decoration: const InputDecoration(
                                           labelText: 'Weight (optional)',
                                           suffixText: 'kg',
+                                          errorMaxLines: 3,
                                         ),
                                         validator: (value) {
                                           if (value == null ||
@@ -556,9 +559,7 @@ class _PetFormPageState extends State<PetFormPage> {
                                             return null;
                                           }
 
-                                          final weight = double.tryParse(
-                                            value.trim(),
-                                          );
+                                          final weight = parseWeight(value);
 
                                           if (weight == null ||
                                               !weight.isFinite) {
@@ -567,6 +568,10 @@ class _PetFormPageState extends State<PetFormPage> {
 
                                           if (weight <= 0) {
                                             return 'Weight must be greater than 0';
+                                          }
+
+                                          if (!hasValidWeightPrecision(value)) {
+                                            return 'Use up to 3 decimal places';
                                           }
 
                                           return null;

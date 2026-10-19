@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 
 final class WeightEntryModel extends Equatable {
@@ -32,7 +33,7 @@ final class WeightEntryModel extends Equatable {
   Map<String, dynamic> toJson() => {
     'id': id,
     'pet_id': petId,
-    'weight': weight,
+    'weight': normalizeWeight(weight),
     // Normalize stored timestamps so text ordering follows measurement time.
     'measured_at': _formatTimestamp(measuredAt),
   };

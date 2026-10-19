@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
@@ -255,7 +256,9 @@ class _PetView extends StatelessWidget {
                         (
                           Icons.monitor_weight_outlined,
                           'Current weight',
-                          pet.weight == null ? null : '${pet.weight} kg',
+                          pet.weight == null
+                              ? null
+                              : '${formatWeight(pet.weight!)} kg',
                         ),
                         (
                           Icons.memory_outlined,

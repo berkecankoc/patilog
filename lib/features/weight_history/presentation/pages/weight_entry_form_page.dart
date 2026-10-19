@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
@@ -38,7 +39,8 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
   bool _confirmingDiscard = false;
 
   bool get _hasChanges =>
-      _weightController.text != (widget.entry?.weight.toString() ?? '') ||
+      _weightController.text !=
+          (widget.entry == null ? '' : formatWeight(widget.entry!.weight)) ||
       !DateUtils.isSameDay(_measuredAt, _initialMeasuredAt);
 
   @override
@@ -47,7 +49,9 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
     _measuredAt =
         widget.entry?.measuredAt.toLocal() ??
         DateUtils.dateOnly(DateTime.now());
-    _weightController.text = widget.entry?.weight.toString() ?? '';
+    _weightController.text = widget.entry == null
+        ? ''
+        : formatWeight(widget.entry!.weight);
     _initialMeasuredAt = _measuredAt;
   }
 
@@ -72,7 +76,7 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
     }
     setState(() => _saveError = null);
     FocusScope.of(context).unfocus();
-    final weight = double.parse(_weightController.text.trim());
+    final weight = parseWeight(_weightController.text)!;
     final entry = widget.entry;
     if (entry == null) {
       cubit.createWeightEntry(
@@ -187,16 +191,20 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
                               decoration: const InputDecoration(
                                 labelText: 'Weight',
                                 suffixText: 'kg',
+                                errorMaxLines: 3,
                               ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Weight is required';
                                 }
-                                final weight = double.tryParse(value.trim());
+                                final weight = parseWeight(value);
                                 if (weight == null ||
                                     !weight.isFinite ||
                                     weight <= 0) {
                                   return 'Enter a weight greater than zero';
+                                }
+                                if (!hasValidWeightPrecision(value)) {
+                                  return 'Use up to 3 decimal places';
                                 }
                                 return null;
                               },

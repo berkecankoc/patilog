@@ -3,6 +3,7 @@ import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/services/id_generator.dart';
+import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
@@ -75,7 +76,10 @@ class UpdatePet {
 
     final now = DateTime.now();
     // Clearing the form field does not delete history; unchanged weight adds no entry.
-    final weightEntry = params.weight == null || params.weight == pet.weight
+    final weightEntry =
+        params.weight == null ||
+            (pet.weight != null &&
+                normalizeWeight(params.weight!) == normalizeWeight(pet.weight!))
         ? null
         : WeightEntry(
             id: idGenerator.generate(),
