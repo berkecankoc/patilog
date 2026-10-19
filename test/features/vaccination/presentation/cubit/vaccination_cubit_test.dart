@@ -39,6 +39,84 @@ void main() {
   setUp(() => repository = MockVaccinationRepository());
   VaccinationCubit makeCubit() => VaccinationCubit(repository);
 
+  blocTest<VaccinationCubit, VaccinationState>(
+    'does not retain a vaccination removed through nested navigation',
+    build: () {
+      when(
+        () => repository.getVaccinationById(vaccination.petId, vaccination.id),
+      ).thenAnswer(
+        (_) async => const Error(NotFoundFailure('Vaccination not found')),
+      );
+      return makeCubit();
+    },
+    seed: () => VaccinationLoaded(vaccination),
+    act: (cubit) => cubit.loadVaccination(vaccination.petId, vaccination.id),
+    expect: () => [
+      VaccinationLoaded(vaccination, isRefreshing: true),
+      const VaccinationError('Vaccination not found'),
+    ],
+  );
+
+  test(
+    'visit scopes preserve refresh content, retry and discard stale loads',
+    () async {
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      when(
+        () => repository.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+      ).thenAnswer((_) async => Success([vaccination]));
+      await cubit.loadVaccinations('pet-1', vetVisitId: 'visit-1');
+      expect(
+        cubit.state,
+        VaccinationsLoaded('pet-1', [vaccination], vetVisitId: 'visit-1'),
+      );
+      when(
+        () => repository.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+      ).thenAnswer(
+        (_) async => const Error(LocalDatabaseFailure('Retry linked records')),
+      );
+      await cubit.loadVaccinations('pet-1', vetVisitId: 'visit-1');
+      expect(
+        cubit.state,
+        VaccinationsLoaded(
+          'pet-1',
+          [vaccination],
+          vetVisitId: 'visit-1',
+          refreshError: 'Retry linked records',
+        ),
+      );
+      final pending = Completer<Result<List<Vaccination>>>();
+      when(
+        () => repository.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+      ).thenAnswer((_) => pending.future);
+      final old = cubit.loadVaccinations('pet-1', vetVisitId: 'visit-1');
+      when(
+        () => repository.getVaccinations('pet-1', vetVisitId: 'visit-2'),
+      ).thenAnswer((_) async => const Success([]));
+      await cubit.loadVaccinations('pet-1', vetVisitId: 'visit-2');
+      pending.complete(Success([vaccination]));
+      await old;
+      expect(
+        cubit.state,
+        const VaccinationsLoaded('pet-1', [], vetVisitId: 'visit-2'),
+      );
+      verifyNever(() => repository.getVaccinations('pet-1'));
+    },
+  );
+
+  test('a linked read completing after close does not emit', () async {
+    final pending = Completer<Result<List<Vaccination>>>();
+    when(
+      () => repository.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+    ).thenAnswer((_) => pending.future);
+    final cubit = makeCubit();
+    final load = cubit.loadVaccinations('pet-1', vetVisitId: 'visit-1');
+    await cubit.close();
+    pending.complete(const Success([]));
+    await load;
+    expect(cubit.state, const VaccinationLoading());
+  });
+
   test('starts in the initial state', () {
     final cubit = makeCubit();
     addTearDown(cubit.close);

@@ -114,6 +114,7 @@ void main() {
     await tester.pumpAndSettle();
     routeResult = router.push<bool>(AppRoutes.addEditPet, extra: existing);
     await tester.pumpAndSettle();
+    expect(find.byTooltip('My pets'), findsNothing);
   }
 
   Future<void> changeName(
@@ -426,6 +427,7 @@ void main() {
     await tester.tap(find.text('Save changes'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Saving…'), findsOneWidget);
+    expect(find.byTooltip('My pets'), findsNothing);
     expect(
       tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
       isNull,

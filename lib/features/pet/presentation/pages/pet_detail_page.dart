@@ -6,6 +6,7 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/my_pets_button.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
@@ -85,6 +86,7 @@ class PetDetailPage extends StatelessWidget {
                     )
                   : null,
               actions: [
+                MyPetsButton(enabled: !deleting),
                 if (state case PetLoaded(:final pet)) ...[
                   IconButton(
                     tooltip: 'Delete pet',

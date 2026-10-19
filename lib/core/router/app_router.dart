@@ -144,11 +144,18 @@ final appRouter = GoRouter(
                     return _petCarePage(
                       petId: petId,
                       extra: state.extra,
-                      builder: (petName) => BlocProvider<VaccinationCubit>(
+                      builder: (petName) => MultiBlocProvider(
                         key: ValueKey((petId, vaccinationId)),
-                        create: (_) =>
-                            getIt<VaccinationCubit>()
-                              ..loadVaccination(petId, vaccinationId),
+                        providers: [
+                          BlocProvider<VaccinationCubit>(
+                            create: (_) =>
+                                getIt<VaccinationCubit>()
+                                  ..loadVaccination(petId, vaccinationId),
+                          ),
+                          BlocProvider<VetVisitCubit>(
+                            create: (_) => getIt<VetVisitCubit>(),
+                          ),
+                        ],
                         child: VaccinationDetailPage(
                           petId: petId,
                           vaccinationId: vaccinationId,
@@ -209,11 +216,18 @@ final appRouter = GoRouter(
                     return _petCarePage(
                       petId: petId,
                       extra: state.extra,
-                      builder: (petName) => BlocProvider<VetVisitCubit>(
+                      builder: (petName) => MultiBlocProvider(
                         key: ValueKey((petId, visitId)),
-                        create: (_) =>
-                            getIt<VetVisitCubit>()
-                              ..loadVetVisit(petId, visitId),
+                        providers: [
+                          BlocProvider<VetVisitCubit>(
+                            create: (_) =>
+                                getIt<VetVisitCubit>()
+                                  ..loadVetVisit(petId, visitId),
+                          ),
+                          BlocProvider<VaccinationCubit>(
+                            create: (_) => getIt<VaccinationCubit>(),
+                          ),
+                        ],
                         child: VetVisitDetailPage(
                           petId: petId,
                           visitId: visitId,

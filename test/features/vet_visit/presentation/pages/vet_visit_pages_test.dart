@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -34,6 +36,8 @@ import 'package:petlytics/core/widgets/app_suggestion_field.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 
 class MockVetRepository extends Mock implements VetVisitRepository {}
+
+class MockVaccinations extends Mock implements VaccinationRepository {}
 
 class MockPetRepository extends Mock implements PetRepository {}
 
@@ -147,6 +151,9 @@ void main() {
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );
     getIt.registerFactory<VetVisitCubit>(() => VetVisitCubit(repository));
+    getIt.registerFactory<VaccinationCubit>(
+      () => VaccinationCubit(MockVaccinations()),
+    );
     getIt.registerFactory<VetVisitFormCubit>(
       () => VetVisitFormCubit(repository, ids),
     );
@@ -199,6 +206,7 @@ void main() {
   Future<void> openAdd(WidgetTester tester) async {
     await tester.tap(find.byTooltip('Add visit'));
     await tester.pumpAndSettle();
+    expect(find.byTooltip('My pets'), findsNothing);
   }
 
   Future<void> openDetail(WidgetTester tester) async {
@@ -222,6 +230,7 @@ void main() {
   }
 
   final reasonField = find.byKey(const Key('visit-reason'));
+
   final amountField = find.byKey(const Key('visit-cost'));
   final clinicField = find.widgetWithText(TextFormField, 'Clinic (optional)');
   final veterinarianField = find.widgetWithText(
@@ -780,6 +789,7 @@ void main() {
       submit('0');
       submit('0');
       await tester.pump();
+      expect(find.byTooltip('My pets'), findsNothing);
       await tester.binding.handlePopRoute();
       await tester.tap(find.byTooltip('Back'));
       await tester.pump();
@@ -1011,8 +1021,11 @@ void main() {
       ];
       await pumpRouter(tester);
       await openDetail(tester);
-      expect(find.byType(Card), findsOneWidget);
-      expect(find.byType(ExpansionTile), findsNothing);
+      expect(find.byType(Card), findsNWidgets(2));
+      expect(
+        find.widgetWithText(ExpansionTile, 'Linked vaccinations'),
+        findsOneWidget,
+      );
       expect(find.text('Visit details'), findsNothing);
       expect(find.text('Visit date'), findsNothing);
       final date = MaterialLocalizations.of(

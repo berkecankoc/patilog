@@ -188,7 +188,11 @@ class _PetFormPageState extends State<PetFormPage> {
   }
 
   void _submit() {
-    if (context.read<PetCubit>().state is PetLoading) return;
+    if (_allowPop ||
+        _confirmingDiscard ||
+        context.read<PetCubit>().state is PetLoading) {
+      return;
+    }
     if (widget.pet != null && !_hasChanges) return;
     final invalidFields = _formKey.currentState!.validateGranularly();
     if (invalidFields.isNotEmpty) {
@@ -281,20 +285,24 @@ class _PetFormPageState extends State<PetFormPage> {
     }
   }
 
-  void _leave([bool? result]) {
+  void _leave({bool? result}) {
+    if (_allowPop) return;
     setState(() => _allowPop = true);
     // Rebuild the pop guard before leaving after save or confirmed discard.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.pop(result);
+      if (!mounted) return;
+      context.pop(result);
     });
   }
 
   Future<void> _requestExit() async {
-    if (_confirmingDiscard || context.read<PetCubit>().state is PetLoading) {
+    if (_allowPop ||
+        _confirmingDiscard ||
+        context.read<PetCubit>().state is PetLoading) {
       return;
     }
     if (!_hasChanges) {
-      context.pop();
+      _leave();
       return;
     }
     _confirmingDiscard = true;
@@ -335,7 +343,7 @@ class _PetFormPageState extends State<PetFormPage> {
     return BlocConsumer<PetCubit, PetState>(
       listener: (context, state) {
         if (state case PetCreated() || PetUpdated()) {
-          _leave(true);
+          _leave(result: true);
         }
 
         if (state case PetError(:final message)) {

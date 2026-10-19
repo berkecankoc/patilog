@@ -120,6 +120,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       _visitId = id;
       if (id == null) return;
       final visit = visits.firstWhere((visit) => visit.id == id);
+      _date = DateUtils.dateOnly(visit.visitedOn);
       if (_clinic.text.trim().isEmpty) _clinic.text = visit.clinicName ?? '';
       if (_veterinarian.text.trim().isEmpty) {
         _veterinarian.text = visit.veterinarianName ?? '';
@@ -165,11 +166,12 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
     );
   }
 
-  void _leave([bool? result]) {
+  void _leave({bool? result}) {
     if (_allowPop) return;
     setState(() => _allowPop = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.pop(result);
+      if (!mounted) return;
+      context.pop(result);
     });
   }
 
@@ -180,7 +182,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       return;
     }
     if (!_hasChanges) {
-      context.pop();
+      _leave();
       return;
     }
     _confirmingDiscard = true;
@@ -366,24 +368,37 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
         }
         return null;
       },
-      builder: (field) => AppDateField(
-        key: const Key('vaccination-date'),
-        labelText: _status == VaccinationStatus.planned
-            ? 'Planned date'
-            : 'Administration date',
-        value: _date,
-        firstDate: _status == VaccinationStatus.planned
-            ? DateUtils.dateOnly(DateTime.now())
-            : DateTime(1900),
-        lastDate: _status == VaccinationStatus.planned
-            ? DateTime(2100, 12, 31)
-            : DateTime.now(),
-        errorText: field.errorText,
-        onChanged: (date) {
-          if (date == null) return;
-          setState(() => _date = date);
-          field.didChange(date);
-        },
+      builder: (field) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppDateField(
+            key: const Key('vaccination-date'),
+            labelText: _status == VaccinationStatus.planned
+                ? 'Planned date'
+                : 'Administration date',
+            value: _date,
+            readOnly: _visitId != null,
+            firstDate: _status == VaccinationStatus.planned
+                ? DateUtils.dateOnly(DateTime.now())
+                : DateTime(1900),
+            lastDate: _status == VaccinationStatus.planned
+                ? DateTime(2100, 12, 31)
+                : DateTime.now(),
+            errorText: field.errorText,
+            onChanged: (date) {
+              if (date == null) return;
+              setState(() => _date = date);
+              field.didChange(date);
+            },
+          ),
+          if (_visitId != null) ...[
+            VerticalGap.xs,
+            Text(
+              'Date from linked vet visit',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ],
       ),
     ),
     VerticalGap.xl,
@@ -489,10 +504,21 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       BlocConsumer<VaccinationFormCubit, VaccinationFormState>(
         listenWhen: (previous, current) =>
             previous.isSaved != current.isSaved ||
-            previous.saveError != current.saveError,
+            previous.saveError != current.saveError ||
+            (previous.isLoadingVisits && !current.isLoadingVisits),
         listener: (context, state) {
+          if (_visitId != null && !state.isSaving && !state.isSaved) {
+            for (final visit in state.visits) {
+              if (visit.id == _visitId &&
+                  visit.petId == widget.petId &&
+                  !DateUtils.isSameDay(_date, visit.visitedOn)) {
+                setState(() => _date = DateUtils.dateOnly(visit.visitedOn));
+                break;
+              }
+            }
+          }
           if (state.isSaved) {
-            _leave(true);
+            _leave(result: true);
           } else if (state.saveError != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               final errorContext = _saveErrorKey.currentContext;

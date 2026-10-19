@@ -5,6 +5,44 @@ import 'package:petlytics/core/widgets/app_date_field.dart';
 
 void main() {
   testWidgets(
+    'read-only date stays legible and cannot open or clear until unlocked',
+    (tester) async {
+      final locked = ValueNotifier(true);
+      addTearDown(locked.dispose);
+      DateTime? selected = DateTime(2020, 1, 2);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder<bool>(
+              valueListenable: locked,
+              builder: (_, readOnly, _) => AppDateField(
+                labelText: 'Date',
+                value: selected,
+                firstDate: DateTime(1900),
+                lastDate: DateTime(2100),
+                clearable: true,
+                readOnly: readOnly,
+                onChanged: (value) => selected = value,
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Jan 2, 2020'), findsOneWidget);
+      expect(find.byType(IconButton), findsNothing);
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(find.byType(DatePickerDialog), findsNothing);
+      expect(selected, DateTime(2020, 1, 2));
+      locked.value = false;
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Clear date'));
+      await tester.pumpAndSettle();
+      expect(selected, isNull);
+    },
+  );
+
+  testWidgets(
     'an empty future-date field opens on today rather than the upper limit',
     (tester) async {
       await tester.pumpWidget(

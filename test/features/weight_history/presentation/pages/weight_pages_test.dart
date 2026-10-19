@@ -131,6 +131,7 @@ void main() {
   Future<void> openAddForm(WidgetTester tester) async {
     await tester.tap(find.byTooltip('Add measurement'));
     await tester.pumpAndSettle();
+    expect(find.byTooltip('My pets'), findsNothing);
   }
 
   Future<void> save(WidgetTester tester) async {
@@ -1011,6 +1012,7 @@ void main() {
     await tester.enterText(find.byType(TextFormField).first, '5.2');
     tester.widget<TextField>(find.byType(TextField).first).onSubmitted!('5.2');
     await tester.pump();
+    expect(find.byTooltip('My pets'), findsNothing);
     await tester.binding.handlePopRoute();
     await tester.pump();
     expect(find.byType(WeightEntryFormPage), findsOneWidget);

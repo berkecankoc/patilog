@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
@@ -73,7 +74,7 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
         emit(VetVisitLoaded(result.data));
       case Error<VetVisit>():
         emit(
-          previous == null
+          previous == null || result.failure is NotFoundFailure
               ? VetVisitError(result.failure.message)
               : VetVisitLoaded(
                   previous.visit,

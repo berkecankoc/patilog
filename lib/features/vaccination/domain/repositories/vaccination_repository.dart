@@ -4,12 +4,16 @@ import 'package:petlytics/features/vaccination/domain/entities/vaccination_sugge
 
 /// Single-record reads, updates and deletes must match both pet and record IDs.
 /// A missing match returns NotFoundFailure. Linked visits must belong to the pet.
+/// Linked administration and visit dates must be the same calendar day.
 /// Writes require planned dates on/after today and administered dates on/before
 /// today. Existing overdue plans can still be read.
 abstract interface class VaccinationRepository {
   /// Planned records first (date ascending), then history (date descending).
   /// Ties use newest insertion first; content edits do not change insertion order.
-  Future<Result<List<Vaccination>>> getVaccinations(String petId);
+  Future<Result<List<Vaccination>>> getVaccinations(
+    String petId, {
+    String? vetVisitId,
+  });
 
   Future<Result<Vaccination>> getVaccinationById(
     String petId,

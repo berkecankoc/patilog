@@ -7,6 +7,7 @@ import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/my_pets_button.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
@@ -15,6 +16,10 @@ import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
 import 'package:petlytics/features/vet_visit/presentation/utils/confirm_vet_visit_deletion.dart';
 import 'package:petlytics/features/vet_visit/presentation/utils/vet_visit_cost.dart';
+import 'package:petlytics/features/vet_visit/presentation/widgets/visit_vaccinations_section.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_state.dart';
 
 class VetVisitDetailPage extends StatelessWidget {
   final String petId;
@@ -35,6 +40,11 @@ class VetVisitDetailPage extends StatelessWidget {
     );
     if (saved == true && context.mounted) {
       await context.read<VetVisitCubit>().loadVetVisit(petId, visitId);
+      if (!context.mounted) return;
+      final linked = context.read<VaccinationCubit>();
+      if (linked.state is! VaccinationInitial) {
+        await linked.loadVaccinations(petId, vetVisitId: visitId);
+      }
     }
   }
 
@@ -42,6 +52,28 @@ class VetVisitDetailPage extends StatelessWidget {
     final confirmed = await confirmVetVisitDeletion(context, visit);
     if (confirmed && context.mounted) {
       await context.read<VetVisitCubit>().deleteVetVisit();
+    }
+  }
+
+  Future<void> _openVaccination(
+    BuildContext context,
+    Vaccination vaccination,
+  ) async {
+    final deletedId = await context.push<String>(
+      AppRoutes.vaccinationDetail(petId, vaccination.id),
+      extra: PetCareRouteExtra(petId: petId, petName: petName),
+    );
+    if (!context.mounted) return;
+    await context.read<VetVisitCubit>().loadVetVisit(petId, visitId);
+    if (!context.mounted ||
+        context.read<VetVisitCubit>().state is! VetVisitLoaded) {
+      return;
+    }
+    final cubit = context.read<VaccinationCubit>();
+    if (deletedId != null) {
+      cubit.removeDeletedVaccination(deletedId);
+    } else {
+      await cubit.loadVaccinations(petId, vetVisitId: visitId);
     }
   }
 
@@ -82,6 +114,7 @@ class VetVisitDetailPage extends StatelessWidget {
                     )
                   : null,
               actions: [
+                MyPetsButton(enabled: !busy),
                 if (state case VetVisitLoaded(:final visit))
                   IconButton(
                     tooltip: 'Delete visit',
@@ -119,102 +152,126 @@ class VetVisitDetailPage extends StatelessWidget {
                           Expanded(
                             child: SingleChildScrollView(
                               padding: const EdgeInsets.all(AppSpacing.lg),
-                              child: Card(
-                                margin: EdgeInsets.zero,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(AppSpacing.md),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Card(
+                                    margin: EdgeInsets.zero,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(
+                                        AppSpacing.md,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
                                         children: [
-                                          ExcludeSemantics(
-                                            child: Icon(
-                                              Icons.event_note_outlined,
-                                              size: 20,
-                                              color: colors.onSurfaceVariant,
-                                            ),
-                                          ),
-                                          HorizontalGap.sm,
-                                          Expanded(
-                                            child: Text(
-                                              MaterialLocalizations.of(
-                                                context,
-                                              ).formatShortDate(
-                                                visit.visitedOn,
+                                          Row(
+                                            children: [
+                                              ExcludeSemantics(
+                                                child: Icon(
+                                                  Icons.event_note_outlined,
+                                                  size: 20,
+                                                  color:
+                                                      colors.onSurfaceVariant,
+                                                ),
                                               ),
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
+                                              HorizontalGap.sm,
+                                              Expanded(
+                                                child: Text(
+                                                  MaterialLocalizations.of(
+                                                    context,
+                                                  ).formatShortDate(
+                                                    visit.visitedOn,
                                                   ),
-                                            ),
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                tooltip: 'Edit visit',
+                                                color: colors.primary,
+                                                onPressed: busy
+                                                    ? null
+                                                    : () =>
+                                                          _edit(context, visit),
+                                                icon: const Icon(
+                                                  Icons.edit_outlined,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          IconButton(
-                                            tooltip: 'Edit visit',
-                                            color: colors.primary,
-                                            onPressed: busy
+                                          VerticalGap.md,
+                                          AppDetailField(
+                                            label: 'Reason for visit',
+                                            value: visit.reason,
+                                          ),
+                                          const Divider(height: AppSpacing.xxl),
+                                          const AppSectionHeading(
+                                            title: 'Clinic & veterinarian',
+                                            icon: Icons.local_hospital_outlined,
+                                          ),
+                                          VerticalGap.md,
+                                          AppDetailField(
+                                            label: 'Clinic',
+                                            value: visit.clinicName,
+                                          ),
+                                          VerticalGap.md,
+                                          AppDetailField(
+                                            label: 'Veterinarian',
+                                            value: visit.veterinarianName,
+                                          ),
+                                          const Divider(height: AppSpacing.xxl),
+                                          const AppSectionHeading(
+                                            title: 'Medical notes',
+                                            icon: Icons
+                                                .medical_information_outlined,
+                                          ),
+                                          VerticalGap.md,
+                                          AppDetailField(
+                                            label: 'Diagnosis',
+                                            value: visit.diagnosis,
+                                          ),
+                                          VerticalGap.md,
+                                          AppDetailField(
+                                            label: 'Notes',
+                                            value: visit.notes,
+                                          ),
+                                          const Divider(height: AppSpacing.xxl),
+                                          const AppSectionHeading(
+                                            title: 'Cost',
+                                            icon: Icons.payments_outlined,
+                                          ),
+                                          VerticalGap.md,
+                                          AppDetailField(
+                                            label: 'Amount',
+                                            value: visit.costMinorUnits == null
                                                 ? null
-                                                : () => _edit(context, visit),
-                                            icon: const Icon(
-                                              Icons.edit_outlined,
-                                            ),
+                                                : '${formatVetVisitCost(visit.costMinorUnits!)} ${visit.currency!.code}',
                                           ),
                                         ],
                                       ),
-                                      VerticalGap.md,
-                                      AppDetailField(
-                                        label: 'Reason for visit',
-                                        value: visit.reason,
-                                      ),
-                                      const Divider(height: AppSpacing.xxl),
-                                      const AppSectionHeading(
-                                        title: 'Clinic & veterinarian',
-                                        icon: Icons.local_hospital_outlined,
-                                      ),
-                                      VerticalGap.md,
-                                      AppDetailField(
-                                        label: 'Clinic',
-                                        value: visit.clinicName,
-                                      ),
-                                      VerticalGap.md,
-                                      AppDetailField(
-                                        label: 'Veterinarian',
-                                        value: visit.veterinarianName,
-                                      ),
-                                      const Divider(height: AppSpacing.xxl),
-                                      const AppSectionHeading(
-                                        title: 'Medical notes',
-                                        icon:
-                                            Icons.medical_information_outlined,
-                                      ),
-                                      VerticalGap.md,
-                                      AppDetailField(
-                                        label: 'Diagnosis',
-                                        value: visit.diagnosis,
-                                      ),
-                                      VerticalGap.md,
-                                      AppDetailField(
-                                        label: 'Notes',
-                                        value: visit.notes,
-                                      ),
-                                      const Divider(height: AppSpacing.xxl),
-                                      const AppSectionHeading(
-                                        title: 'Cost',
-                                        icon: Icons.payments_outlined,
-                                      ),
-                                      VerticalGap.md,
-                                      AppDetailField(
-                                        label: 'Amount',
-                                        value: visit.costMinorUnits == null
-                                            ? null
-                                            : '${formatVetVisitCost(visit.costMinorUnits!)} ${visit.currency!.code}',
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                ),
+                                  VerticalGap.md,
+                                  VisitVaccinationsSection(
+                                    petId: petId,
+                                    visitId: visitId,
+                                    parentClinicName: visit.clinicName,
+                                    parentVeterinarianName:
+                                        visit.veterinarianName,
+                                    onOpen: busy
+                                        ? null
+                                        : (vaccination) => _openVaccination(
+                                            context,
+                                            vaccination,
+                                          ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

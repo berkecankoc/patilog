@@ -102,6 +102,100 @@ void main() {
     );
   });
 
+  for (final updating in [false, true]) {
+    test(
+      'linked ${updating ? 'update' : 'create'} rejects a different calendar day',
+      () async {
+        await addVisit();
+        final original = vaccination(vetVisitId: 'visit-1', notes: 'Original');
+        if (updating) await source.createVaccination(original);
+        final mismatch = vaccination(
+          vetVisitId: 'visit-1',
+          date: DateTime(2020, 1, 3),
+          notes: 'Changed',
+        );
+        await expectLater(
+          updating
+              ? source.updateVaccination(mismatch)
+              : source.createVaccination(mismatch),
+          throwsA(isA<LocalDataSourceException>()),
+        );
+        expect(
+          await source.getVaccinations('pet-1'),
+          updating ? [original] : isEmpty,
+        );
+      },
+    );
+  }
+
+  test(
+    'linked dates compare calendar components without timezone conversion',
+    () async {
+      await addVisit();
+      await source.createVaccination(
+        vaccination(
+          vetVisitId: 'visit-1',
+          date: DateTime.utc(2020, 1, 2, 23, 59),
+        ),
+      );
+      expect(
+        (await source.getVaccinationById('pet-1', 'vaccination-1')).date,
+        DateTime(2020, 1, 2),
+      );
+    },
+  );
+
+  test(
+    'linked reads match pet and visit, retaining order and live links',
+    () async {
+      await addVisit();
+      await addVisit(id: 'visit-2');
+      await addVisit(id: 'other-visit', petId: 'pet-2');
+      final first = vaccination(vetVisitId: 'visit-1');
+      final tie = vaccination(id: 'tie', vetVisitId: 'visit-1');
+      for (final value in [
+        first,
+        tie,
+        vaccination(id: 'other-link', vetVisitId: 'visit-2'),
+        vaccination(id: 'unlinked'),
+        vaccination(id: 'other-pet', petId: 'pet-2', vetVisitId: 'other-visit'),
+      ]) {
+        await source.createVaccination(value);
+      }
+      expect(await source.getVaccinations('pet-1', vetVisitId: 'visit-1'), [
+        tie,
+        first,
+      ]);
+      expect(
+        await source.getVaccinations('pet-2', vetVisitId: 'visit-1'),
+        isEmpty,
+      );
+      expect(
+        await source.getVaccinations('pet-1', vetVisitId: "visit-1' OR 1=1 --"),
+        isEmpty,
+      );
+      await source.updateVaccination(
+        vaccination(id: 'tie', vetVisitId: 'visit-2'),
+      );
+      expect(await source.getVaccinations('pet-1', vetVisitId: 'visit-1'), [
+        first,
+      ]);
+      await db.delete(
+        DatabaseTables.vetVisits,
+        where: 'id = ?',
+        whereArgs: ['visit-1'],
+      );
+      expect(
+        await source.getVaccinations('pet-1', vetVisitId: 'visit-1'),
+        isEmpty,
+      );
+      expect(
+        (await source.getVaccinationById('pet-1', first.id)).vetVisitId,
+        isNull,
+      );
+    },
+  );
+
   test(
     'groups and orders this pet records, keeping insertion order on edits',
     () async {

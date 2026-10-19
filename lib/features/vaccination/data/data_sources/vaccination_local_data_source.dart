@@ -7,7 +7,10 @@ import 'package:petlytics/features/vaccination/domain/entities/vaccination_sugge
 import 'package:sqflite/sqflite.dart';
 
 abstract interface class VaccinationLocalDataSource {
-  Future<List<VaccinationModel>> getVaccinations(String petId);
+  Future<List<VaccinationModel>> getVaccinations(
+    String petId, {
+    String? vetVisitId,
+  });
   Future<VaccinationModel> getVaccinationById(
     String petId,
     String vaccinationId,
@@ -31,12 +34,17 @@ final class VaccinationLocalDataSourceImpl
   const VaccinationLocalDataSourceImpl(this.db);
 
   @override
-  Future<List<VaccinationModel>> getVaccinations(String petId) async {
+  Future<List<VaccinationModel>> getVaccinations(
+    String petId, {
+    String? vetVisitId,
+  }) async {
     try {
       final rows = await db.query(
         DatabaseTables.vaccinations,
-        where: 'pet_id = ?',
-        whereArgs: [petId],
+        where: vetVisitId == null
+            ? 'pet_id = ?'
+            : 'pet_id = ? AND vet_visit_id = ?',
+        whereArgs: [petId, ?vetVisitId],
         orderBy: '''
           CASE WHEN status = 'planned' THEN 0 ELSE 1 END,
           CASE WHEN status = 'planned' THEN date END ASC,
@@ -191,12 +199,15 @@ final class VaccinationLocalDataSourceImpl
     // Check ownership inside the write transaction; the FK alone checks only ID.
     final visits = await txn.query(
       DatabaseTables.vetVisits,
-      columns: ['id'],
+      columns: ['id', 'visited_on'],
       where: 'pet_id = ? AND id = ?',
       whereArgs: [vaccination.petId, visitId],
       limit: 1,
     );
-    if (visits.isEmpty) throw const LocalDataSourceException();
+    if (visits.isEmpty ||
+        visits.single['visited_on'] != vaccination.toJson()['date']) {
+      throw const LocalDataSourceException();
+    }
   }
 
   void _validateNextDose(
