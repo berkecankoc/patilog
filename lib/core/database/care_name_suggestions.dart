@@ -10,6 +10,9 @@ readCareNameSuggestions(DatabaseExecutor db, {String? clinicName}) async {
       UNION ALL
       SELECT clinic_name, veterinarian_name, 1 AS source, rowid AS position
       FROM ${DatabaseTables.vetVisits}
+      UNION ALL
+      SELECT clinic_name, veterinarian_name, 2 AS source, rowid AS position
+      FROM ${DatabaseTables.medicationPeriods}
     ) ORDER BY source, position DESC
   ''');
   String clean(String? value) =>
@@ -17,7 +20,7 @@ readCareNameSuggestions(DatabaseExecutor db, {String? clinicName}) async {
   final selectedClinic = clean(clinicName).toLowerCase();
   final clinics = <String, String>{};
   final veterinarians = <String, String>{};
-  // Both forms use the same spelling priority, without a separate name catalog.
+  // Care forms share spelling priority without a separate name catalog.
   for (final row in rows) {
     final clinic = clean(row['clinic_name'] as String?);
     final veterinarian = clean(row['veterinarian_name'] as String?);
