@@ -48,6 +48,13 @@ abstract interface class MedicationRepository {
   /// allowed. Changing a linked visit never moves the medication's dates/logs.
   Future<Result<void>> updatePeriod(String petId, MedicationPeriod period);
 
+  /// Checks the period's edit lock without loading its dose history.
+  Future<Result<bool>> hasDoseLogs(
+    String petId,
+    String medicationId,
+    String periodId,
+  );
+
   /// Only unstarted periods can be removed, with at least one period remaining.
   /// Removing a later period may allow the previous plan to continue; existing
   /// dose results must be preserved.

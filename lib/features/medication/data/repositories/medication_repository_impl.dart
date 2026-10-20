@@ -99,6 +99,16 @@ final class MedicationRepositoryImpl implements MedicationRepository {
       );
 
   @override
+  Future<Result<bool>> hasDoseLogs(
+    String petId,
+    String medicationId,
+    String periodId,
+  ) => _result(
+    () => localDataSource.hasDoseLogs(petId, medicationId, periodId),
+    'Failed to check medication period',
+  );
+
+  @override
   Future<Result<void>> deletePeriod(
     String petId,
     String medicationId,

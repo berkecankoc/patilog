@@ -119,6 +119,47 @@ void main() {
   });
 
   test(
+    'period lock checks only owned results, including skipped and cleared doses',
+    () async {
+      await source.createMedication(medication());
+      await source.createMedication(
+        medication(
+          id: 'med-2',
+          periods: [period(id: 'period-2', medicationId: 'med-2')],
+        ),
+      );
+      expect(await source.hasDoseLogs('pet-1', 'med-1', 'period-1'), false);
+      await source.saveDoseLog(
+        'pet-1',
+        'med-1',
+        log(status: MedicationDoseStatus.skipped),
+      );
+      expect(await source.hasDoseLogs('pet-1', 'med-1', 'period-1'), true);
+      for (final key in [
+        ('pet-2', 'med-1', 'period-1'),
+        ('pet-1', 'missing', 'period-1'),
+        ('pet-1', 'med-2', 'period-1'),
+        ('pet-1', 'med-1', 'missing'),
+      ]) {
+        await expectLater(
+          source.hasDoseLogs(key.$1, key.$2, key.$3),
+          throwsA(isA<LocalDataNotFoundException>()),
+        );
+      }
+      await source.clearDoseLog(
+        'pet-1',
+        'med-1',
+        periodId: 'period-1',
+        scheduledDate: day(0),
+        scheduledMinute: 480,
+      );
+      expect(await source.hasDoseLogs('pet-1', 'med-1', 'period-1'), false);
+      await source.saveDoseLog('pet-1', 'med-1', log());
+      expect(await source.hasDoseLogs('pet-1', 'med-1', 'period-1'), true);
+    },
+  );
+
+  test(
     'all computed occurrences agree with transactional write validation',
     () async {
       await source.createMedication(medication(periods: [period(interval: 2)]));

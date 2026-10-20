@@ -4,6 +4,13 @@ import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/services/uuid_generator.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/storage/local_image_storage.dart';
+import 'package:petlytics/features/medication/data/data_sources/medication_local_data_source.dart';
+import 'package:petlytics/features/medication/data/repositories/medication_repository_impl.dart';
+import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
+import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
+import 'package:petlytics/features/medication/domain/use_cases/create_medication.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_form_cubit.dart';
 import 'package:petlytics/features/pet/data/data_sources/pet_local_data_source.dart';
 import 'package:petlytics/features/pet/data/repositories/pet_repository_impl.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
@@ -49,6 +56,34 @@ Future<void> setupDependencies() async {
     () => PetRepositoryImpl(getIt<PetLocalDataSource>()),
   );
 
+  getIt.registerLazySingleton<CreatePet>(
+    () => CreatePet(
+      getIt<PetRepository>(),
+      getIt<IdGenerator>(),
+      getIt<ImageStorage>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<UpdatePet>(
+    () => UpdatePet(
+      getIt<PetRepository>(),
+      getIt<ImageStorage>(),
+      getIt<IdGenerator>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<DeletePet>(
+    () => DeletePet(getIt<PetRepository>(), getIt<ImageStorage>()),
+  );
+
+  getIt.registerLazySingleton<WeightHistoryLocalDataSource>(
+    () => WeightHistoryLocalDataSourceImpl(getIt<Database>()),
+  );
+
+  getIt.registerLazySingleton<WeightHistoryRepository>(
+    () => WeightHistoryRepositoryImpl(getIt<WeightHistoryLocalDataSource>()),
+  );
+
   getIt.registerLazySingleton<VetVisitLocalDataSource>(
     () => VetVisitLocalDataSourceImpl(getIt<Database>()),
   );
@@ -69,32 +104,20 @@ Future<void> setupDependencies() async {
     () => SaveVaccination(getIt<VaccinationRepository>(), getIt<IdGenerator>()),
   );
 
-  getIt.registerLazySingleton<WeightHistoryLocalDataSource>(
-    () => WeightHistoryLocalDataSourceImpl(getIt<Database>()),
+  getIt.registerLazySingleton<MedicationLocalDataSource>(
+    () => MedicationLocalDataSourceImpl(getIt<Database>()),
   );
 
-  getIt.registerLazySingleton<WeightHistoryRepository>(
-    () => WeightHistoryRepositoryImpl(getIt<WeightHistoryLocalDataSource>()),
+  getIt.registerLazySingleton<MedicationRepository>(
+    () => MedicationRepositoryImpl(getIt<MedicationLocalDataSource>()),
   );
 
-  getIt.registerLazySingleton<CreatePet>(
-    () => CreatePet(
-      getIt<PetRepository>(),
-      getIt<IdGenerator>(),
-      getIt<ImageStorage>(),
-    ),
+  getIt.registerLazySingleton<CreateMedication>(
+    () => CreateMedication(getIt<MedicationRepository>(), getIt<IdGenerator>()),
   );
 
-  getIt.registerLazySingleton<UpdatePet>(
-    () => UpdatePet(
-      getIt<PetRepository>(),
-      getIt<ImageStorage>(),
-      getIt<IdGenerator>(),
-    ),
-  );
-
-  getIt.registerLazySingleton<DeletePet>(
-    () => DeletePet(getIt<PetRepository>(), getIt<ImageStorage>()),
+  getIt.registerLazySingleton<CalculateMedicationDoses>(
+    () => const CalculateMedicationDoses(),
   );
 
   getIt.registerFactory<PetCubit>(
@@ -130,6 +153,22 @@ Future<void> setupDependencies() async {
       getIt<VaccinationRepository>(),
       getIt<VetVisitRepository>(),
       getIt<SaveVaccination>(),
+    ),
+  );
+
+  getIt.registerFactory<MedicationFormCubit>(
+    () => MedicationFormCubit(
+      getIt<MedicationRepository>(),
+      getIt<VetVisitRepository>(),
+      getIt<CreateMedication>(),
+      getIt<IdGenerator>(),
+    ),
+  );
+
+  getIt.registerFactory<MedicationCubit>(
+    () => MedicationCubit(
+      getIt<MedicationRepository>(),
+      getIt<CalculateMedicationDoses>(),
     ),
   );
 }

@@ -22,6 +22,7 @@ abstract interface class MedicationLocalDataSource {
   Future<void> deleteMedication(String petId, String medicationId);
   Future<void> createPeriod(String petId, MedicationPeriodModel period);
   Future<void> updatePeriod(String petId, MedicationPeriodModel period);
+  Future<bool> hasDoseLogs(String petId, String medicationId, String periodId);
   Future<void> deletePeriod(String petId, String medicationId, String periodId);
   Future<List<MedicationDoseLogModel>> getDoseLogs(
     String petId, {
@@ -233,6 +234,27 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
         );
         await _validatePreservedLogs(txn, period.medicationId);
       });
+
+  @override
+  Future<bool> hasDoseLogs(
+    String petId,
+    String medicationId,
+    String periodId,
+  ) => _transaction((txn) async {
+    final rows = await txn.rawQuery(
+      '''
+          SELECT EXISTS (
+            SELECT 1 FROM ${DatabaseTables.medicationDoseLogs} l WHERE l.period_id = p.id
+          ) AS has_logs
+          FROM ${DatabaseTables.medicationPeriods} p
+          JOIN ${DatabaseTables.medications} m ON m.id = p.medication_id
+          WHERE m.pet_id = ? AND m.id = ? AND p.id = ?
+        ''',
+      [petId, medicationId, periodId],
+    );
+    if (rows.isEmpty) throw const LocalDataNotFoundException();
+    return rows.single['has_logs'] == 1;
+  });
 
   @override
   Future<void> deletePeriod(

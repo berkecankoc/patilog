@@ -5,6 +5,13 @@ import 'package:petlytics/core/database/database_tables.dart';
 import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
+import 'package:petlytics/features/medication/domain/use_cases/create_medication.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_form_cubit.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_form_state.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
@@ -40,6 +47,79 @@ void main() {
     await getIt.reset();
     await directory.delete(recursive: true);
   });
+
+  test(
+    'medication factories create independent route state backed by shared SQLite',
+    () async {
+      await getIt<Database>().insert(DatabaseTables.pets, {
+        'id': 'pet-1',
+        'name': 'Milo',
+        'species': 'cat',
+        'sex': 'male',
+        'reproductive_status': 'intact',
+      });
+      final form = getIt<MedicationFormCubit>();
+      final otherForm = getIt<MedicationFormCubit>();
+      final list = getIt<MedicationCubit>();
+      final detail = getIt<MedicationCubit>();
+      for (final cubit in [form, otherForm, list, detail]) {
+        addTearDown(cubit.close);
+      }
+      expect(identical(form, otherForm), false);
+      expect(identical(list, detail), false);
+      final now = DateTime.now();
+      final day = DateTime(now.year, now.month, now.day);
+      await form.createMedication(
+        CreateMedicationParams(
+          petId: 'pet-1',
+          name: 'Medicine',
+          startDate: day,
+          intervalDays: 1,
+          doseTimes: [480],
+          clinicName: 'Clinic',
+          veterinarianName: 'Dr. Smith',
+        ),
+      );
+      expect(form.state.isSaved, true);
+      expect(otherForm.state, const MedicationFormState());
+      await list.loadMedications('pet-1');
+      final loaded = list.state as MedicationsLoaded;
+      final medication = loaded.medications.single;
+      expect(medication.id, isNotEmpty);
+      expect(medication.periods.single.id, isNot(medication.id));
+      expect(loaded.doses.doses.single.log, isNull);
+      expect(detail.state, const MedicationInitial());
+      await detail.loadMedication('pet-1', medication.id);
+      await detail.saveDose(
+        (detail.state as MedicationsLoaded).doses.doses.single,
+        MedicationDoseStatus.given,
+      );
+      expect(
+        (detail.state as MedicationsLoaded).doses.doses.single.log?.status,
+        MedicationDoseStatus.given,
+      );
+      expect((list.state as MedicationsLoaded).doses.doses.single.log, isNull);
+      await otherForm.checkPeriod(
+        'pet-1',
+        medication.id,
+        medication.periods.single.id,
+      );
+      expect(otherForm.state.hasDoseLogs, true);
+      await otherForm.loadSuggestions();
+      expect(otherForm.state.suggestions.medicationNames, ['Medicine']);
+      final sharedSuggestions = await getIt<VetVisitRepository>()
+          .getSuggestions();
+      expect(
+        (sharedSuggestions as Success<VetVisitSuggestions>).data.clinicNames,
+        ['Clinic'],
+      );
+      final result = await getIt<MedicationRepository>().getMedicationById(
+        'other-pet',
+        medication.id,
+      );
+      expect((result as Error).failure, isA<NotFoundFailure>());
+    },
+  );
 
   test(
     'vaccination factories use the shared persistence and independent state',

@@ -54,6 +54,18 @@ void main() {
     repository = MedicationRepositoryImpl(source);
   });
 
+  test('period lock read preserves the scoped boolean result', () async {
+    for (final hasLogs in [false, true]) {
+      when(
+        () => source.hasDoseLogs('pet', 'medicine', 'period'),
+      ).thenAnswer((_) async => hasLogs);
+      expect(
+        await repository.hasDoseLogs('pet', 'medicine', 'period'),
+        Success(hasLogs),
+      );
+    }
+  });
+
   test('linked list and detail reads map the complete period data', () async {
     when(
       () => source.getMedications('pet', vetVisitId: 'visit'),
@@ -244,6 +256,11 @@ void main() {
           sourceCall: () => source.deletePeriod('pet', 'medicine', 'period'),
           call: () => repository.deletePeriod('pet', 'medicine', 'period'),
           error: 'Failed to delete medication period',
+        ),
+        'period lock': (
+          sourceCall: () => source.hasDoseLogs('pet', 'medicine', 'period'),
+          call: () => repository.hasDoseLogs('pet', 'medicine', 'period'),
+          error: 'Failed to check medication period',
         ),
         'read doses': (
           sourceCall: () =>
