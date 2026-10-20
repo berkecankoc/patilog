@@ -10,6 +10,7 @@ import 'package:petlytics/features/medication/data/models/medication_model.dart'
 import 'package:petlytics/features/medication/data/models/medication_model_values.dart';
 import 'package:petlytics/features/medication/data/models/medication_period_model.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
 import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
 import 'package:petlytics/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -116,6 +117,43 @@ void main() {
     await db.close();
     await directory.delete(recursive: true);
   });
+
+  test(
+    'all computed occurrences agree with transactional write validation',
+    () async {
+      await source.createMedication(medication(periods: [period(interval: 2)]));
+      await source.createPeriod(
+        'pet-1',
+        period(id: 'next', start: day(1), interval: 2, times: [600]),
+      );
+      clock = DateTime(2026, 10, 23, 15);
+      final loaded = (await source.getMedicationById(
+        'pet-1',
+        'med-1',
+      )).toEntity();
+      final doses = const CalculateMedicationDoses()(
+        medications: [loaded],
+        logs: [],
+        fromDate: day(-4),
+        toDate: day(3),
+      );
+      expect(doses.length, 8);
+      for (final dose in doses) {
+        await source.saveDoseLog(
+          'pet-1',
+          'med-1',
+          MedicationDoseLogModel(
+            periodId: dose.period.id,
+            scheduledDate: dose.scheduledDate,
+            scheduledMinute: dose.scheduledMinute,
+            status: MedicationDoseStatus.given,
+            givenAt: clock,
+          ),
+        );
+      }
+      expect((await logs()).length, doses.length);
+    },
+  );
 
   test('empty reads do not create planned doses', () async {
     expect(await source.getMedications('pet-1'), isEmpty);

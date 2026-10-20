@@ -8,6 +8,7 @@ import 'package:petlytics/features/medication/data/models/medication_model_value
 import 'package:petlytics/features/medication/data/models/medication_period_model.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_suggestions.dart';
+import 'package:petlytics/features/medication/domain/utils/medication_calendar.dart';
 import 'package:sqflite/sqflite.dart';
 
 abstract interface class MedicationLocalDataSource {
@@ -171,8 +172,9 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
       _transaction((txn) async {
         final periods = await _ownedPeriods(txn, petId, period.medicationId);
         await _validatePeriod(txn, petId, period);
-        if (_day(period.startDate) <= _day(now()) ||
-            _day(period.startDate) <= _day(periods.first.startDate)) {
+        if (calendarDayNumber(period.startDate) <= calendarDayNumber(now()) ||
+            calendarDayNumber(period.startDate) <=
+                calendarDayNumber(periods.first.startDate)) {
           throw const LocalDataSourceException();
         }
         await txn.insert(DatabaseTables.medicationPeriods, period.toJson());
@@ -187,15 +189,20 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
         if (index < 0) throw const LocalDataNotFoundException();
         final previous = periods[index];
         await _validatePeriod(txn, petId, period);
-        final changedStart = _day(previous.startDate) != _day(period.startDate);
+        final changedStart =
+            calendarDayNumber(previous.startDate) !=
+            calendarDayNumber(period.startDate);
         if ((index > 0 &&
                 changedStart &&
-                _day(period.startDate) <= _day(now())) ||
+                calendarDayNumber(period.startDate) <=
+                    calendarDayNumber(now())) ||
             (index > 0 &&
-                _day(period.startDate) <= _day(periods.first.startDate)) ||
+                calendarDayNumber(period.startDate) <=
+                    calendarDayNumber(periods.first.startDate)) ||
             (index == 0 &&
                 periods.length > 1 &&
-                _day(period.startDate) >= _day(periods[1].startDate))) {
+                calendarDayNumber(period.startDate) >=
+                    calendarDayNumber(periods[1].startDate))) {
           throw const LocalDataSourceException();
         }
         final logs = await txn.query(
@@ -236,7 +243,9 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
     final periods = await _ownedPeriods(txn, petId, medicationId);
     final index = periods.indexWhere((period) => period.id == periodId);
     if (index < 0) throw const LocalDataNotFoundException();
-    if (periods.length == 1 || _day(periods[index].startDate) <= _day(now())) {
+    if (periods.length == 1 ||
+        calendarDayNumber(periods[index].startDate) <=
+            calendarDayNumber(now())) {
       throw const LocalDataSourceException();
     }
     await txn.delete(
@@ -254,7 +263,9 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
     required DateTime fromDate,
     required DateTime toDate,
   }) => _transaction((txn) async {
-    if (_day(fromDate) > _day(toDate)) throw const LocalDataSourceException();
+    if (calendarDayNumber(fromDate) > calendarDayNumber(toDate)) {
+      throw const LocalDataSourceException();
+    }
     if (medicationId != null) {
       await _requireMedication(txn, petId, medicationId);
     }
@@ -289,7 +300,7 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
     }
     final currentTime = now();
     if (!_isScheduled(periods, log) ||
-        _day(log.scheduledDate) > _day(currentTime) ||
+        calendarDayNumber(log.scheduledDate) > calendarDayNumber(currentTime) ||
         (log.status == MedicationDoseStatus.given
             ? log.givenAt == null || log.givenAt!.isAfter(currentTime)
             : log.givenAt != null)) {
@@ -404,7 +415,8 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
         period.doseTimes.toSet().length != period.doseTimes.length ||
         period.doseTimes.any((minute) => minute < 0 || minute > 1439) ||
         (period.endDate != null &&
-            _day(period.endDate!) < _day(period.startDate)) ||
+            calendarDayNumber(period.endDate!) <
+                calendarDayNumber(period.startDate)) ||
         (optionalText(period.dosageInstructions)?.characters.length ?? 0) >
             100 ||
         (optionalText(period.notes)?.characters.length ?? 0) > 200) {
@@ -448,20 +460,12 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
   ) {
     final index = periods.indexWhere((period) => period.id == log.periodId);
     if (index < 0) return false;
-    final period = periods[index];
-    final day = _day(log.scheduledDate);
-    final sinceStart = day - _day(period.startDate);
-    return sinceStart >= 0 &&
-        sinceStart % period.intervalDays == 0 &&
-        period.doseTimes.contains(log.scheduledMinute) &&
-        (period.endDate == null || day <= _day(period.endDate!)) &&
-        (index + 1 == periods.length ||
-            day < _day(periods[index + 1].startDate));
+    return periods[index].toEntity().isScheduledDose(
+      log.scheduledDate,
+      log.scheduledMinute,
+      nextPeriodStart: index + 1 < periods.length
+          ? periods[index + 1].startDate
+          : null,
+    );
   }
-
-  // Compare calendar components in UTC only for arithmetic, avoiding DST days
-  // shorter/longer than 24 hours. Stored schedule dates are never converted.
-  static int _day(DateTime value) =>
-      DateTime.utc(value.year, value.month, value.day).millisecondsSinceEpoch ~/
-      Duration.millisecondsPerDay;
 }
