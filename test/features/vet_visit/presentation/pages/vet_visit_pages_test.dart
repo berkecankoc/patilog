@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
+import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
 
 import 'package:flutter/material.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
@@ -36,6 +39,8 @@ import 'package:petlytics/core/widgets/app_suggestion_field.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 
 class MockVetRepository extends Mock implements VetVisitRepository {}
+
+class MockMedications extends Mock implements MedicationRepository {}
 
 class MockVaccinations extends Mock implements VaccinationRepository {}
 
@@ -151,6 +156,16 @@ void main() {
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );
     getIt.registerFactory<VetVisitCubit>(() => VetVisitCubit(repository));
+    final medications = MockMedications();
+    when(
+      () => medications.getMedications(
+        any(),
+        vetVisitId: any(named: 'vetVisitId'),
+      ),
+    ).thenAnswer((_) async => const Success([]));
+    getIt.registerFactory<MedicationCubit>(
+      () => MedicationCubit(medications, const CalculateMedicationDoses()),
+    );
     getIt.registerFactory<VaccinationCubit>(
       () => VaccinationCubit(MockVaccinations()),
     );
@@ -1021,7 +1036,11 @@ void main() {
       ];
       await pumpRouter(tester);
       await openDetail(tester);
-      expect(find.byType(Card), findsNWidgets(2));
+      expect(find.byType(Card), findsNWidgets(3));
+      expect(
+        find.widgetWithText(ExpansionTile, 'Linked medications'),
+        findsOneWidget,
+      );
       expect(
         find.widgetWithText(ExpansionTile, 'Linked vaccinations'),
         findsOneWidget,

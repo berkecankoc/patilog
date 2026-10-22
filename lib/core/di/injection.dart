@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_visits_cubit.dart';
 import 'package:petlytics/core/database/app_database.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/services/uuid_generator.dart';
@@ -170,5 +171,8 @@ Future<void> setupDependencies() async {
       getIt<MedicationRepository>(),
       getIt<CalculateMedicationDoses>(),
     ),
+  );
+  getIt.registerFactory<MedicationVisitsCubit>(
+    () => MedicationVisitsCubit(getIt<VetVisitRepository>()),
   );
 }

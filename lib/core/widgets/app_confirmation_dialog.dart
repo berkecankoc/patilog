@@ -32,6 +32,7 @@ class AppConfirmationDialog extends StatelessWidget {
         children: [
           Flexible(
             child: SingleChildScrollView(
+              primary: false,
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -56,35 +57,40 @@ class AppConfirmationDialog extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              0,
-              AppSpacing.lg,
-              AppSpacing.lg,
-            ),
-            child: OverflowBar(
-              spacing: AppSpacing.sm,
-              overflowSpacing: AppSpacing.sm,
-              alignment: MainAxisAlignment.center,
-              overflowAlignment: OverflowBarAlignment.center,
-              children: [
-                TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.onSurface,
-                    minimumSize: const Size(96, 48),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text(cancelLabel),
+          Flexible(
+            child: SingleChildScrollView(
+              primary: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(96, 48),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: Text(confirmLabel),
+                child: OverflowBar(
+                  spacing: AppSpacing.sm,
+                  overflowSpacing: AppSpacing.sm,
+                  alignment: MainAxisAlignment.center,
+                  overflowAlignment: OverflowBarAlignment.center,
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onSurface,
+                        minimumSize: const Size(96, 48),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text(cancelLabel),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(96, 48),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text(confirmLabel),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],

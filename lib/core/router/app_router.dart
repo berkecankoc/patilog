@@ -1,4 +1,10 @@
 import 'package:flutter/widgets.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_form_cubit.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_visits_cubit.dart';
+import 'package:petlytics/features/medication/presentation/pages/medication_list_page.dart';
+import 'package:petlytics/features/medication/presentation/pages/medication_detail_page.dart';
+import 'package:petlytics/features/medication/presentation/pages/medication_form_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/di/injection.dart';
@@ -81,6 +87,92 @@ final appRouter = GoRouter(
             );
           },
           routes: [
+            GoRoute(
+              path: 'medications',
+              builder: (context, state) {
+                final petId = state.pathParameters['petId']!;
+                return _petCarePage(
+                  petId: petId,
+                  extra: state.extra,
+                  builder: (petName) => BlocProvider<MedicationCubit>(
+                    key: ValueKey(petId),
+                    create: (_) =>
+                        getIt<MedicationCubit>()..loadMedications(petId),
+                    child: MedicationListPage(petId: petId, petName: petName),
+                  ),
+                );
+              },
+              routes: [
+                GoRoute(
+                  path: 'form',
+                  builder: (context, state) {
+                    final petId = state.pathParameters['petId']!;
+                    final extra = state.extra;
+                    final valid =
+                        extra is MedicationFormExtra &&
+                            extra.petId == petId &&
+                            (extra.medication == null ||
+                                extra.medication!.petId == petId) &&
+                            (extra.periodId == null ||
+                                extra.medication?.periods.any(
+                                      (period) => period.id == extra.periodId,
+                                    ) ==
+                                    true)
+                        ? extra
+                        : null;
+                    return _petCarePage(
+                      petId: petId,
+                      extra: valid,
+                      builder: (petName) => BlocProvider<MedicationFormCubit>(
+                        key: ValueKey((
+                          petId,
+                          valid?.medication?.id,
+                          valid?.periodId,
+                          valid?.newSchedule,
+                        )),
+                        create: (_) => getIt<MedicationFormCubit>(),
+                        child: MedicationFormPage(
+                          petId: petId,
+                          petName: petName,
+                          medication: valid?.medication,
+                          periodId: valid?.periodId,
+                          newSchedule: valid?.newSchedule ?? false,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: ':medicationId',
+                  builder: (context, state) {
+                    final petId = state.pathParameters['petId']!;
+                    final medicationId = state.pathParameters['medicationId']!;
+                    return _petCarePage(
+                      petId: petId,
+                      extra: state.extra,
+                      builder: (petName) => MultiBlocProvider(
+                        key: ValueKey((petId, medicationId)),
+                        providers: [
+                          BlocProvider<MedicationCubit>(
+                            create: (_) =>
+                                getIt<MedicationCubit>()
+                                  ..loadMedication(petId, medicationId),
+                          ),
+                          BlocProvider<MedicationVisitsCubit>(
+                            create: (_) => getIt<MedicationVisitsCubit>(),
+                          ),
+                        ],
+                        child: MedicationDetailPage(
+                          petId: petId,
+                          medicationId: medicationId,
+                          petName: petName,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
             GoRoute(
               path: 'vaccinations',
               builder: (context, state) {
@@ -226,6 +318,9 @@ final appRouter = GoRouter(
                           ),
                           BlocProvider<VaccinationCubit>(
                             create: (_) => getIt<VaccinationCubit>(),
+                          ),
+                          BlocProvider<MedicationCubit>(
+                            create: (_) => getIt<MedicationCubit>(),
                           ),
                         ],
                         child: VetVisitDetailPage(

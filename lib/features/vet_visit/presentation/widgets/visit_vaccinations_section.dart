@@ -59,6 +59,11 @@ class VisitVaccinationsSection extends StatelessWidget {
                       maxHeight: MediaQuery.sizeOf(context).height * 0.5,
                     ),
                     child: ListView.separated(
+                      key: PageStorageKey((
+                        'visit-vaccinations',
+                        petId,
+                        visitId,
+                      )),
                       primary: false,
                       shrinkWrap: true,
                       itemCount: vaccinations.length,

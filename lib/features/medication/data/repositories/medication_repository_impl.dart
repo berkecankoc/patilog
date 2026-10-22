@@ -79,24 +79,42 @@ final class MedicationRepositoryImpl implements MedicationRepository {
       );
 
   @override
-  Future<Result<void>> createPeriod(String petId, MedicationPeriod period) =>
-      _result(
-        () => localDataSource.createPeriod(
-          petId,
-          MedicationPeriodModel.fromEntity(period),
-        ),
-        'Failed to create medication period',
-      );
+  Future<Result<void>> createPeriod(
+    String petId,
+    MedicationPeriod period, {
+    String? medicationName,
+  }) => _result(
+    () => medicationName == null
+        ? localDataSource.createPeriod(
+            petId,
+            MedicationPeriodModel.fromEntity(period),
+          )
+        : localDataSource.createPeriod(
+            petId,
+            MedicationPeriodModel.fromEntity(period),
+            medicationName: medicationName,
+          ),
+    'Failed to create medication period',
+  );
 
   @override
-  Future<Result<void>> updatePeriod(String petId, MedicationPeriod period) =>
-      _result(
-        () => localDataSource.updatePeriod(
-          petId,
-          MedicationPeriodModel.fromEntity(period),
-        ),
-        'Failed to update medication period',
-      );
+  Future<Result<void>> updatePeriod(
+    String petId,
+    MedicationPeriod period, {
+    String? medicationName,
+  }) => _result(
+    () => medicationName == null
+        ? localDataSource.updatePeriod(
+            petId,
+            MedicationPeriodModel.fromEntity(period),
+          )
+        : localDataSource.updatePeriod(
+            petId,
+            MedicationPeriodModel.fromEntity(period),
+            medicationName: medicationName,
+          ),
+    'Failed to update medication period',
+  );
 
   @override
   Future<Result<bool>> hasDoseLogs(

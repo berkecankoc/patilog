@@ -20,8 +20,16 @@ abstract interface class MedicationLocalDataSource {
   Future<void> createMedication(MedicationModel medication);
   Future<void> renameMedication(String petId, String medicationId, String name);
   Future<void> deleteMedication(String petId, String medicationId);
-  Future<void> createPeriod(String petId, MedicationPeriodModel period);
-  Future<void> updatePeriod(String petId, MedicationPeriodModel period);
+  Future<void> createPeriod(
+    String petId,
+    MedicationPeriodModel period, {
+    String? medicationName,
+  });
+  Future<void> updatePeriod(
+    String petId,
+    MedicationPeriodModel period, {
+    String? medicationName,
+  });
   Future<bool> hasDoseLogs(String petId, String medicationId, String periodId);
   Future<void> deletePeriod(String petId, String medicationId, String periodId);
   Future<List<MedicationDoseLogModel>> getDoseLogs(
@@ -169,71 +177,94 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
       });
 
   @override
-  Future<void> createPeriod(String petId, MedicationPeriodModel period) =>
-      _transaction((txn) async {
-        final periods = await _ownedPeriods(txn, petId, period.medicationId);
-        await _validatePeriod(txn, petId, period);
-        if (calendarDayNumber(period.startDate) <= calendarDayNumber(now()) ||
-            calendarDayNumber(period.startDate) <=
-                calendarDayNumber(periods.first.startDate)) {
-          throw const LocalDataSourceException();
-        }
-        await txn.insert(DatabaseTables.medicationPeriods, period.toJson());
-        await _validatePreservedLogs(txn, period.medicationId);
-      });
+  Future<void> createPeriod(
+    String petId,
+    MedicationPeriodModel period, {
+    String? medicationName,
+  }) => _transaction((txn) async {
+    final periods = await _ownedPeriods(txn, petId, period.medicationId);
+    await _validatePeriod(txn, petId, period);
+    if (calendarDayNumber(period.startDate) <= calendarDayNumber(now()) ||
+        calendarDayNumber(period.startDate) <=
+            calendarDayNumber(periods.first.startDate)) {
+      throw const LocalDataSourceException();
+    }
+    await txn.insert(DatabaseTables.medicationPeriods, period.toJson());
+    await _validatePreservedLogs(txn, period.medicationId);
+    if (medicationName != null) {
+      _validateName(medicationName);
+      await txn.update(
+        DatabaseTables.medications,
+        {'name': medicationName.trim()},
+        where: 'id = ? AND pet_id = ?',
+        whereArgs: [period.medicationId, petId],
+      );
+    }
+  });
 
   @override
-  Future<void> updatePeriod(String petId, MedicationPeriodModel period) =>
-      _transaction((txn) async {
-        final periods = await _ownedPeriods(txn, petId, period.medicationId);
-        final index = periods.indexWhere((value) => value.id == period.id);
-        if (index < 0) throw const LocalDataNotFoundException();
-        final previous = periods[index];
-        await _validatePeriod(txn, petId, period);
-        final changedStart =
-            calendarDayNumber(previous.startDate) !=
-            calendarDayNumber(period.startDate);
-        if ((index > 0 &&
-                changedStart &&
-                calendarDayNumber(period.startDate) <=
-                    calendarDayNumber(now())) ||
-            (index > 0 &&
-                calendarDayNumber(period.startDate) <=
-                    calendarDayNumber(periods.first.startDate)) ||
-            (index == 0 &&
-                periods.length > 1 &&
-                calendarDayNumber(period.startDate) >=
-                    calendarDayNumber(periods[1].startDate))) {
-          throw const LocalDataSourceException();
-        }
-        final logs = await txn.query(
-          DatabaseTables.medicationDoseLogs,
-          columns: ['period_id'],
-          where: 'period_id = ?',
-          whereArgs: [period.id],
-          limit: 1,
+  Future<void> updatePeriod(
+    String petId,
+    MedicationPeriodModel period, {
+    String? medicationName,
+  }) => _transaction((txn) async {
+    final periods = await _ownedPeriods(txn, petId, period.medicationId);
+    final index = periods.indexWhere((value) => value.id == period.id);
+    if (index < 0) throw const LocalDataNotFoundException();
+    final previous = periods[index];
+    await _validatePeriod(txn, petId, period);
+    final changedStart =
+        calendarDayNumber(previous.startDate) !=
+        calendarDayNumber(period.startDate);
+    if ((index > 0 &&
+            changedStart &&
+            calendarDayNumber(period.startDate) <= calendarDayNumber(now())) ||
+        (index > 0 &&
+            calendarDayNumber(period.startDate) <=
+                calendarDayNumber(periods.first.startDate)) ||
+        (index == 0 &&
+            periods.length > 1 &&
+            calendarDayNumber(period.startDate) >=
+                calendarDayNumber(periods[1].startDate))) {
+      throw const LocalDataSourceException();
+    }
+    final logs = await txn.query(
+      DatabaseTables.medicationDoseLogs,
+      columns: ['period_id'],
+      where: 'period_id = ?',
+      whereArgs: [period.id],
+      limit: 1,
+    );
+    final sameTimes =
+        previous.doseTimes.length == period.doseTimes.length &&
+        previous.doseTimes.indexed.every(
+          (entry) => entry.$2 == period.doseTimes[entry.$1],
         );
-        final sameTimes =
-            previous.doseTimes.length == period.doseTimes.length &&
-            previous.doseTimes.indexed.every(
-              (entry) => entry.$2 == period.doseTimes[entry.$1],
-            );
-        if (logs.isNotEmpty &&
-            (changedStart ||
-                previous.intervalDays != period.intervalDays ||
-                !sameTimes ||
-                optionalText(previous.dosageInstructions) !=
-                    optionalText(period.dosageInstructions))) {
-          throw const LocalDataSourceException();
-        }
-        await txn.update(
-          DatabaseTables.medicationPeriods,
-          period.toJson(),
-          where: 'id = ? AND medication_id = ?',
-          whereArgs: [period.id, period.medicationId],
-        );
-        await _validatePreservedLogs(txn, period.medicationId);
-      });
+    if (logs.isNotEmpty &&
+        (changedStart ||
+            previous.intervalDays != period.intervalDays ||
+            !sameTimes ||
+            optionalText(previous.dosageInstructions) !=
+                optionalText(period.dosageInstructions))) {
+      throw const LocalDataSourceException();
+    }
+    await txn.update(
+      DatabaseTables.medicationPeriods,
+      period.toJson(),
+      where: 'id = ? AND medication_id = ?',
+      whereArgs: [period.id, period.medicationId],
+    );
+    await _validatePreservedLogs(txn, period.medicationId);
+    if (medicationName != null) {
+      _validateName(medicationName);
+      await txn.update(
+        DatabaseTables.medications,
+        {'name': medicationName.trim()},
+        where: 'id = ? AND pet_id = ?',
+        whereArgs: [period.medicationId, petId],
+      );
+    }
+  });
 
   @override
   Future<bool> hasDoseLogs(

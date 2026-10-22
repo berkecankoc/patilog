@@ -133,6 +133,7 @@ final class MedicationFormCubit extends Cubit<MedicationFormState> {
   Future<void> savePeriod({
     required String petId,
     required String medicationId,
+    String? medicationName,
     String? periodId,
     required DateTime startDate,
     DateTime? endDate,
@@ -169,6 +170,19 @@ final class MedicationFormCubit extends Cubit<MedicationFormState> {
         veterinarianName: veterinarianName,
         notes: notes,
       );
+      if (medicationName != null) {
+        return periodId == null
+            ? _repository.createPeriod(
+                petId,
+                period,
+                medicationName: medicationName,
+              )
+            : _repository.updatePeriod(
+                petId,
+                period,
+                medicationName: medicationName,
+              );
+      }
       return periodId == null
           ? _repository.createPeriod(petId, period)
           : _repository.updatePeriod(petId, period);

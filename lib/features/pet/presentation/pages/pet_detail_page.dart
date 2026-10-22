@@ -46,7 +46,7 @@ class PetDetailPage extends StatelessWidget {
       builder: (context) => AppConfirmationDialog(
         title: 'Delete pet?',
         message:
-            '${pet.name}’s profile, photo, weight history, vet visits and vaccinations will be removed. This cannot be undone.',
+            '${pet.name}’s profile, photo, weight history, vet visits, vaccinations, medications and dose records will be removed. This cannot be undone.',
         confirmLabel: 'Delete',
       ),
     );
@@ -128,6 +128,13 @@ class PetDetailPage extends StatelessWidget {
                             petName: pet.name,
                           ),
                         ),
+                        onMedications: () => context.push(
+                          AppRoutes.medications(petId),
+                          extra: PetCareRouteExtra(
+                            petId: petId,
+                            petName: pet.name,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -152,12 +159,14 @@ class _PetView extends StatelessWidget {
   final VoidCallback onWeightHistory;
   final VoidCallback onVetVisits;
   final VoidCallback onVaccinations;
+  final VoidCallback onMedications;
   const _PetView({
     required this.pet,
     required this.onEdit,
     required this.onWeightHistory,
     required this.onVetVisits,
     required this.onVaccinations,
+    required this.onMedications,
   });
 
   @override
@@ -327,7 +336,7 @@ class _PetView extends StatelessWidget {
                       for (final (index, section) in const [
                         (Icons.local_hospital_outlined, 'Vet visits'),
                         (Icons.vaccines_outlined, 'Vaccinations'),
-                        (Icons.medication_outlined, 'Medicine'),
+                        (Icons.medication_outlined, 'Medications'),
                         (Icons.monitor_weight_outlined, 'Weight history'),
                       ].indexed) ...[
                         if (index > 0)
@@ -341,11 +350,13 @@ class _PetView extends StatelessWidget {
                           enabled:
                               section.$2 == 'Weight history' ||
                               section.$2 == 'Vet visits' ||
-                              section.$2 == 'Vaccinations',
+                              section.$2 == 'Vaccinations' ||
+                              section.$2 == 'Medications',
                           onTap: switch (section.$2) {
                             'Weight history' => onWeightHistory,
                             'Vet visits' => onVetVisits,
                             'Vaccinations' => onVaccinations,
+                            'Medications' => onMedications,
                             _ => null,
                           },
                           contentPadding: const EdgeInsets.symmetric(
@@ -378,6 +389,8 @@ class _PetView extends StatelessWidget {
                                 'View and manage measurements',
                               'Vet visits' => 'View and manage visits',
                               'Vaccinations' => 'View and manage vaccinations',
+                              'Medications' =>
+                                'Track doses and manage medications',
                               _ => 'Coming soon',
                             },
                             style: theme.textTheme.bodySmall?.copyWith(

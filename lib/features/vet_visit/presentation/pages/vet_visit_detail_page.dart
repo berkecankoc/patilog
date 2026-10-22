@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/features/medication/domain/entities/medication.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:petlytics/features/medication/presentation/widgets/visit_medications_section.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
@@ -52,6 +55,28 @@ class VetVisitDetailPage extends StatelessWidget {
     final confirmed = await confirmVetVisitDeletion(context, visit);
     if (confirmed && context.mounted) {
       await context.read<VetVisitCubit>().deleteVetVisit();
+    }
+  }
+
+  Future<void> _openMedication(
+    BuildContext context,
+    Medication medication,
+  ) async {
+    final deleted = await context.push<String>(
+      AppRoutes.medicationDetail(petId, medication.id),
+      extra: PetCareRouteExtra(petId: petId, petName: petName),
+    );
+    if (!context.mounted) return;
+    await context.read<VetVisitCubit>().loadVetVisit(petId, visitId);
+    if (!context.mounted ||
+        context.read<VetVisitCubit>().state is! VetVisitLoaded) {
+      return;
+    }
+    final cubit = context.read<MedicationCubit>();
+    if (deleted != null) {
+      cubit.removeDeletedMedication(deleted);
+    } else {
+      await cubit.loadMedications(petId, vetVisitId: visitId);
     }
   }
 
@@ -269,6 +294,20 @@ class VetVisitDetailPage extends StatelessWidget {
                                         : (vaccination) => _openVaccination(
                                             context,
                                             vaccination,
+                                          ),
+                                  ),
+                                  VerticalGap.md,
+                                  VisitMedicationsSection(
+                                    petId: petId,
+                                    visitId: visitId,
+                                    parentClinicName: visit.clinicName,
+                                    parentVeterinarianName:
+                                        visit.veterinarianName,
+                                    onOpen: busy
+                                        ? null
+                                        : (medication) => _openMedication(
+                                            context,
+                                            medication,
                                           ),
                                   ),
                                 ],

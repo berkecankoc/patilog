@@ -83,6 +83,160 @@ void main() {
   });
   tearDown(() => cubit.close());
 
+  group('dose calendar', () {
+    final month = DateTime(2026, 10);
+    final end = DateTime(2026, 10, 31);
+    void stubMonth(Future<Result<List<MedicationDoseLog>>> Function() answer) {
+      when(
+        () => repository.getDoseLogs(
+          'pet',
+          medicationId: 'med',
+          fromDate: month,
+          toDate: end,
+        ),
+      ).thenAnswer((_) => answer());
+    }
+
+    test(
+      'reads one bounded month; day selection retains mixed outcomes without another read',
+      () async {
+        final log = MedicationDoseLog(
+          periodId: 'period',
+          scheduledDate: past,
+          scheduledMinute: 480,
+          status: MedicationDoseStatus.skipped,
+        );
+        stubMonth(() async => Success([log]));
+        await cubit.loadMedication('pet', 'med');
+        await cubit.loadCalendar(month);
+        cubit.selectCalendarDay(past);
+        expect(loaded().doses.doses.first.log, log);
+        expect(loaded().doses.doses.last.log, isNull);
+        expect(loaded().doses.hasLoaded, true);
+        cubit.selectCalendarDay(tomorrow);
+        expect(loaded().doses.date, tomorrow);
+        expect(loaded().doses.hasLoaded, true);
+        verify(
+          () => repository.getDoseLogs(
+            'pet',
+            medicationId: 'med',
+            fromDate: month,
+            toDate: end,
+          ),
+        ).called(1);
+        verifyNever(
+          () => repository.getDoseLogs(
+            'pet',
+            medicationId: 'med',
+            fromDate: past,
+            toDate: past,
+          ),
+        );
+      },
+    );
+
+    test(
+      'unknown results remain unknown on failure; Retry and writes update both day and month',
+      () async {
+        stubMonth(() async => const Error(failure));
+        await cubit.loadMedication('pet', 'med');
+        await cubit.loadCalendar(month);
+        expect(loaded().calendar!.hasLoaded, false);
+        expect(loaded().calendar!.error, failure.message);
+        expect(loaded().doses.hasLoaded, false);
+        stubMonth(() async => const Success([]));
+        await cubit.loadCalendar(month);
+        cubit.selectCalendarDay(today);
+        when(
+          () => repository.saveDoseLog('pet', 'med', any()),
+        ).thenAnswer((_) async => const Success(null));
+        await cubit.saveDose(
+          loaded().doses.doses.first,
+          MedicationDoseStatus.skipped,
+        );
+        expect(
+          loaded().calendar!.doses
+              .where((dose) => dose.log != null)
+              .single
+              .log!
+              .status,
+          MedicationDoseStatus.skipped,
+        );
+        when(
+          () => repository.clearDoseLog(
+            'pet',
+            'med',
+            periodId: 'period',
+            scheduledDate: today,
+            scheduledMinute: 480,
+          ),
+        ).thenAnswer((_) async => const Success(null));
+        await cubit.performAction(
+          ClearMedicationDoseAction('med', loaded().doses.doses.first.log!),
+        );
+        expect(
+          loaded().calendar!.doses.every((dose) => dose.log == null),
+          true,
+        );
+      },
+    );
+
+    test(
+      'old month results and completion after close cannot replace current state',
+      () async {
+        final response = Completer<Result<List<MedicationDoseLog>>>();
+        stubMonth(() => response.future);
+        when(
+          () => repository.getDoseLogs(
+            'pet',
+            medicationId: 'med',
+            fromDate: DateTime(2026, 11),
+            toDate: DateTime(2026, 11, 30),
+          ),
+        ).thenAnswer((_) async => const Success([]));
+        await cubit.loadMedication('pet', 'med');
+        final old = cubit.loadCalendar(month);
+        await cubit.loadCalendar(DateTime(2026, 11));
+        response.complete(const Error(failure));
+        await old;
+        expect(loaded().calendar!.month, DateTime(2026, 11));
+        expect(loaded().calendar!.error, isNull);
+        final closingResponse = Completer<Result<List<MedicationDoseLog>>>();
+        stubMonth(() => closingResponse.future);
+        final closing = cubit.loadCalendar(month);
+        await cubit.close();
+        final before = cubit.state;
+        closingResponse.complete(const Success([]));
+        await closing;
+        expect(cubit.state, before);
+      },
+    );
+
+    test(
+      'resume across a month boundary follows today and reloads its month',
+      () async {
+        clock = DateTime(2026, 10, 31, 23, 59);
+        stubLogs(DateTime(2026, 10, 31), medicationId: 'med');
+        stubMonth(() async => const Success([]));
+        when(
+          () => repository.getDoseLogs(
+            'pet',
+            medicationId: 'med',
+            fromDate: DateTime(2026, 11),
+            toDate: DateTime(2026, 11, 30),
+          ),
+        ).thenAnswer((_) async => const Success([]));
+        await cubit.loadMedication('pet', 'med');
+        await cubit.loadCalendar(month);
+        clock = DateTime(2026, 11, 1, 0, 1);
+        await cubit.loadMedication('pet', 'med');
+        expect(loaded().calendar!.month, DateTime(2026, 11));
+        expect(loaded().doses.date, DateTime(2026, 11, 1));
+        expect(loaded().doses.followsToday, true);
+      },
+    );
+  });
+
   blocTest<MedicationCubit, MedicationState>(
     'initial load separates records from the dose section and calculates the day',
     build: () => cubit,

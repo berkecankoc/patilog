@@ -67,6 +67,25 @@ final class MedicationDosesState extends Equatable {
   ];
 }
 
+final class MedicationCalendarState extends Equatable {
+  final DateTime month;
+  final List<MedicationDose> doses;
+  final bool hasLoaded;
+  final bool isLoading;
+  final String? error;
+
+  const MedicationCalendarState({
+    required this.month,
+    this.doses = const [],
+    this.hasLoaded = false,
+    this.isLoading = false,
+    this.error,
+  });
+
+  @override
+  List<Object?> get props => [month, doses, hasLoaded, isLoading, error];
+}
+
 final class MedicationsLoaded extends MedicationState {
   final String petId;
   final List<Medication> medications;
@@ -74,6 +93,7 @@ final class MedicationsLoaded extends MedicationState {
   final String? vetVisitId;
   final DateTime currentTime;
   final MedicationDosesState doses;
+  final MedicationCalendarState? calendar;
   final bool isRefreshing;
   final String? refreshError;
   final MedicationAction? pendingAction;
@@ -87,6 +107,7 @@ final class MedicationsLoaded extends MedicationState {
     this.vetVisitId,
     required this.currentTime,
     required this.doses,
+    this.calendar,
     this.isRefreshing = false,
     this.refreshError,
     this.pendingAction,
@@ -98,6 +119,7 @@ final class MedicationsLoaded extends MedicationState {
     List<Medication>? medications,
     DateTime? currentTime,
     MedicationDosesState? doses,
+    MedicationCalendarState? calendar,
     bool? isRefreshing,
     String? refreshError,
     bool clearRefreshError = false,
@@ -113,6 +135,7 @@ final class MedicationsLoaded extends MedicationState {
     vetVisitId: vetVisitId,
     currentTime: currentTime ?? this.currentTime,
     doses: doses ?? this.doses,
+    calendar: calendar ?? this.calendar,
     isRefreshing: isRefreshing ?? this.isRefreshing,
     refreshError: clearRefreshError ? null : refreshError ?? this.refreshError,
     pendingAction: clearPendingAction
@@ -130,6 +153,7 @@ final class MedicationsLoaded extends MedicationState {
     vetVisitId,
     currentTime,
     doses,
+    calendar,
     isRefreshing,
     refreshError,
     pendingAction,

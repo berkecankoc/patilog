@@ -40,13 +40,22 @@ abstract interface class MedicationRepository {
   /// Additional periods start after today with a unique start per medication.
   /// Effective end is the earlier of the stored end and the day before the next
   /// period; calendar-day intervals are anchored to each period's own start.
-  Future<Result<void>> createPeriod(String petId, MedicationPeriod period);
+  /// When supplied, the medication name changes in the same transaction.
+  Future<Result<void>> createPeriod(
+    String petId,
+    MedicationPeriod period, {
+    String? medicationName,
+  });
 
   /// A period with dose results locks its start, interval, times and dosage.
   /// Other details can be corrected; all results must remain valid scheduled
   /// doses after any update. Moving an additional period into the past is not
   /// allowed. Changing a linked visit never moves the medication's dates/logs.
-  Future<Result<void>> updatePeriod(String petId, MedicationPeriod period);
+  Future<Result<void>> updatePeriod(
+    String petId,
+    MedicationPeriod period, {
+    String? medicationName,
+  });
 
   /// Checks the period's edit lock without loading its dose history.
   Future<Result<bool>> hasDoseLogs(

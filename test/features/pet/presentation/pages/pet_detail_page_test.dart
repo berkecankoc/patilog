@@ -85,12 +85,12 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(find.text(pet.name), findsOneWidget);
-          expect(find.text('Coming soon'), findsOneWidget);
+          expect(find.text('Coming soon'), findsNothing);
           expect(
             find.byWidgetPredicate(
               (widget) => widget is ListTile && !widget.enabled,
             ),
-            findsOneWidget,
+            findsNothing,
           );
           expect(find.byTooltip('Edit profile'), findsOneWidget);
           expect(
@@ -114,7 +114,7 @@ void main() {
           for (final title in [
             'Vet visits',
             'Vaccinations',
-            'Medicine',
+            'Medications',
             'Weight history',
           ]) {
             expect(find.text(title), findsOneWidget);

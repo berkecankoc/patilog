@@ -159,6 +159,84 @@ void main() {
     },
   );
 
+  test('name and schedule writes commit and roll back together', () async {
+    await source.createMedication(medication());
+    await source.updatePeriod(
+      'pet-1',
+      period(times: [600]),
+      medicationName: 'Updated',
+    );
+    expect((await source.getMedicationById('pet-1', 'med-1')).name, 'Updated');
+    expect(
+      (await source.getMedicationById(
+        'pet-1',
+        'med-1',
+      )).periods.single.doseTimes,
+      [600],
+    );
+    await expectLater(
+      source.updatePeriod('pet-1', period(times: [700]), medicationName: ''),
+      throwsA(isA<LocalDataSourceException>()),
+    );
+    expect(
+      (await source.getMedicationById(
+        'pet-1',
+        'med-1',
+      )).periods.single.doseTimes,
+      [600],
+    );
+    await expectLater(
+      source.createPeriod(
+        'pet-1',
+        period(id: 'new', start: day(1)),
+        medicationName: '',
+      ),
+      throwsA(isA<LocalDataSourceException>()),
+    );
+    expect(
+      (await source.getMedicationById('pet-1', 'med-1')).periods.length,
+      1,
+    );
+    await source.saveDoseLog('pet-1', 'med-1', log(minute: 600));
+    await source.createPeriod(
+      'pet-1',
+      period(id: 'new', start: day(1), times: [700]),
+      medicationName: 'New schedule',
+    );
+    expect(
+      (await source.getMedicationById('pet-1', 'med-1')).name,
+      'New schedule',
+    );
+    expect((await logs()).single.scheduledMinute, 600);
+  });
+
+  test(
+    'combined writes cannot rename or change another pet medication',
+    () async {
+      await source.createMedication(medication());
+      await expectLater(
+        source.updatePeriod('pet-2', period(), medicationName: 'Foreign'),
+        throwsA(isA<LocalDataNotFoundException>()),
+      );
+      await expectLater(
+        source.createPeriod(
+          'pet-2',
+          period(id: 'new', start: day(1)),
+          medicationName: 'Foreign',
+        ),
+        throwsA(isA<LocalDataNotFoundException>()),
+      );
+      expect(
+        (await source.getMedicationById('pet-1', 'med-1')).name,
+        'Medicine',
+      );
+      expect(
+        (await source.getMedicationById('pet-1', 'med-1')).periods.length,
+        1,
+      );
+    },
+  );
+
   test(
     'all computed occurrences agree with transactional write validation',
     () async {
