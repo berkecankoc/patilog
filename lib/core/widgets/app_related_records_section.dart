@@ -22,6 +22,8 @@ class AppRelatedRecordsSection extends StatefulWidget {
 
 class _AppRelatedRecordsSectionState extends State<AppRelatedRecordsSection> {
   bool _requested = false;
+  // Expansion booleans and child scroll offsets must use separate storage.
+  final _contentStorage = PageStorageBucket();
 
   @override
   Widget build(BuildContext context) => Card(
@@ -40,6 +42,11 @@ class _AppRelatedRecordsSectionState extends State<AppRelatedRecordsSection> {
           horizontalTitleGap: AppSpacing.sm,
           titleAlignment: ListTileTitleAlignment.center,
           child: ExpansionTile(
+            key: PageStorageKey((
+              'related-expansion',
+              widget.title,
+              widget.key,
+            )),
             maintainState: true,
             shape: const Border(),
             collapsedShape: const Border(),
@@ -60,7 +67,9 @@ class _AppRelatedRecordsSectionState extends State<AppRelatedRecordsSection> {
                 widget.onLoad();
               }
             },
-            children: [widget.child],
+            children: [
+              PageStorage(bucket: _contentStorage, child: widget.child),
+            ],
           ),
         );
       },

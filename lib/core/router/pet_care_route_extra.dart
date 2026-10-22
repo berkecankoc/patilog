@@ -1,4 +1,5 @@
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 
@@ -7,6 +8,19 @@ class PetCareRouteExtra {
   final String? petName;
 
   const PetCareRouteExtra({required this.petId, this.petName});
+}
+
+final class MedicationFormExtra extends PetCareRouteExtra {
+  final Medication? medication;
+  final String? periodId;
+  final bool newSchedule;
+  const MedicationFormExtra({
+    required super.petId,
+    super.petName,
+    this.medication,
+    this.periodId,
+    this.newSchedule = false,
+  });
 }
 
 final class WeightEntryFormExtra extends PetCareRouteExtra {

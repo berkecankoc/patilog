@@ -13,7 +13,8 @@ Future<bool> confirmVetVisitDeletion(
     context: context,
     builder: (_) => AppConfirmationDialog(
       title: 'Delete visit?',
-      message: 'Remove “${visit.reason}” from $date? This cannot be undone.',
+      message:
+          'Remove “${visit.reason}” from $date? Linked medications and their dose records will be kept without this visit link. This cannot be undone.',
       confirmLabel: 'Delete',
     ),
   );

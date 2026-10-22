@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
+import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -56,6 +59,8 @@ class MockDeletePet extends Mock implements DeletePet {}
 class MockImages extends Mock implements ImageStorage {}
 
 class MockIds extends Mock implements IdGenerator {}
+
+class MockMedications extends Mock implements MedicationRepository {}
 
 void main() {
   const pet = Pet(
@@ -230,6 +235,16 @@ void main() {
       ),
     );
     getIt.registerFactory<VetVisitCubit>(() => VetVisitCubit(visitRepository));
+    final medications = MockMedications();
+    when(
+      () => medications.getMedications(
+        any(),
+        vetVisitId: any(named: 'vetVisitId'),
+      ),
+    ).thenAnswer((_) async => const Success([]));
+    getIt.registerFactory<MedicationCubit>(
+      () => MedicationCubit(medications, const CalculateMedicationDoses()),
+    );
     getIt.registerFactory<VetVisitFormCubit>(
       () => VetVisitFormCubit(visitRepository, ids),
     );
