@@ -59,11 +59,11 @@ class PetDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<PetCubit, PetState>(
       listener: (context, state) {
-        if (state is PetDeleted) context.pop(true);
+        if (state is PetDeleted) context.pop(petId);
       },
       builder: (context, state) {
         final deleting = state is PetLoaded && state.isDeleting;
-        return PopScope(
+        return PopScope<String>(
           canPop: !deleting,
           child: Scaffold(
             appBar: AppBar(

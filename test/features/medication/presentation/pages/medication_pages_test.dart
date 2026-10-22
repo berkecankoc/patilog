@@ -747,8 +747,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Draft medication'), findsOneWidget);
       expect(find.text('Save failed'), findsOneWidget);
+      expect(find.text('Retry saving'), findsNothing);
       app.pendingCreate = null;
-      await tester.tap(find.text('Retry saving'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Add medication'));
       await tester.pumpAndSettle();
       expect(app.medications.single.name, 'Draft medication');
     },

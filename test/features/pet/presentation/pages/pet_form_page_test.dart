@@ -130,6 +130,25 @@ void main() {
 
   for (final editing in [false, true]) {
     final label = editing ? 'Save changes' : 'Add pet';
+    testWidgets('$label suppresses Android stretch while scrolling', (
+      tester,
+    ) async {
+      await pumpForm(tester, existing: editing ? pet : null);
+      final form = find.byType(PetFormPage);
+      expect(
+        find.descendant(
+          of: form,
+          matching: find.byType(StretchingOverscrollIndicator),
+        ),
+        findsNothing,
+      );
+      await tester.drag(
+        find.descendant(of: form, matching: find.byType(Scrollable)).first,
+        const Offset(0, 400),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
     for (final input in ['4.125', '4,125', '0.001']) {
       testWidgets('$label accepts gram precision in weight "$input"', (
         tester,

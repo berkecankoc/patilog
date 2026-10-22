@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
@@ -174,9 +175,7 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 640),
-                  child: SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: AppFormScrollView(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     child: AbsorbPointer(
                       absorbing: saving,

@@ -229,6 +229,37 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  for (final editing in [false, true]) {
+    testWidgets(
+      '${editing ? 'Edit' : 'Add'} visit suppresses Android stretch',
+      (tester) async {
+        await pumpRouter(tester);
+        if (editing) {
+          await openDetail(tester);
+          await tester.tap(find.byTooltip('Edit visit'));
+          await tester.pumpAndSettle();
+        } else {
+          await openAdd(tester);
+        }
+        final form = find.byType(VetVisitFormPage);
+        expect(
+          find.descendant(
+            of: form,
+            matching: find.byType(StretchingOverscrollIndicator),
+          ),
+          findsNothing,
+        );
+        await tester.drag(
+          find.descendant(of: form, matching: find.byType(Scrollable)).first,
+          const Offset(0, 400),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.android),
+    );
+  }
+
   Future<void> fill(WidgetTester tester, Finder field, String value) async {
     await tester.ensureVisible(field);
     await tester.enterText(field, value);
@@ -658,6 +689,10 @@ void main() {
       await fill(tester, reasonField, 'Checkup');
       await fill(tester, clinicField, 'New clinic');
       await tester.ensureVisible(find.text('Retry suggestions'));
+      expect(
+        tester.getTopLeft(find.text('Retry suggestions')).dx,
+        tester.getTopLeft(find.text('Could not load suggestions')).dx,
+      );
       failed = false;
       await tester.tap(find.text('Retry suggestions'));
       await tester.pumpAndSettle();

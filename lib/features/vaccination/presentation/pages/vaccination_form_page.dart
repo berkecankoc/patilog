@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
@@ -282,6 +283,11 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       Align(
         alignment: AlignmentDirectional.centerStart,
         child: TextButton(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            alignment: AlignmentDirectional.centerStart,
+          ),
           onPressed: () =>
               context.read<VaccinationFormCubit>().loadVisits(widget.petId),
           child: const Text('Retry visits'),
@@ -309,6 +315,13 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
                 Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: TextButton(
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.sm,
+                      ),
+                      alignment: AlignmentDirectional.centerStart,
+                    ),
                     onPressed: _submit,
                     child: const Text('Retry save'),
                   ),
@@ -431,6 +444,11 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       Align(
         alignment: AlignmentDirectional.centerStart,
         child: TextButton(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            alignment: AlignmentDirectional.centerStart,
+          ),
           onPressed: () => context.read<VaccinationFormCubit>().loadSuggestions(
             clinicName: _clinic.text,
           ),
@@ -566,9 +584,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
                           constraints: const BoxConstraints(maxWidth: 640),
                           child: LayoutBuilder(
                             builder: (context, constraints) =>
-                                SingleChildScrollView(
-                                  keyboardDismissBehavior:
-                                      ScrollViewKeyboardDismissBehavior.onDrag,
+                                AppFormScrollView(
                                   padding: const EdgeInsets.all(AppSpacing.lg),
                                   child: AbsorbPointer(
                                     absorbing: saving,

@@ -765,18 +765,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                           child: AppErrorFeedback(
                             message: state.saveError ?? state.periodError!,
                             retryLabel: state.saveError != null
-                                ? (_step == 2
-                                      ? 'Retry saving'
-                                      : 'Review changes')
+                                ? 'Review changes'
                                 : 'Retry dose history',
                             onRetry: state.saveError != null
-                                ? () {
-                                    if (_step == 2) {
-                                      _submit();
-                                    } else {
-                                      _edit(2);
-                                    }
-                                  }
+                                ? (_step == 2 ? null : () => _edit(2))
                                 : () => context
                                       .read<MedicationFormCubit>()
                                       .checkPeriod(

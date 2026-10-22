@@ -1249,6 +1249,43 @@ void main() {
     },
   );
 
+  for (final editing in [false, true]) {
+    testWidgets(
+      '${editing ? 'Edit' : 'Add'} vaccination suppresses Android stretch',
+      (tester) async {
+        final router = await pumpRouter(tester);
+        if (editing) {
+          router.push(
+            AppRoutes.addEditVaccination(pet.id),
+            extra: VaccinationFormExtra(
+              petId: pet.id,
+              petName: pet.name,
+              vaccination: administered,
+            ),
+          );
+          await tester.pumpAndSettle();
+        } else {
+          await add(tester);
+        }
+        final form = find.byType(VaccinationFormPage);
+        expect(
+          find.descendant(
+            of: form,
+            matching: find.byType(StretchingOverscrollIndicator),
+          ),
+          findsNothing,
+        );
+        await tester.drag(
+          find.descendant(of: form, matching: find.byType(Scrollable)).first,
+          const Offset(0, 400),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.android),
+    );
+  }
+
   testWidgets(
     'option failures can retry independently while entered text remains',
     (tester) async {
@@ -1264,10 +1301,18 @@ void main() {
       await add(tester);
       await fill(tester, name, 'Manual vaccine');
       await tester.ensureVisible(find.text('Retry visits'));
+      expect(
+        tester.getTopLeft(find.text('Retry visits')).dx,
+        tester.getTopLeft(find.text('Visits failed')).dx,
+      );
       await tester.tap(find.text('Retry visits'));
       await tester.pumpAndSettle();
       verify(() => visitRepository.getVetVisits(pet.id)).called(2);
       await tester.ensureVisible(find.text('Retry suggestions'));
+      expect(
+        tester.getTopLeft(find.text('Retry suggestions')).dx,
+        tester.getTopLeft(find.text('Suggestions failed')).dx,
+      );
       await tester.tap(find.text('Retry suggestions'));
       await tester.pumpAndSettle();
       await submit(tester);
@@ -1361,6 +1406,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Save failed').hitTestable(), findsOneWidget);
       expect(find.text('Retry save').hitTestable(), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Retry save')).dx,
+        tester.getTopLeft(find.text('Save failed')).dx,
+      );
       expect(
         tester.widget<TextFormField>(name).controller!.text,
         'Keep this name',

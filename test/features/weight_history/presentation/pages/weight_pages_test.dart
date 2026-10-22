@@ -149,6 +149,30 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  for (final editing in [false, true]) {
+    testWidgets(
+      '${editing ? 'Edit' : 'Add'} measurement suppresses Android stretch',
+      (tester) async {
+        await pumpRouter(tester);
+        if (editing) {
+          await tester.tap(find.text('4.5 kg').last);
+          await tester.pumpAndSettle();
+        } else {
+          await openAddForm(tester);
+        }
+        expect(
+          find.descendant(
+            of: find.byType(WeightEntryFormPage),
+            matching: find.byType(StretchingOverscrollIndicator),
+          ),
+          findsNothing,
+        );
+        expect(tester.takeException(), isNull);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.android),
+    );
+  }
+
   testWidgets('profile opens weight history for the selected pet', (
     tester,
   ) async {
