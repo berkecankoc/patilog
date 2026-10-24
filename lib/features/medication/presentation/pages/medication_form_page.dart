@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
+import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:petlytics/core/widgets/app_suggestion_field.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
@@ -330,6 +330,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     int maxLines = 1,
     bool readOnly = false,
     String? hintText,
+    TextInputType? keyboardType,
   }) => TextFormField(
     key: ValueKey(controller),
     controller: controller,
@@ -337,6 +338,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     readOnly: readOnly,
     minLines: 1,
     maxLines: maxLines,
+    keyboardType: keyboardType,
+    textInputAction: maxLines == 1
+        ? TextInputAction.done
+        : TextInputAction.newline,
     onChanged: (_) => setState(() {}),
     decoration: InputDecoration(labelText: label, hintText: hintText),
   );
@@ -440,6 +445,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         _field(
           _interval,
           'Days between doses',
+          keyboardType: TextInputType.number,
           readOnly: _historical,
           validator: (value) => (int.tryParse(value ?? '') ?? 0) < 1
               ? 'Enter at least 1 day.'
@@ -457,6 +463,8 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                 controller: time,
                 readOnly: _historical,
                 keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
                 inputFormatters: const [DoseTimeInputFormatter()],
                 decoration: const InputDecoration(
                   labelText: 'Dose time',
@@ -506,30 +514,13 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     ],
   );
 
-  Widget _summary(String title, IconData icon, Widget child, int step) => Card(
-    margin: EdgeInsets.zero,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: AppSectionHeading(title: title, icon: icon),
-              ),
-              TextButton(
-                onPressed: () => _edit(step),
-                child: const Text('Edit'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    ),
-  );
+  Widget _summary(String title, IconData icon, Widget child, int step) =>
+      AppFormReviewSection(
+        title: title,
+        icon: icon,
+        child: child,
+        onEdit: () => _edit(step),
+      );
 
   void _loadOptions() {
     if (_optionsRequested) return;
@@ -614,105 +605,105 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
           1,
         ),
         const SizedBox(height: 16),
-        ExpansionTile(
+        AppFormOptionalSection(
           controller: _details,
           initiallyExpanded: _details.isExpanded,
-          shape: const Border(),
-          collapsedShape: const Border(),
-          tilePadding: EdgeInsets.zero,
-          title: const Text('Clinic & notes (optional)'),
-          subtitle: const Text('Leave blank if not needed.'),
+          title: 'Clinic & notes (optional)',
+          icon: Icons.local_hospital_outlined,
           onExpansionChanged: (expanded) {
             if (expanded) _loadOptions();
           },
-          children: [
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              key: ValueKey((_visitId, options.join('|'))),
-              initialValue: _visitId,
-              isExpanded: true,
-              itemHeight: null,
-              menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
-              borderRadius: BorderRadius.circular(16),
-              decoration: const InputDecoration(
-                labelText: 'Vet visit (optional)',
-              ),
-              selectedItemBuilder: (_) => options
-                  .map(
-                    (id) => Text(
-                      visitLabel(id),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )
-                  .toList(),
-              items: options
-                  .map(
-                    (id) => DropdownMenuItem(
-                      value: id,
-                      child: Text(visitLabel(id)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (id) {
-                setState(() {
-                  _visitId = id;
-                  final visit = state.visits
-                      .where((visit) => visit.id == id)
-                      .firstOrNull;
-                  if (visit != null) {
-                    if (_clinic.text.trim().isEmpty) {
-                      _clinic.text = visit.clinicName ?? '';
-                    }
-                    if (_vet.text.trim().isEmpty) {
-                      _vet.text = visit.veterinarianName ?? '';
-                    }
-                  }
-                });
-                context.read<MedicationFormCubit>().loadSuggestions(
-                  clinicName: _clinic.text,
-                );
-              },
-            ),
-            if (state.isLoadingVisits)
-              const LinearProgressIndicator(semanticsLabel: 'Loading visits'),
-            if (state.visitsError != null)
-              AppErrorFeedback(
-                message: state.visitsError!,
-                retryLabel: 'Retry visits',
-                onRetry: () => context.read<MedicationFormCubit>().loadVisits(
-                  widget.petId,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                key: ValueKey((_visitId, options.join('|'))),
+                initialValue: _visitId,
+                isExpanded: true,
+                itemHeight: null,
+                menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
+                borderRadius: BorderRadius.circular(16),
+                decoration: const InputDecoration(
+                  labelText: 'Vet visit (optional)',
                 ),
+                selectedItemBuilder: (_) => options
+                    .map(
+                      (id) => Text(
+                        visitLabel(id),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    )
+                    .toList(),
+                items: options
+                    .map(
+                      (id) => DropdownMenuItem(
+                        value: id,
+                        child: Text(visitLabel(id)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (id) {
+                  setState(() {
+                    _visitId = id;
+                    final visit = state.visits
+                        .where((visit) => visit.id == id)
+                        .firstOrNull;
+                    if (visit != null) {
+                      if (_clinic.text.trim().isEmpty) {
+                        _clinic.text = visit.clinicName ?? '';
+                      }
+                      if (_vet.text.trim().isEmpty) {
+                        _vet.text = visit.veterinarianName ?? '';
+                      }
+                    }
+                  });
+                  context.read<MedicationFormCubit>().loadSuggestions(
+                    clinicName: _clinic.text,
+                  );
+                },
               ),
-            const SizedBox(height: 16),
-            AppSuggestionField(
-              controller: _clinic,
-              label: 'Clinic (optional)',
-              suggestions: state.suggestions.clinicNames,
-              loading: state.isLoadingSuggestions,
-              onChanged: (_) {
-                setState(() {});
-                context.read<MedicationFormCubit>().loadSuggestions(
-                  clinicName: _clinic.text,
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            AppSuggestionField(
-              controller: _vet,
-              label: 'Veterinarian (optional)',
-              suggestions: state.suggestions.veterinarianNames,
-              loading: state.isLoadingSuggestions,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 16),
-            _field(
-              _notes,
-              'Notes (optional)',
-              maxLines: 3,
-              validator: (value) => _limit(value, 200),
-            ),
-          ],
+              if (state.isLoadingVisits)
+                const LinearProgressIndicator(semanticsLabel: 'Loading visits'),
+              if (state.visitsError != null)
+                AppErrorFeedback(
+                  message: state.visitsError!,
+                  retryLabel: 'Retry visits',
+                  onRetry: () => context.read<MedicationFormCubit>().loadVisits(
+                    widget.petId,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              AppSuggestionField(
+                controller: _clinic,
+                label: 'Clinic (optional)',
+                suggestions: state.suggestions.clinicNames,
+                loading: state.isLoadingSuggestions,
+                onChanged: (_) {
+                  setState(() {});
+                  context.read<MedicationFormCubit>().loadSuggestions(
+                    clinicName: _clinic.text,
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              AppSuggestionField(
+                controller: _vet,
+                label: 'Veterinarian (optional)',
+                suggestions: state.suggestions.veterinarianNames,
+                loading: state.isLoadingSuggestions,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+              _field(
+                _notes,
+                'Notes (optional)',
+                maxLines: 3,
+                validator: (value) => _limit(value, 200),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -748,6 +739,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
               petName: widget.petName,
             ),
             leading: BackButton(onPressed: state.isSaving ? null : _back),
+            actions: [
+              if (MediaQuery.viewInsetsOf(context).bottom > 0)
+                const AppHideKeyboardButton(),
+            ],
           ),
           body: ScrollConfiguration(
             behavior: ScrollConfiguration.of(
@@ -783,102 +778,79 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                           semanticsLabel: 'Checking dose history',
                         ),
                       Expanded(
-                        child: AbsorbPointer(
-                          absorbing: state.isSaving,
-                          child: Form(
-                            key: _form,
-                            child: ListView(
-                              key: ValueKey(_step),
-                              controller: _scroll,
-                              physics: const ClampingScrollPhysics(),
-                              padding: const EdgeInsets.all(24),
-                              children: [
-                                Semantics(
-                                  liveRegion: true,
-                                  child: Text(
-                                    'Step ${_step + 1} of 3 · ${['Medication', 'Schedule', 'Review'][_step]}',
+                        child: Overlay.wrap(
+                          child: AbsorbPointer(
+                            absorbing: state.isSaving,
+                            child: Form(
+                              key: _form,
+                              child: ListView(
+                                key: ValueKey(_step),
+                                controller: _scroll,
+                                physics: const ClampingScrollPhysics(),
+                                keyboardDismissBehavior:
+                                    ScrollViewKeyboardDismissBehavior.onDrag,
+                                padding: const EdgeInsets.all(24),
+                                children: [
+                                  Semantics(
+                                    liveRegion: true,
+                                    child: Text(
+                                      'Step ${_step + 1} of 3 · ${['Medication', 'Schedule', 'Review'][_step]}',
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                LinearProgressIndicator(
-                                  value: (_step + 1) / 3,
-                                  semanticsLabel: 'Current form step',
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                const SizedBox(height: 24),
-                                switch (_step) {
-                                  0 => _medication(state),
-                                  1 => AbsorbPointer(
-                                    absorbing: checking,
-                                    child: _schedule(),
+                                  const SizedBox(height: 12),
+                                  LinearProgressIndicator(
+                                    value: (_step + 1) / 3,
+                                    semanticsLabel: 'Current form step',
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                  _ => _review(state),
-                                },
-                                if (state.suggestionsError != null)
-                                  AppErrorFeedback(
-                                    message: state.suggestionsError!,
-                                    retryLabel: 'Retry suggestions',
-                                    onRetry: () => context
-                                        .read<MedicationFormCubit>()
-                                        .loadSuggestions(
-                                          clinicName: _clinic.text,
-                                        ),
-                                  ),
-                              ],
+                                  const SizedBox(height: 24),
+                                  switch (_step) {
+                                    0 => _medication(state),
+                                    1 => AbsorbPointer(
+                                      absorbing: checking,
+                                      child: _schedule(),
+                                    ),
+                                    _ => _review(state),
+                                  },
+                                  if (state.suggestionsError != null)
+                                    AppErrorFeedback(
+                                      message: state.suggestionsError!,
+                                      retryLabel: 'Retry suggestions',
+                                      onRetry: () => context
+                                          .read<MedicationFormCubit>()
+                                          .loadSuggestions(
+                                            clinicName: _clinic.text,
+                                          ),
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      Material(
+                      AppFormNavigationActions(
+                        keyboardVisible:
+                            MediaQuery.viewInsetsOf(context).bottom > 0,
                         key: const ValueKey('medication-form-actions'),
-                        color: Theme.of(context).colorScheme.surface,
-                        child: SafeArea(
-                          top: false,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 16,
-                            ),
-                            child: Row(
-                              children: [
-                                if (!returningToReview &&
-                                    (_history.isNotEmpty || _editing)) ...[
-                                  TextButton(
-                                    onPressed: state.isSaving ? null : _back,
-                                    child: Text(
-                                      _history.isEmpty ? 'Cancel' : 'Back',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                ],
-                                Expanded(
-                                  child: AppFormActions(
-                                    label: _step < 2
-                                        ? (returningToReview
-                                              ? 'Done'
-                                              : 'Continue')
-                                        : widget.newSchedule
-                                        ? 'Schedule doses'
-                                        : _editing
-                                        ? 'Save changes'
-                                        : 'Add medication',
-                                    saving: state.isSaving,
-                                    onPressed: state.isSaving
-                                        ? null
-                                        : _step < 2
-                                        ? _continue
-                                        : checking ||
-                                              (_editing &&
-                                                  !_dirty &&
-                                                  !widget.newSchedule)
-                                        ? null
-                                        : _submit,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        label: _step < 2
+                            ? (returningToReview ? 'Done' : 'Continue')
+                            : widget.newSchedule
+                            ? 'Schedule doses'
+                            : _editing
+                            ? 'Save changes'
+                            : 'Add medication',
+                        saving: state.isSaving,
+                        onBack: !returningToReview && _history.isNotEmpty
+                            ? _back
+                            : null,
+                        onPressed: state.isSaving
+                            ? null
+                            : _step < 2
+                            ? _continue
+                            : checking ||
+                                  (_editing && !_dirty && !widget.newSchedule)
+                            ? null
+                            : _submit,
                       ),
                     ],
                   ),

@@ -4,6 +4,7 @@ import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/router/app_router.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
+import 'package:petlytics/core/widgets/app_keyboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.system,
         routerConfig: appRouter,
+        builder: (_, child) => AppKeyboard(child: child!),
       ),
     );
   }

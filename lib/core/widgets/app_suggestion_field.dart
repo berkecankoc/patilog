@@ -110,41 +110,46 @@ class _AppSuggestionFieldState extends State<AppSuggestionField> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => MenuAnchor(
-        controller: _menu,
-        childFocusNode: _focus,
-        onClose: () {
-          final userScroll = Scrollable.maybeOf(
-            context,
-          )?.position.userScrollDirection;
-          if (_options.isNotEmpty &&
-              (_scrolling?.value != true ||
-                  userScroll != ScrollDirection.idle)) {
-            _dismissed = true;
-          }
-        },
-        crossAxisUnconstrained: false,
-        style: MenuStyle(
-          alignment: AlignmentDirectional.bottomStart,
-          minimumSize: WidgetStatePropertyAll(Size(constraints.maxWidth, 0)),
-          maximumSize: WidgetStatePropertyAll(Size(constraints.maxWidth, 240)),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.md),
+    // Popup scroll notifications must not trigger the form's on-drag keyboard
+    // dismissal, which would remove focus and close the suggestions.
+    return NotificationListener<ScrollNotification>(
+      onNotification: (_) => true,
+      child: LayoutBuilder(
+        builder: (context, constraints) => MenuAnchor(
+          controller: _menu,
+          childFocusNode: _focus,
+          onClose: () {
+            final userScroll = Scrollable.maybeOf(
+              context,
+            )?.position.userScrollDirection;
+            if (_options.isNotEmpty &&
+                (_scrolling?.value != true ||
+                    userScroll != ScrollDirection.idle)) {
+              _dismissed = true;
+            }
+          },
+          crossAxisUnconstrained: false,
+          style: MenuStyle(
+            alignment: AlignmentDirectional.bottomStart,
+            minimumSize: WidgetStatePropertyAll(Size(constraints.maxWidth, 0)),
+            maximumSize: WidgetStatePropertyAll(
+              Size(constraints.maxWidth, 240),
+            ),
+            shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.md),
+              ),
             ),
           ),
-        ),
-        menuChildren: [
-          FocusScope(
-            node: _optionsFocus,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final (index, name) in _options.indexed)
-                  TextFieldTapRegion(
-                    child: MenuItemButton(
+          menuChildren: [
+            FocusScope(
+              node: _optionsFocus,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (index, name) in _options.indexed)
+                    MenuItemButton(
                       focusNode: index == 0 ? _firstOptionFocus : null,
                       requestFocusOnHover: false,
                       onPressed: () {
@@ -159,45 +164,47 @@ class _AppSuggestionFieldState extends State<AppSuggestionField> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-        builder: (context, controller, child) => CallbackShortcuts(
-          bindings: {
-            const SingleActivator(LogicalKeyboardKey.arrowDown): () {
-              if (_options.isEmpty) return;
-              _dismissed = false;
-              if (!_menu.isOpen) _menu.open();
-              _firstOptionFocus.requestFocus();
+          ],
+          builder: (context, controller, child) => CallbackShortcuts(
+            bindings: {
+              const SingleActivator(LogicalKeyboardKey.arrowDown): () {
+                if (_options.isEmpty) return;
+                _dismissed = false;
+                if (!_menu.isOpen) _menu.open();
+                _firstOptionFocus.requestFocus();
+              },
             },
-          },
-          child: TextFormField(
-            controller: widget.controller,
-            focusNode: _focus,
-            onTap: () {
-              _dismissed = false;
-              _updateMenu();
-            },
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              labelText: widget.label,
-              suffixIcon: widget.loading
-                  ? const Padding(
-                      padding: EdgeInsets.all(AppSpacing.md),
-                      child: SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          semanticsLabel: 'Loading suggestions',
+            child: TextFormField(
+              // MenuAnchor uses this region for its entire popup surface.
+              groupId: _menu,
+              controller: widget.controller,
+              focusNode: _focus,
+              onTap: () {
+                _dismissed = false;
+                _updateMenu();
+              },
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: widget.label,
+                suffixIcon: widget.loading
+                    ? const Padding(
+                        padding: EdgeInsets.all(AppSpacing.md),
+                        child: SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            semanticsLabel: 'Loading suggestions',
+                          ),
                         ),
-                      ),
-                    )
-                  : null,
+                      )
+                    : null,
+              ),
+              onChanged: widget.onChanged,
+              validator: widget.validator,
             ),
-            onChanged: widget.onChanged,
-            validator: widget.validator,
           ),
         ),
       ),

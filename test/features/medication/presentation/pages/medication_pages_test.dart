@@ -11,6 +11,7 @@ import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
+import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
@@ -375,7 +376,7 @@ class MedicationTestHarness {
               padding: EdgeInsets.only(bottom: bottomInset),
               viewPadding: EdgeInsets.only(bottom: bottomInset),
             ),
-            child: child!,
+            child: AppKeyboard(child: child!),
           ),
         ),
       ),
@@ -422,6 +423,46 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, label));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('medication suggestions clear the fixed Continue action', (
+    tester,
+  ) async {
+    when(
+      () => app.repository.getSuggestions(clinicName: any(named: 'clinicName')),
+    ).thenAnswer(
+      (_) async => const Success(
+        MedicationSuggestions(
+          medicationNames: ['Medicine A', 'Medicine B', 'Medicine C'],
+          clinicNames: [],
+          veterinarianNames: [],
+        ),
+      ),
+    );
+    await app.pump(
+      tester,
+      location: '/pets/pet/medications/form',
+      keyboard: 280,
+    );
+    final name = find.widgetWithText(TextFormField, 'Medication name');
+    await tester.enterText(name, 'Med');
+    await tester.pumpAndSettle();
+    final menu = find
+        .ancestor(
+          of: find.byType(MenuItemButton).first,
+          matching: find.byType(Material),
+        )
+        .first;
+    final actions = find.byKey(const ValueKey('medication-form-actions'));
+    expect(
+      tester.getRect(menu).bottom,
+      lessThanOrEqualTo(tester.getRect(actions).top),
+    );
+    expect(find.text('Continue').hitTestable(), findsOneWidget);
+    await tester.tap(find.widgetWithText(MenuItemButton, 'Medicine A'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextFormField>(name).controller!.text, 'Medicine A');
+    verifyNever(() => app.repository.createMedication(any()));
+  });
 
   testWidgets('dosage example is visible only for focused empty input', (
     tester,

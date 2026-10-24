@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../../helpers/phased_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/di/injection.dart';
@@ -15,7 +16,6 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
@@ -134,22 +134,42 @@ void main() {
     expect(find.byTooltip('My pets'), findsNothing);
   }
 
-  Future<void> save(WidgetTester tester) async {
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
-    final form = tester.widget<WeightEntryFormPage>(
-      find.byType(WeightEntryFormPage),
-    );
-    final button = find.widgetWithText(
-      ElevatedButton,
-      form.entry == null ? 'Save' : 'Save changes',
-    );
-    await tester.ensureVisible(button);
-    await tester.tap(button);
-    await tester.pumpAndSettle();
-  }
+  Future<void> save(WidgetTester tester) => submitForm(tester);
 
   for (final editing in [false, true]) {
+    testWidgets(
+      'phased measurement ${editing ? 'edit' : 'add'} reviews before saving',
+      (tester) async {
+        await pumpRouter(tester);
+        if (editing) {
+          await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+          await tester.pumpAndSettle();
+        } else {
+          await openAddForm(tester);
+        }
+        expect(
+          find.text(
+            editing ? 'Step 2 of 2 · Review' : 'Step 1 of 2 · Measurement',
+          ),
+          findsOneWidget,
+        );
+        final field = find.widgetWithText(
+          TextFormField,
+          'Weight',
+          skipOffstage: false,
+        );
+        await enterFormText(tester, field, '4.7');
+        await reviewForm(tester);
+        expect(find.text('4.7 kg'), findsOneWidget);
+        await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(TextButton, 'Back'), findsNothing);
+        expect(tester.widget<TextFormField>(field).controller!.text, '4.7');
+        await reviewForm(tester);
+        verifyNever(() => repository.createWeightEntry(any()));
+        verifyNever(() => repository.updateWeightEntry(any()));
+      },
+    );
     testWidgets(
       '${editing ? 'Edit' : 'Add'} measurement suppresses Android stretch',
       (tester) async {
@@ -181,7 +201,7 @@ void main() {
       initialLocation: AppRoutes.petDetail(pet.id),
     );
     clearInteractions(pets);
-    await tester.ensureVisible(find.text('Weight history'));
+    await revealFormField(tester, find.text('Weight history'));
     await tester.tap(find.text('Weight history'));
     await tester.pumpAndSettle();
 
@@ -210,14 +230,13 @@ void main() {
     await openAddForm(tester);
     expect(appBarName.hitTestable(), findsOneWidget);
     expect(
-      find.widgetWithText(ElevatedButton, 'Save').hitTestable(),
+      find.widgetWithText(ElevatedButton, 'Continue').hitTestable(),
       findsOneWidget,
     );
-    final date = tester.getRect(find.byType(AppDateField));
     final saveButton = tester.getRect(
-      find.widgetWithText(ElevatedButton, 'Save'),
+      find.widgetWithText(ElevatedButton, 'Continue'),
     );
-    expect(saveButton.top - date.bottom, lessThanOrEqualTo(32));
+    expect(saveButton.bottom, lessThanOrEqualTo(720));
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
@@ -244,7 +263,7 @@ void main() {
       () => pets.getPetById(pet.id),
     ).thenAnswer((_) async => Success(currentPet));
     await pumpRouter(tester, initialLocation: AppRoutes.petDetail(pet.id));
-    await tester.ensureVisible(find.text('Weight history'));
+    await revealFormField(tester, find.text('Weight history'));
     await tester.tap(find.text('Weight history'));
     await tester.pumpAndSettle();
     expect(
@@ -255,7 +274,7 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     clearInteractions(pets);
-    await tester.ensureVisible(find.text('Weight history'));
+    await revealFormField(tester, find.text('Weight history'));
     await tester.tap(find.text('Weight history'));
     await tester.pumpAndSettle();
     expect(
@@ -297,10 +316,14 @@ void main() {
     );
     expect(find.text('Weight'), findsOneWidget);
     expect(find.text('Weight (kg)'), findsNothing);
-    await tester.tap(find.byType(TextFormField).first);
+    await tester.tap(find.byType(TextFormField, skipOffstage: false).first);
     await tester.pumpAndSettle();
     expect(find.text('kg').hitTestable(), findsOneWidget);
-    await tester.enterText(find.byType(TextFormField).first, '4.8');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '4.8',
+    );
     expect(find.text('4.8'), findsOneWidget);
   });
 
@@ -313,7 +336,11 @@ void main() {
       tester,
       initialLocation: AppRoutes.addEditWeightEntry(pet.id),
     );
-    await tester.enterText(find.byType(TextFormField).first, '4.8');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '4.8',
+    );
     pending.complete(const Success(pet));
     await tester.pumpAndSettle();
     expect(
@@ -339,7 +366,11 @@ void main() {
       initialLocation: AppRoutes.addEditWeightEntry(pet.id),
     );
     expect(find.text('Add measurement'), findsOneWidget);
-    await tester.enterText(find.byType(TextFormField).first, '5.1');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '5.1',
+    );
     await save(tester);
     verify(() => repository.createWeightEntry(any())).called(1);
     expect(tester.takeException(), isNull);
@@ -425,7 +456,7 @@ void main() {
             tester.getRect(scroll).center,
             tester.getRect(viewport).center,
           );
-          await tester.ensureVisible(find.text('No measurements yet'));
+          await revealFormField(tester, find.text('No measurements yet'));
           await tester.pumpAndSettle();
           expect(
             find.text('No measurements yet').hitTestable(),
@@ -434,7 +465,7 @@ void main() {
           final description = find.text(
             'Add a weight measurement to start the history.',
           );
-          await tester.ensureVisible(description);
+          await revealFormField(tester, description);
           await tester.pumpAndSettle();
           expect(description.hitTestable(), findsOneWidget);
           expect(
@@ -461,7 +492,11 @@ void main() {
     ) async {
       await pumpRouter(tester);
       await openAddForm(tester);
-      await tester.enterText(find.byType(TextFormField).first, input);
+      await enterFormText(
+        tester,
+        find.byType(TextFormField, skipOffstage: false).first,
+        input,
+      );
       await save(tester);
 
       expect(
@@ -494,7 +529,11 @@ void main() {
         } else {
           await openAddForm(tester);
         }
-        await tester.enterText(find.byType(TextFormField).first, input);
+        await enterFormText(
+          tester,
+          find.byType(TextFormField, skipOffstage: false).first,
+          input,
+        );
         await save(tester);
         expect(find.byType(WeightHistoryPage), findsOneWidget);
         final saved =
@@ -523,16 +562,16 @@ void main() {
           final row = find.widgetWithText(ListTile, '4.5 kg');
           await tester.scrollUntilVisible(row, 200);
           await tester.pumpAndSettle();
-          await tester.ensureVisible(row);
+          await revealFormField(tester, row);
           await tester.pumpAndSettle();
           await tester.tap(row);
           await tester.pumpAndSettle();
         } else {
           await openAddForm(tester);
         }
-        final field = find.byType(TextFormField).first;
+        final field = find.byType(TextFormField, skipOffstage: false).first;
         for (final input in ['4.1256', '4,1256', '0.0001', '1e-4']) {
-          await tester.enterText(field, input);
+          await enterFormText(tester, field, input);
           await save(tester);
           expect(
             find.text('Use up to 3 decimal places').hitTestable(),
@@ -585,7 +624,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           tester
-              .widget<TextFormField>(find.byType(TextFormField).first)
+              .widget<TextFormField>(
+                find.byType(TextFormField, skipOffstage: false).first,
+              )
               .controller!
               .text,
           text,
@@ -616,7 +657,11 @@ void main() {
     final router = await pumpRouter(tester);
     await openAddForm(tester);
     expect(router.state.uri.path, AppRoutes.addEditWeightEntry(pet.id));
-    await tester.enterText(find.byType(TextFormField).first, '4.8');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '4.8',
+    );
     await save(tester);
 
     expect(find.byType(WeightHistoryPage), findsOneWidget);
@@ -649,11 +694,15 @@ void main() {
     await pumpRouter(tester);
     await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, '4.7');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '4.7',
+    );
     await save(tester);
 
     expect(find.text('Could not save. Please retry.'), findsOneWidget);
-    expect(find.text('4.7'), findsOneWidget);
+    expect(find.text('4.7 kg'), findsOneWidget);
     final formContext = tester.element(find.byType(WeightEntryFormPage));
     expect(
       find.text(
@@ -684,7 +733,10 @@ void main() {
     await pumpRouter(tester);
     await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Choose measurement date'));
+    await tapFormControl(
+      tester,
+      find.byTooltip('Choose measurement date', skipOffstage: false),
+    );
     await tester.pumpAndSettle();
     expect(find.byType(DatePickerDialog), findsOneWidget);
     await tester.tap(find.text('11').last);
@@ -710,11 +762,18 @@ void main() {
     await pumpRouter(tester);
     await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Choose measurement date'));
+    await tapFormControl(
+      tester,
+      find.byTooltip('Choose measurement date', skipOffstage: false),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, '4.7');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '4.7',
+    );
     await save(tester);
     final updated =
         verify(() => repository.updateWeightEntry(captureAny())).captured.single
@@ -732,19 +791,23 @@ void main() {
       return const Success(null);
     });
     await pumpRouter(tester, initialLocation: AppRoutes.petDetail(pet.id));
-    await tester.ensureVisible(find.text('Weight history'));
+    await revealFormField(tester, find.text('Weight history'));
     await tester.tap(find.text('Weight history'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, '4.9');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '4.9',
+    );
     await save(tester);
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Profile details'));
+    await revealFormField(tester, find.text('Profile details'));
     await tester.tap(find.text('Profile details'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('4.9 kg'));
+    await revealFormField(tester, find.text('4.9 kg'));
     expect(find.text('4.9 kg'), findsOneWidget);
     expect(find.text('4.5 kg'), findsNothing);
   });
@@ -903,10 +966,17 @@ void main() {
     ).thenAnswer((_) => pending.future);
     await pumpRouter(tester);
     await openAddForm(tester);
-    await tester.enterText(find.byType(TextFormField).first, '5');
-    final field = tester.widget<TextField>(find.byType(TextField).first);
-    field.onSubmitted!('5');
-    field.onSubmitted!('5');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '5',
+    );
+    await reviewForm(tester);
+    final submit = tester
+        .widget<ElevatedButton>(find.byType(ElevatedButton))
+        .onPressed!;
+    submit();
+    submit();
     await tester.pump();
     expect(find.text('Saving…'), findsOneWidget);
     expect(
@@ -933,13 +1003,18 @@ void main() {
     ).thenAnswer((_) async => const Success(null));
     await pumpRouter(tester);
     await openAddForm(tester);
-    await tester.enterText(find.byType(TextFormField).first, '5.2');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '5.2',
+    );
+    await reviewForm(tester);
     final submit = tester
-        .widget<TextField>(find.byType(TextField).first)
-        .onSubmitted!;
-    submit('5.2');
+        .widget<ElevatedButton>(find.byType(ElevatedButton))
+        .onPressed!;
+    submit();
     await tester.idle();
-    submit('5.2');
+    submit();
     await tester.pumpAndSettle();
     expect(find.byType(WeightHistoryPage), findsOneWidget);
     verify(() => repository.createWeightEntry(any())).called(1);
@@ -957,23 +1032,30 @@ void main() {
           } else {
             await openAddForm(tester);
           }
-          await tester.enterText(find.byType(TextFormField).first, '4.7');
+          await enterFormText(
+            tester,
+            find.byType(TextFormField, skipOffstage: false).first,
+            '4.7',
+          );
           FocusManager.instance.primaryFocus?.unfocus();
           await tester.pumpAndSettle();
           Future<void> back() async {
-            if (systemBack) {
-              await tester.binding.handlePopRoute();
-            } else {
-              await tester.tap(find.byTooltip('Back'));
-            }
-            await tester.pumpAndSettle();
+            await leaveForm(tester, systemBack: systemBack);
           }
 
           await back();
           expect(find.text('Discard changes?'), findsOneWidget);
           await tester.tap(find.text('Keep editing'));
           await tester.pumpAndSettle();
-          expect(find.text('4.7'), findsOneWidget);
+          expect(
+            tester
+                .widget<TextFormField>(
+                  find.byType(TextFormField, skipOffstage: false).first,
+                )
+                .controller!
+                .text,
+            '4.7',
+          );
           await back();
           await tester.tap(find.text('Discard changes'));
           await tester.pumpAndSettle();
@@ -1011,13 +1093,15 @@ void main() {
     await pumpRouter(tester);
     await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Choose measurement date'));
+    await tapFormControl(
+      tester,
+      find.byTooltip('Choose measurement date', skipOffstage: false),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('11').last);
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    await leaveForm(tester, systemBack: true);
     expect(find.text('Discard changes?'), findsOneWidget);
     await tester.tap(find.text('Keep editing'));
     await tester.pumpAndSettle();
@@ -1033,8 +1117,12 @@ void main() {
     ).thenAnswer((_) => pending.future);
     await pumpRouter(tester);
     await openAddForm(tester);
-    await tester.enterText(find.byType(TextFormField).first, '5.2');
-    tester.widget<TextField>(find.byType(TextField).first).onSubmitted!('5.2');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      '5.2',
+    );
+    await submitForm(tester, settle: false);
     await tester.pump();
     expect(find.byTooltip('My pets'), findsNothing);
     await tester.binding.handlePopRoute();
@@ -1048,7 +1136,7 @@ void main() {
       find.text('Failed to create measurement').hitTestable(),
       findsOneWidget,
     );
-    expect(find.text('5.2'), findsOneWidget);
+    expect(find.text('5.2 kg'), findsOneWidget);
     expect(
       tester
           .widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Save'))
@@ -1074,7 +1162,7 @@ void main() {
         return result;
       });
       await pumpRouter(tester, initialLocation: AppRoutes.petDetail(pet.id));
-      await tester.ensureVisible(find.text('Weight history'));
+      await revealFormField(tester, find.text('Weight history'));
       await tester.tap(find.text('Weight history'));
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.delete_outline).first);
@@ -1097,10 +1185,10 @@ void main() {
       expect(find.text('4.5 kg'), findsNothing);
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Profile details'));
+      await revealFormField(tester, find.text('Profile details'));
       await tester.tap(find.text('Profile details'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('4.2 kg'));
+      await revealFormField(tester, find.text('4.2 kg'));
       expect(find.text('4.2 kg'), findsOneWidget);
       expect(find.text('4.5 kg'), findsNothing);
     },
@@ -1197,9 +1285,9 @@ void main() {
                 .hitTestable(),
             findsOneWidget,
           );
-          final field = find.byType(TextFormField).first;
-          await tester.ensureVisible(field);
-          await tester.enterText(field, '5.2');
+          final field = find.byType(TextFormField, skipOffstage: false).first;
+          await revealFormField(tester, field);
+          await enterFormText(tester, field, '5.2');
           await save(tester);
           expect(find.byType(WeightHistoryPage), findsOneWidget);
           verify(() => repository.createWeightEntry(any())).called(1);
@@ -1285,33 +1373,28 @@ void main() {
             keyboard: keyboard,
           );
           await openAddForm(tester);
-          await tester.enterText(find.byType(TextFormField).first, '5.2');
-          tester.widget<TextField>(find.byType(TextField).first).onSubmitted!(
+          await enterFormText(
+            tester,
+            find.byType(TextFormField, skipOffstage: false).first,
             '5.2',
           );
+          await save(tester);
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
-          final error = find.text('Failed to create measurement');
-          expect(error.hitTestable(), findsOneWidget);
-          final viewport = tester.getRect(find.byType(SingleChildScrollView));
-          expect(
-            tester.getRect(error).top,
-            greaterThanOrEqualTo(viewport.top - 0.1),
-          );
-          expect(
-            tester.getRect(error).bottom,
-            lessThanOrEqualTo(viewport.bottom),
+          final error = await checkFormError(
+            tester,
+            'Failed to create measurement',
           );
           final saveButton = find.widgetWithText(ElevatedButton, 'Save');
           expect(
-            tester.getRect(error).bottom,
+            error.bottom,
             lessThanOrEqualTo(tester.getRect(saveButton).top),
           );
           expect(
             find.widgetWithText(ElevatedButton, 'Save').hitTestable(),
             findsOneWidget,
           );
-          expect(find.text('5.2'), findsOneWidget);
+          expect(find.text('5.2 kg'), findsOneWidget);
           when(
             () => repository.createWeightEntry(any()),
           ).thenAnswer((_) async => const Success(null));
@@ -1337,8 +1420,11 @@ void main() {
         expect(addButton.left, greaterThanOrEqualTo(0));
         expect(addButton.right, lessThanOrEqualTo(width));
         await openAddForm(tester);
-        await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Save'));
-        expect(find.text('Save').hitTestable(), findsOneWidget);
+        await revealFormField(
+          tester,
+          find.widgetWithText(ElevatedButton, 'Continue'),
+        );
+        expect(find.text('Continue').hitTestable(), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }

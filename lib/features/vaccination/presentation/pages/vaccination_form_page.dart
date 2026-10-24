@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/app_suggestion_field.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
@@ -35,8 +34,6 @@ class VaccinationFormPage extends StatefulWidget {
 }
 
 class _VaccinationFormPageState extends State<VaccinationFormPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _saveErrorKey = GlobalKey();
   final _vaccine = TextEditingController();
   final _clinic = TextEditingController();
   final _veterinarian = TextEditingController();
@@ -141,15 +138,6 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       return;
     }
     if (widget.vaccination != null && !_hasChanges) return;
-    final invalid = _formKey.currentState!.validateGranularly();
-    if (invalid.isNotEmpty) {
-      Scrollable.ensureVisible(
-        invalid.first.context,
-        alignment: 0.1,
-        duration: const Duration(milliseconds: 200),
-      );
-      return;
-    }
     FocusScope.of(context).unfocus();
     cubit.saveVaccination(
       SaveVaccinationParams(
@@ -199,13 +187,6 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
     _confirmingDiscard = false;
     if (discard == true && mounted) _leave();
   }
-
-  Widget _saveActions(bool saving) => AppFormActions(
-    label: widget.vaccination == null ? 'Add vaccination' : 'Save changes',
-    saving: saving,
-    fixed: widget.vaccination != null,
-    onPressed: widget.vaccination != null && !_hasChanges ? null : _submit,
-  );
 
   Widget _error(String message) => Semantics(
     liveRegion: true,
@@ -297,215 +278,242 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
     VerticalGap.md,
   ];
 
-  List<Widget> _fields(
-    VaccinationFormState state,
-    bool saving,
-    double feedbackHeight,
-  ) => [
-    if (state.saveError != null) ...[
-      ConstrainedBox(
-        key: _saveErrorKey,
-        constraints: BoxConstraints(maxHeight: feedbackHeight),
-        child: SingleChildScrollView(
+  Widget _vaccinationDetails(VaccinationFormState state) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      AppSuggestionField(
+        key: const Key('vaccination-name'),
+        label: 'Vaccine name',
+        controller: _vaccine,
+        suggestions: state.suggestions.vaccineNames,
+        validator: (value) {
+          final text = value?.trim() ?? '';
+          if (text.isEmpty) return 'Enter a vaccine name';
+          return text.characters.length > 50
+              ? 'Keep vaccine name within 50 characters'
+              : null;
+        },
+      ),
+      VerticalGap.md,
+      DropdownButtonFormField<VaccinationStatus>(
+        initialValue: _status,
+        isExpanded: true,
+        borderRadius: BorderRadius.circular(AppSpacing.md),
+        decoration: const InputDecoration(labelText: 'Status'),
+        items: const [
+          DropdownMenuItem(
+            value: VaccinationStatus.administered,
+            child: Text('Administered'),
+          ),
+          DropdownMenuItem(
+            value: VaccinationStatus.planned,
+            child: Text('Planned'),
+          ),
+        ],
+        onChanged: _changeStatus,
+      ),
+      VerticalGap.md,
+      FormField<DateTime>(
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        validator: (_) {
+          final today = DateUtils.dateOnly(DateTime.now());
+          if (_status == VaccinationStatus.planned && _date.isBefore(today)) {
+            return 'Choose today or a future date';
+          }
+          if (_status == VaccinationStatus.administered &&
+              _date.isAfter(today)) {
+            return 'Choose today or an earlier date';
+          }
+          return null;
+        },
+        builder: (field) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppDateField(
+              key: const Key('vaccination-date'),
+              labelText: _status == VaccinationStatus.planned
+                  ? 'Planned date'
+                  : 'Administration date',
+              value: _date,
+              readOnly: _visitId != null,
+              firstDate: _status == VaccinationStatus.planned
+                  ? DateUtils.dateOnly(DateTime.now())
+                  : DateTime(1900),
+              lastDate: _status == VaccinationStatus.planned
+                  ? DateTime(2100, 12, 31)
+                  : DateTime.now(),
+              errorText: field.errorText,
+              onChanged: (date) {
+                if (date == null) return;
+                setState(() => _date = date);
+                field.didChange(date);
+              },
+            ),
+            if (_visitId != null) ...[
+              VerticalGap.xs,
+              Text(
+                'Date from linked vet visit',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+      VerticalGap.xl,
+    ],
+  );
+
+  Widget _review(VaccinationFormState state, ValueChanged<int> edit) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text('Review vaccination', style: Theme.of(context).textTheme.titleLarge),
+      VerticalGap.md,
+      AppFormReviewSection(
+        title: 'Vaccine details',
+        icon: Icons.vaccines_outlined,
+        onEdit: () => edit(0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppDetailField(label: 'Vaccine name', value: _vaccine.text),
+            VerticalGap.md,
+            AppDetailField(
+              label: 'Status',
+              value: _status == VaccinationStatus.planned
+                  ? 'Planned'
+                  : 'Administered',
+            ),
+            VerticalGap.md,
+            AppDetailField(
+              label: _status == VaccinationStatus.planned
+                  ? 'Planned date'
+                  : 'Administration date',
+              value: MaterialLocalizations.of(context).formatShortDate(_date),
+            ),
+            if (_visitId != null) ...[
+              VerticalGap.sm,
+              const Text('Date from linked vet visit'),
+            ],
+          ],
+        ),
+      ),
+      VerticalGap.md,
+      AppFormOptionalSection(
+        title: 'Clinic & veterinarian (optional)',
+        icon: Icons.local_hospital_outlined,
+        initiallyExpanded: widget.vaccination != null || _visitId != null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_status == VaccinationStatus.administered)
+              ..._visitOptions(state),
+            AppSuggestionField(
+              key: const Key('vaccination-clinic'),
+              label: 'Clinic (optional)',
+              loading: state.isLoadingSuggestions,
+              controller: _clinic,
+              suggestions: state.suggestions.clinicNames,
+              onChanged: (value) => context
+                  .read<VaccinationFormCubit>()
+                  .loadSuggestions(clinicName: value),
+            ),
+            VerticalGap.md,
+            AppSuggestionField(
+              key: const Key('vaccination-veterinarian'),
+              label: 'Veterinarian (optional)',
+              controller: _veterinarian,
+              suggestions: state.suggestions.veterinarianNames,
+            ),
+            if (state.suggestionsError != null) ...[
+              VerticalGap.sm,
+              _error(state.suggestionsError!),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.sm,
+                    ),
+                    alignment: AlignmentDirectional.centerStart,
+                  ),
+                  onPressed: () => context
+                      .read<VaccinationFormCubit>()
+                      .loadSuggestions(clinicName: _clinic.text),
+                  child: const Text('Retry suggestions'),
+                ),
+              ),
+            ],
+            VerticalGap.xl,
+          ],
+        ),
+      ),
+      VerticalGap.md,
+      AppFormOptionalSection(
+        title: 'Notes (optional)',
+        icon: Icons.notes_outlined,
+        initiallyExpanded: widget.vaccination?.notes != null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              key: const Key('vaccination-notes'),
+              controller: _notes,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              minLines: 1,
+              maxLines: 4,
+              validator: (value) => (value?.characters.length ?? 0) > 200
+                  ? 'Keep notes within 200 characters'
+                  : null,
+            ),
+          ],
+        ),
+      ),
+      if (_canPlanNextDose) ...[
+        VerticalGap.md,
+        AppFormOptionalSection(
+          title: 'Next dose (optional)',
+          icon: Icons.event_repeat_outlined,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _error(state.saveError!),
-              if (widget.vaccination == null)
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.sm,
-                      ),
-                      alignment: AlignmentDirectional.centerStart,
-                    ),
-                    onPressed: _submit,
-                    child: const Text('Retry save'),
-                  ),
+              const Text(
+                'Optionally create a separate plan for the next dose.',
+              ),
+              VerticalGap.md,
+              FormField<DateTime>(
+                validator: (_) {
+                  if (_nextDoseDate == null) return null;
+                  if (!_nextDoseDate!.isAfter(_date)) {
+                    return 'Choose a date after the administration date';
+                  }
+                  return _nextDoseDate!.isBefore(
+                        DateUtils.dateOnly(DateTime.now()),
+                      )
+                      ? 'Choose today or a future date'
+                      : null;
+                },
+                builder: (field) => AppDateField(
+                  key: const Key('vaccination-next-date'),
+                  labelText: 'Next dose date (optional)',
+                  value: _nextDoseDate,
+                  firstDate: _nextDoseFirstDate,
+                  lastDate: DateTime(2100, 12, 31),
+                  clearable: true,
+                  errorText: field.errorText,
+                  onChanged: (date) {
+                    setState(() => _nextDoseDate = date);
+                    field.didChange(date);
+                  },
                 ),
+              ),
             ],
           ),
         ),
-      ),
-      VerticalGap.md,
-    ],
-    const AppSectionHeading(
-      title: 'Vaccine details',
-      icon: Icons.vaccines_outlined,
-    ),
-    VerticalGap.md,
-    AppSuggestionField(
-      key: const Key('vaccination-name'),
-      label: 'Vaccine name',
-      controller: _vaccine,
-      suggestions: state.suggestions.vaccineNames,
-      validator: (value) {
-        final text = value?.trim() ?? '';
-        if (text.isEmpty) return 'Enter a vaccine name';
-        return text.characters.length > 50
-            ? 'Keep vaccine name within 50 characters'
-            : null;
-      },
-    ),
-    VerticalGap.md,
-    DropdownButtonFormField<VaccinationStatus>(
-      initialValue: _status,
-      isExpanded: true,
-      borderRadius: BorderRadius.circular(AppSpacing.md),
-      decoration: const InputDecoration(labelText: 'Status'),
-      items: const [
-        DropdownMenuItem(
-          value: VaccinationStatus.administered,
-          child: Text('Administered'),
-        ),
-        DropdownMenuItem(
-          value: VaccinationStatus.planned,
-          child: Text('Planned'),
-        ),
       ],
-      onChanged: _changeStatus,
-    ),
-    VerticalGap.md,
-    FormField<DateTime>(
-      autovalidateMode: AutovalidateMode.onUserInteraction,
-      validator: (_) {
-        final today = DateUtils.dateOnly(DateTime.now());
-        if (_status == VaccinationStatus.planned && _date.isBefore(today)) {
-          return 'Choose today or a future date';
-        }
-        if (_status == VaccinationStatus.administered && _date.isAfter(today)) {
-          return 'Choose today or an earlier date';
-        }
-        return null;
-      },
-      builder: (field) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppDateField(
-            key: const Key('vaccination-date'),
-            labelText: _status == VaccinationStatus.planned
-                ? 'Planned date'
-                : 'Administration date',
-            value: _date,
-            readOnly: _visitId != null,
-            firstDate: _status == VaccinationStatus.planned
-                ? DateUtils.dateOnly(DateTime.now())
-                : DateTime(1900),
-            lastDate: _status == VaccinationStatus.planned
-                ? DateTime(2100, 12, 31)
-                : DateTime.now(),
-            errorText: field.errorText,
-            onChanged: (date) {
-              if (date == null) return;
-              setState(() => _date = date);
-              field.didChange(date);
-            },
-          ),
-          if (_visitId != null) ...[
-            VerticalGap.xs,
-            Text(
-              'Date from linked vet visit',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ],
-      ),
-    ),
-    VerticalGap.xl,
-    const AppSectionHeading(
-      title: 'Clinic & veterinarian',
-      icon: Icons.local_hospital_outlined,
-    ),
-    VerticalGap.md,
-    if (_status == VaccinationStatus.administered) ..._visitOptions(state),
-    AppSuggestionField(
-      key: const Key('vaccination-clinic'),
-      label: 'Clinic (optional)',
-      loading: state.isLoadingSuggestions,
-      controller: _clinic,
-      suggestions: state.suggestions.clinicNames,
-      onChanged: (value) => context
-          .read<VaccinationFormCubit>()
-          .loadSuggestions(clinicName: value),
-    ),
-    VerticalGap.md,
-    AppSuggestionField(
-      key: const Key('vaccination-veterinarian'),
-      label: 'Veterinarian (optional)',
-      controller: _veterinarian,
-      suggestions: state.suggestions.veterinarianNames,
-    ),
-    if (state.suggestionsError != null) ...[
-      VerticalGap.sm,
-      _error(state.suggestionsError!),
-      Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: TextButton(
-          style: TextButton.styleFrom(
-            minimumSize: const Size(48, 48),
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            alignment: AlignmentDirectional.centerStart,
-          ),
-          onPressed: () => context.read<VaccinationFormCubit>().loadSuggestions(
-            clinicName: _clinic.text,
-          ),
-          child: const Text('Retry suggestions'),
-        ),
-      ),
     ],
-    VerticalGap.xl,
-    const AppSectionHeading(title: 'Notes', icon: Icons.notes_outlined),
-    VerticalGap.md,
-    TextFormField(
-      key: const Key('vaccination-notes'),
-      controller: _notes,
-      textCapitalization: TextCapitalization.sentences,
-      decoration: const InputDecoration(labelText: 'Notes (optional)'),
-      minLines: 1,
-      maxLines: 4,
-      validator: (value) => (value?.characters.length ?? 0) > 200
-          ? 'Keep notes within 200 characters'
-          : null,
-    ),
-    if (_canPlanNextDose) ...[
-      VerticalGap.xl,
-      const AppSectionHeading(
-        title: 'Next dose',
-        icon: Icons.event_repeat_outlined,
-      ),
-      VerticalGap.sm,
-      const Text('Optionally create a separate plan for the next dose.'),
-      VerticalGap.md,
-      FormField<DateTime>(
-        validator: (_) {
-          if (_nextDoseDate == null) return null;
-          if (!_nextDoseDate!.isAfter(_date)) {
-            return 'Choose a date after the administration date';
-          }
-          return _nextDoseDate!.isBefore(DateUtils.dateOnly(DateTime.now()))
-              ? 'Choose today or a future date'
-              : null;
-        },
-        builder: (field) => AppDateField(
-          key: const Key('vaccination-next-date'),
-          labelText: 'Next dose date (optional)',
-          value: _nextDoseDate,
-          firstDate: _nextDoseFirstDate,
-          lastDate: DateTime(2100, 12, 31),
-          clearable: true,
-          errorText: field.errorText,
-          onChanged: (date) {
-            setState(() => _nextDoseDate = date);
-            field.didChange(date);
-          },
-        ),
-      ),
-    ],
-    if (widget.vaccination == null) ...[VerticalGap.xl, _saveActions(saving)],
-  ];
+  );
 
   DateTime get _nextDoseFirstDate {
     final afterAdministration = DateTime(
@@ -535,84 +543,42 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
               }
             }
           }
-          if (state.isSaved) {
-            _leave(result: true);
-          } else if (state.saveError != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              final errorContext = _saveErrorKey.currentContext;
-              if (mounted && errorContext != null) {
-                Scrollable.ensureVisible(
-                  errorContext,
-                  alignment: 0,
-                  duration: const Duration(milliseconds: 200),
-                );
-              }
-            });
-          }
+          if (state.isSaved) _leave(result: true);
         },
-        builder: (context, state) {
-          final saving = state.isSaving || state.isSaved;
-          return PopScope<bool>(
-            canPop: !state.isSaving && (_allowPop || !_hasChanges),
-            onPopInvokedWithResult: (didPop, _) {
-              if (!didPop && !saving) _requestExit();
-            },
-            child: Scaffold(
-              appBar: AppBar(
-                toolbarHeight: PetCareTitle.toolbarHeight(context),
-                title: PetCareTitle(
-                  title: widget.recordAdministration
-                      ? 'Record administration'
-                      : widget.vaccination == null
-                      ? 'Add vaccination'
-                      : 'Edit vaccination',
-                  petName: widget.petName,
-                ),
-                leading: IconButton(
-                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                  onPressed: saving ? null : _requestExit,
-                  icon: const BackButtonIcon(),
-                ),
-              ),
-              body: Column(
-                children: [
-                  Expanded(
-                    child: SafeArea(
-                      bottom: widget.vaccination == null,
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 640),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) =>
-                                AppFormScrollView(
-                                  padding: const EdgeInsets.all(AppSpacing.lg),
-                                  child: AbsorbPointer(
-                                    absorbing: saving,
-                                    child: Form(
-                                      key: _formKey,
-                                      onChanged: () => setState(() {}),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: _fields(
-                                          state,
-                                          saving,
-                                          constraints.maxHeight,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (widget.vaccination != null) _saveActions(saving),
-                ],
-              ),
+        builder: (context, state) => AppPhasedForm(
+          title: PetCareTitle(
+            title: widget.recordAdministration
+                ? 'Record administration'
+                : widget.vaccination == null
+                ? 'Add vaccination'
+                : 'Edit vaccination',
+            petName: widget.petName,
+          ),
+          toolbarHeight: PetCareTitle.toolbarHeight(context),
+          editing: widget.vaccination != null,
+          isSaving: () {
+            final current = context.read<VaccinationFormCubit>().state;
+            return current.isSaving || current.isSaved;
+          },
+          allowPop: _allowPop,
+          canSubmit: widget.vaccination == null || _hasChanges,
+          submitLabel: widget.vaccination == null
+              ? 'Add vaccination'
+              : 'Save changes',
+          saveError: state.saveError,
+          onSubmit: _submit,
+          onExit: _requestExit,
+          onChanged: () => setState(() {}),
+          steps: [
+            AppFormStep(
+              title: 'Vaccination',
+              builder: (_, _) => _vaccinationDetails(state),
             ),
-          );
-        },
+            AppFormStep(
+              title: 'Review',
+              builder: (_, edit) => _review(state, edit),
+            ),
+          ],
+        ),
       );
 }
