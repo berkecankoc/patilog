@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_error_feedback.dart';
 
 void main() {
   late TextEditingController name;
@@ -10,6 +11,7 @@ void main() {
   var exits = 0;
   var saving = false;
   String? error;
+  Widget? status;
   late StateSetter rebuild;
 
   setUp(() {
@@ -19,6 +21,7 @@ void main() {
     exits = 0;
     saving = false;
     error = null;
+    status = null;
   });
   tearDown(() {
     name.dispose();
@@ -60,6 +63,7 @@ void main() {
                 canSubmit: true,
                 submitLabel: submitLabel,
                 saveError: error,
+                status: status,
                 onSubmit: () => saves++,
                 onExit: () => exits++,
                 onChanged: () => setState(() {}),
@@ -235,6 +239,40 @@ void main() {
       tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
       isNull,
     );
+  });
+
+  testWidgets('status changes keep the current step, draft and fixed actions', (
+    tester,
+  ) async {
+    name.text = 'Milo';
+    status = AppErrorFeedback(
+      message: 'History unavailable',
+      retryLabel: 'Retry history',
+      onRetry: () => rebuild(() {
+        status = const LinearProgressIndicator(
+          semanticsLabel: 'Checking history',
+        );
+      }),
+    );
+    await pump(tester, editing: true, size: const Size(320, 568), scale: 2);
+    final edit = find.widgetWithText(TextButton, 'Edit');
+    await tester.ensureVisible(edit);
+    await tester.pumpAndSettle();
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Name'), 'Buddy');
+    await tester.tap(find.text('Retry history'));
+    await tester.pump();
+    expect(find.text('Step 1 of 2 · Details'), findsOneWidget);
+    expect(name.text, 'Buddy');
+    expect(find.text('Done').hitTestable(), findsOneWidget);
+    rebuild(() => status = null);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Done');
+    expect(find.text('Step 2 of 2 · Review'), findsOneWidget);
+    expect(find.text('Buddy'), findsOneWidget);
+    expect(saves, 0);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('saving guard applies before the next rendered frame', (

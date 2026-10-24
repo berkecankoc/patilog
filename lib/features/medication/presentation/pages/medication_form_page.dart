@@ -5,7 +5,6 @@ import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_phased_form.dart';
-import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:petlytics/core/widgets/app_suggestion_field.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
@@ -38,8 +37,6 @@ class MedicationFormPage extends StatefulWidget {
 }
 
 class _MedicationFormPageState extends State<MedicationFormPage> {
-  final _form = GlobalKey<FormState>();
-  final _scroll = ScrollController();
   final _details = ExpansibleController();
   final _name = TextEditingController();
   final _dosage = TextEditingController();
@@ -49,7 +46,6 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
   final _notes = TextEditingController();
   final _times = <TextEditingController>[];
   final _allocatedTimes = <TextEditingController>[];
-  final _history = <int>[];
   MedicationPeriod? _period;
   late DateTime _start;
   late DateTime _changeStart;
@@ -57,7 +53,6 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
   DateTime? _end;
   String? _visitId;
   late String _initial;
-  late int _step;
   bool _daily = true;
   bool _allowPop = false;
   bool _confirming = false;
@@ -131,11 +126,6 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     for (final minute in _period?.doseTimes ?? [now.hour * 60 + now.minute]) {
       _addTime(formatDoseTime(minute));
     }
-    _step = widget.newSchedule
-        ? 1
-        : _editing
-        ? 2
-        : 0;
     _initial = _snapshot;
     context.read<MedicationFormCubit>().loadSuggestions(
       clinicName: _clinic.text,
@@ -157,7 +147,6 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
 
   @override
   void dispose() {
-    _scroll.dispose();
     _details.dispose();
     for (final controller in [..._fields, ..._allocatedTimes]) {
       controller.dispose();
@@ -165,44 +154,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     super.dispose();
   }
 
-  void _move(int step) {
-    FocusScope.of(context).unfocus();
-    setState(() => _step = step);
-    if (_scroll.hasClients) _scroll.jumpTo(0);
-  }
-
-  void _edit(int step) {
-    _history.add(_step);
-    _move(step);
-  }
-
-  bool _validate() {
-    final errors = _form.currentState!.validateGranularly();
-    if (errors.isEmpty) return true;
-    Scrollable.ensureVisible(errors.first.context, alignment: 0.1);
-    return false;
-  }
-
-  void _continue() {
-    if (!_validate()) return;
-    if (_history.isNotEmpty && _history.last == 2) {
-      _history.removeLast();
-      _move(2);
-    } else {
-      final next = _step + 1;
-      _history.add(_step);
-      _move(next);
-    }
-  }
-
-  Future<void> _back() async {
+  Future<void> _requestExit() async {
     if (_allowPop ||
         _confirming ||
         context.read<MedicationFormCubit>().state.isSaving) {
-      return;
-    }
-    if (_history.isNotEmpty) {
-      _move(_history.removeLast());
       return;
     }
     if (_dirty) {
@@ -251,43 +206,19 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       ? 'End date must be on or after the start date.'
       : null;
 
-  void _invalidStep(int step) {
-    _edit(step);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _validate();
-    });
-  }
-
   void _submit() {
-    if (_step != 2) return;
     final cubit = context.read<MedicationFormCubit>();
     final state = cubit.state;
     if (_allowPop ||
         _confirming ||
         state.isSaving ||
         state.isSaved ||
+        (_editing &&
+            !widget.newSchedule &&
+            (state.isCheckingPeriod || state.hasDoseLogs == null)) ||
         (_editing && !_dirty && !widget.newSchedule)) {
       return;
     }
-    if (_nameError(_name.text) != null || _limit(_dosage.text, 100) != null) {
-      _invalidStep(0);
-      return;
-    }
-    if (_scheduleError != null ||
-        _times.any((time) => _timeError(time.text) != null) ||
-        (!_daily && (int.tryParse(_interval.text) ?? 0) < 1)) {
-      _invalidStep(1);
-      return;
-    }
-    if (_limit(_notes.text, 200) != null && !_details.isExpanded) {
-      _details.expand();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _validate();
-      });
-      return;
-    }
-    if (!_validate()) return;
-    FocusScope.of(context).unfocus();
     if (!_editing) {
       cubit.createMedication(
         CreateMedicationParams(
@@ -514,21 +445,13 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     ],
   );
 
-  Widget _summary(String title, IconData icon, Widget child, int step) =>
-      AppFormReviewSection(
-        title: title,
-        icon: icon,
-        child: child,
-        onEdit: () => _edit(step),
-      );
-
   void _loadOptions() {
     if (_optionsRequested) return;
     _optionsRequested = true;
     context.read<MedicationFormCubit>().loadVisits(widget.petId);
   }
 
-  Widget _review(MedicationFormState state) {
+  Widget _review(MedicationFormState state, ValueChanged<int> edit) {
     final dates = MaterialLocalizations.of(context);
     final ids = state.visits.map((visit) => visit.id).toSet();
     final options = <String?>[
@@ -562,10 +485,11 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
             ),
           ),
         const SizedBox(height: 16),
-        _summary(
-          'Medication',
-          Icons.medication_outlined,
-          Column(
+        AppFormReviewSection(
+          title: 'Medication',
+          icon: Icons.medication_outlined,
+          onEdit: () => edit(0),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(_name.text, style: Theme.of(context).textTheme.titleMedium),
@@ -575,13 +499,13 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
               ],
             ],
           ),
-          0,
         ),
         const SizedBox(height: 16),
-        _summary(
-          'Schedule',
-          Icons.schedule_outlined,
-          Column(
+        AppFormReviewSection(
+          title: 'Schedule',
+          icon: Icons.schedule_outlined,
+          onEdit: () => edit(1),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
@@ -602,7 +526,6 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                 ),
             ],
           ),
-          1,
         ),
         const SizedBox(height: 16),
         AppFormOptionalSection(
@@ -710,26 +633,17 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) => BlocConsumer<MedicationFormCubit, MedicationFormState>(
-    listener: (_, state) {
-      if (state.isSaved) _leave(true);
-    },
-    builder: (context, state) {
-      final returningToReview = _step < 2 && _history.lastOrNull == 2;
-      final checking =
-          _editing &&
-          !widget.newSchedule &&
-          (state.isCheckingPeriod || state.hasDoseLogs == null);
-      return PopScope<bool>(
-        canPop: _allowPop,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) _back();
+  Widget build(BuildContext context) =>
+      BlocConsumer<MedicationFormCubit, MedicationFormState>(
+        listener: (_, state) {
+          if (state.isSaved) _leave(true);
         },
-        child: Scaffold(
-          appBar: AppBar(
-            toolbarHeight: PetCareTitle.toolbarHeight(context),
+        builder: (context, state) {
+          final checking =
+              _editing &&
+              !widget.newSchedule &&
+              (state.isCheckingPeriod || state.hasDoseLogs == null);
+          return AppPhasedForm(
             title: PetCareTitle(
               title: widget.newSchedule
                   ? 'Schedule doses'
@@ -738,128 +652,76 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                   : 'Add medication',
               petName: widget.petName,
             ),
-            leading: BackButton(onPressed: state.isSaving ? null : _back),
-            actions: [
-              if (MediaQuery.viewInsetsOf(context).bottom > 0)
-                const AppHideKeyboardButton(),
-            ],
-          ),
-          body: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(overscroll: false),
-            child: SafeArea(
-              bottom: false,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 640),
-                  child: Column(
-                    children: [
-                      if (state.saveError != null || state.periodError != null)
-                        Flexible(
-                          child: AppErrorFeedback(
-                            message: state.saveError ?? state.periodError!,
-                            retryLabel: state.saveError != null
-                                ? 'Review changes'
-                                : 'Retry dose history',
-                            onRetry: state.saveError != null
-                                ? (_step == 2 ? null : () => _edit(2))
-                                : () => context
-                                      .read<MedicationFormCubit>()
-                                      .checkPeriod(
-                                        widget.petId,
-                                        widget.medication!.id,
-                                        _period!.id,
-                                      ),
-                          ),
+            toolbarHeight: PetCareTitle.toolbarHeight(context),
+            editing: _editing,
+            initialStep: widget.newSchedule ? 1 : null,
+            isSaving: () {
+              final current = context.read<MedicationFormCubit>().state;
+              return current.isSaving || current.isSaved;
+            },
+            allowPop: _allowPop,
+            canSubmit: !checking && (_dirty || !_editing || widget.newSchedule),
+            submitLabel: widget.newSchedule
+                ? 'Schedule doses'
+                : _editing
+                ? 'Save changes'
+                : 'Add medication',
+            saveError: state.saveError,
+            status: state.periodError != null
+                ? AppErrorFeedback(
+                    message: state.periodError!,
+                    retryLabel: 'Retry dose history',
+                    onRetry: () =>
+                        context.read<MedicationFormCubit>().checkPeriod(
+                          widget.petId,
+                          widget.medication!.id,
+                          _period!.id,
                         ),
-                      if (checking && state.periodError == null)
-                        const LinearProgressIndicator(
-                          semanticsLabel: 'Checking dose history',
-                        ),
-                      Expanded(
-                        child: Overlay.wrap(
-                          child: AbsorbPointer(
-                            absorbing: state.isSaving,
-                            child: Form(
-                              key: _form,
-                              child: ListView(
-                                key: ValueKey(_step),
-                                controller: _scroll,
-                                physics: const ClampingScrollPhysics(),
-                                keyboardDismissBehavior:
-                                    ScrollViewKeyboardDismissBehavior.onDrag,
-                                padding: const EdgeInsets.all(24),
-                                children: [
-                                  Semantics(
-                                    liveRegion: true,
-                                    child: Text(
-                                      'Step ${_step + 1} of 3 · ${['Medication', 'Schedule', 'Review'][_step]}',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  LinearProgressIndicator(
-                                    value: (_step + 1) / 3,
-                                    semanticsLabel: 'Current form step',
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  switch (_step) {
-                                    0 => _medication(state),
-                                    1 => AbsorbPointer(
-                                      absorbing: checking,
-                                      child: _schedule(),
-                                    ),
-                                    _ => _review(state),
-                                  },
-                                  if (state.suggestionsError != null)
-                                    AppErrorFeedback(
-                                      message: state.suggestionsError!,
-                                      retryLabel: 'Retry suggestions',
-                                      onRetry: () => context
-                                          .read<MedicationFormCubit>()
-                                          .loadSuggestions(
-                                            clinicName: _clinic.text,
-                                          ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      AppFormNavigationActions(
-                        keyboardVisible:
-                            MediaQuery.viewInsetsOf(context).bottom > 0,
-                        key: const ValueKey('medication-form-actions'),
-                        label: _step < 2
-                            ? (returningToReview ? 'Done' : 'Continue')
-                            : widget.newSchedule
-                            ? 'Schedule doses'
-                            : _editing
-                            ? 'Save changes'
-                            : 'Add medication',
-                        saving: state.isSaving,
-                        onBack: !returningToReview && _history.isNotEmpty
-                            ? _back
-                            : null,
-                        onPressed: state.isSaving
-                            ? null
-                            : _step < 2
-                            ? _continue
-                            : checking ||
-                                  (_editing && !_dirty && !widget.newSchedule)
-                            ? null
-                            : _submit,
-                      ),
-                    ],
-                  ),
+                  )
+                : checking
+                ? const LinearProgressIndicator(
+                    semanticsLabel: 'Checking dose history',
+                  )
+                : null,
+            onSubmit: _submit,
+            onExit: _requestExit,
+            onChanged: () => setState(() {}),
+            steps: [
+              AppFormStep(
+                title: 'Medication',
+                builder: (_, _) =>
+                    _withSuggestionsError(state, _medication(state)),
+              ),
+              AppFormStep(
+                title: 'Schedule',
+                builder: (_, _) => _withSuggestionsError(
+                  state,
+                  AbsorbPointer(absorbing: checking, child: _schedule()),
                 ),
               ),
-            ),
-          ),
-        ),
+              AppFormStep(
+                title: 'Review',
+                builder: (_, edit) =>
+                    _withSuggestionsError(state, _review(state, edit)),
+              ),
+            ],
+          );
+        },
       );
-    },
-  );
+
+  Widget _withSuggestionsError(MedicationFormState state, Widget child) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          child,
+          if (state.suggestionsError != null)
+            AppErrorFeedback(
+              message: state.suggestionsError!,
+              retryLabel: 'Retry suggestions',
+              onRetry: () => context
+                  .read<MedicationFormCubit>()
+                  .loadSuggestions(clinicName: _clinic.text),
+            ),
+        ],
+      );
 }

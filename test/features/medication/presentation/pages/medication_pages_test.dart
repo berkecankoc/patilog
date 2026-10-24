@@ -12,6 +12,8 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_keyboard.dart';
+import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
+import 'package:petlytics/core/widgets/app_phased_form.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
@@ -452,7 +454,7 @@ void main() {
           matching: find.byType(Material),
         )
         .first;
-    final actions = find.byKey(const ValueKey('medication-form-actions'));
+    final actions = find.byKey(const ValueKey('phased-form-actions'));
     expect(
       tester.getRect(menu).bottom,
       lessThanOrEqualTo(tester.getRect(actions).top),
@@ -541,7 +543,7 @@ void main() {
       ),
       findsNothing,
     );
-    await tester.drag(find.byType(ListView).last, const Offset(0, -700));
+    await tester.drag(find.byType(AppFormScrollView), const Offset(0, -700));
     await tester.pump();
     expect(tester.takeException(), isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
@@ -682,13 +684,115 @@ void main() {
       location: AppRoutes.addEditMedication('pet'),
       bottomInset: 34,
     );
-    final footer = find.byKey(const ValueKey('medication-form-actions'));
+    final footer = find.byKey(const ValueKey('phased-form-actions'));
     expect(tester.getBottomRight(footer).dy, 844);
     expect(
       tester.getBottomRight(find.widgetWithText(ElevatedButton, 'Continue')).dy,
       lessThanOrEqualTo(810),
     );
   });
+
+  testWidgets(
+    'new schedule starts at Schedule and Back preserves its draft before exit',
+    (tester) async {
+      app.medications = [app.sample()];
+      final router = await app.pump(tester);
+      unawaited(
+        router.push<bool>(
+          AppRoutes.addEditMedication('pet'),
+          extra: MedicationFormExtra(
+            petId: 'pet',
+            petName: 'Simba',
+            medication: app.medications.single,
+            newSchedule: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AppPhasedForm), findsOneWidget);
+      expect(find.text('Step 2 of 3 · Schedule'), findsOneWidget);
+      final time = find.widgetWithText(TextFormField, '08:00');
+      await tester.ensureVisible(time);
+      await tester.enterText(time, '0930');
+      await tap(tester, 'Continue');
+      expect(find.text('Step 3 of 3 · Review'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Step 2 of 3 · Schedule'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, '09:30'), findsOneWidget);
+      await tester.tap(find.byType(BackButton).last);
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Keep editing'));
+      await tester.pumpAndSettle();
+      await tap(tester, 'Continue');
+      await tap(tester, 'Schedule doses');
+      expect(app.medications.single.periods.length, 2);
+      expect(app.medications.single.periods.last.doseTimes, [570, 1200]);
+      verify(
+        () => app.repository.createPeriod(
+          'pet',
+          any(),
+          medicationName: 'Medication A',
+        ),
+      ).called(1);
+    },
+  );
+
+  testWidgets(
+    'dose history failure keeps the edited draft and retry unlocks saving',
+    (tester) async {
+      final pending = Completer<Result<bool>>();
+      when(
+        () => app.repository.hasDoseLogs('pet', 'med', 'period'),
+      ).thenAnswer((_) => pending.future);
+      app.medications = [app.sample()];
+      final router = await app.pump(tester);
+      unawaited(
+        router.push<bool>(
+          AppRoutes.addEditMedication('pet'),
+          extra: MedicationFormExtra(
+            petId: 'pet',
+            medication: app.medications.single,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.widgetWithText(TextButton, 'Edit').first);
+      await tester.pump();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Medication name'),
+        'Draft name',
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Done'));
+      await tester.pump();
+      expect(
+        tester
+            .widget<ElevatedButton>(
+              find.widgetWithText(ElevatedButton, 'Save changes'),
+            )
+            .onPressed,
+        isNull,
+      );
+      pending.complete(
+        const Error(LocalDatabaseFailure('History unavailable')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('History unavailable').hitTestable(), findsOneWidget);
+      expect(find.text('Draft name'), findsOneWidget);
+      when(
+        () => app.repository.hasDoseLogs('pet', 'med', 'period'),
+      ).thenAnswer((_) async => const Success(false));
+      await tester.tap(find.text('Retry dose history'));
+      await tester.pumpAndSettle();
+      expect(find.text('History unavailable'), findsNothing);
+      expect(find.text('Draft name'), findsOneWidget);
+      await tap(tester, 'Save changes');
+      expect(app.medications.single.name, 'Draft name');
+      expect(app.medications.single.periods.length, 1);
+    },
+  );
 
   testWidgets(
     'dose calendar stays in detail and opens mixed day records without a list round trip',

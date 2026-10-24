@@ -18,12 +18,14 @@ class AppPhasedForm extends StatefulWidget {
   final double? toolbarHeight;
   final List<AppFormStep> steps;
   final bool editing;
+  final int? initialStep;
   final bool Function() isSaving;
   bool get saving => isSaving();
   final bool allowPop;
   final bool canSubmit;
   final String submitLabel;
   final String? saveError;
+  final Widget? status;
   final VoidCallback onSubmit;
   final VoidCallback onExit;
   final VoidCallback onChanged;
@@ -34,11 +36,13 @@ class AppPhasedForm extends StatefulWidget {
     this.toolbarHeight,
     required this.steps,
     required this.editing,
+    this.initialStep,
     required this.isSaving,
     required this.allowPop,
     required this.canSubmit,
     required this.submitLabel,
     this.saveError,
+    this.status,
     required this.onSubmit,
     required this.onExit,
     required this.onChanged,
@@ -53,7 +57,8 @@ class _AppPhasedFormState extends State<AppPhasedForm> {
     widget.steps.length,
     (_) => GlobalKey<FormState>(),
   );
-  late int _step = widget.editing ? widget.steps.length - 1 : 0;
+  late int _step =
+      widget.initialStep ?? (widget.editing ? widget.steps.length - 1 : 0);
   final _history = <int>[];
 
   int get _review => widget.steps.length - 1;
@@ -141,6 +146,8 @@ class _AppPhasedFormState extends State<AppPhasedForm> {
                 child: LayoutBuilder(
                   builder: (context, constraints) => Column(
                     children: [
+                      if (widget.status != null)
+                        Flexible(child: widget.status!),
                       if (widget.saveError != null)
                         ConstrainedBox(
                           constraints: BoxConstraints(
