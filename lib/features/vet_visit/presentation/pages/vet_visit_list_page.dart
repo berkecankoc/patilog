@@ -1,3 +1,6 @@
+import 'package:petlytics/core/widgets/pet_care_tabs.dart';
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +9,6 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/my_pets_button.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
@@ -25,7 +27,8 @@ class VetVisitListPage extends StatelessWidget {
       AppRoutes.addEditVetVisit(petId),
       extra: VetVisitFormExtra(petId: petId, petName: petName),
     );
-    if (saved == true && context.mounted) {
+    if (!context.mounted || PetCareChanges.maybeOf(context) != null) return;
+    if (saved == true) {
       await context.read<VetVisitCubit>().loadVetVisits(petId);
     }
   }
@@ -35,7 +38,7 @@ class VetVisitListPage extends StatelessWidget {
       AppRoutes.vetVisitDetail(petId, visit.id),
       extra: PetCareRouteExtra(petId: petId, petName: petName),
     );
-    if (!context.mounted) return;
+    if (!context.mounted || PetCareChanges.maybeOf(context) != null) return;
     final cubit = context.read<VetVisitCubit>();
     if (deletedId != null) {
       cubit.removeDeletedVisit(deletedId);
@@ -48,6 +51,17 @@ class VetVisitListPage extends StatelessWidget {
     final confirmed = await confirmVetVisitDeletion(context, visit);
     if (confirmed && context.mounted) {
       await context.read<VetVisitCubit>().deleteListedVisit(visit);
+      if (!context.mounted) return;
+      if (context.read<VetVisitCubit>().state case VetVisitsLoaded(
+        :final visits,
+      ) when !visits.any((item) => item.id == visit.id)) {
+        PetCareChanges.recordChanged(
+          context,
+          petId,
+          PetCareTab.vetVisits,
+          listIsCurrent: true,
+        );
+      }
     }
   }
 
@@ -62,27 +76,14 @@ class VetVisitListPage extends StatelessWidget {
         return PopScope(
           canPop: !deleting,
           child: Scaffold(
-            appBar: AppBar(
-              toolbarHeight: PetCareTitle.toolbarHeight(context),
+            appBar: petCareAppBar(
+              context,
               title: PetCareTitle(title: 'Vet visits', petName: petName),
-              actions: [MyPetsButton(enabled: !busy)],
-              leading: deleting
-                  ? IconButton(
-                      tooltip: MaterialLocalizations.of(
-                        context,
-                      ).backButtonTooltip,
-                      onPressed: null,
-                      icon: const BackButtonIcon(),
-                    )
-                  : null,
-              bottom: busy
-                  ? PreferredSize(
-                      preferredSize: const Size.fromHeight(4),
-                      child: LinearProgressIndicator(
-                        semanticsLabel: deleting
-                            ? 'Deleting visit'
-                            : 'Refreshing visits',
-                      ),
+              toolbarHeight: PetCareTitle.toolbarHeight(context),
+              busy: deleting,
+              progress: busy
+                  ? const LinearProgressIndicator(
+                      semanticsLabel: 'Updating visits',
                     )
                   : null,
             ),

@@ -12,6 +12,7 @@ final class PetCubit extends Cubit<PetState> {
   final CreatePet _createPet;
   final UpdatePet _updatePet;
   final DeletePet _deletePet;
+  int _petRequest = 0;
 
   PetCubit(this.repository, this._createPet, this._updatePet, this._deletePet)
     : super(const PetInitial());
@@ -31,10 +32,11 @@ final class PetCubit extends Cubit<PetState> {
   }
 
   Future<void> getPetById(String id) async {
+    final request = ++_petRequest;
     emit(const PetLoading());
 
     final result = await repository.getPetById(id);
-    if (isClosed) return;
+    if (isClosed || request != _petRequest) return;
 
     switch (result) {
       case Success<Pet>():
@@ -58,6 +60,32 @@ final class PetCubit extends Cubit<PetState> {
     }
   }
 
+  Future<void> refreshPet(String id) async {
+    final current = state;
+    if (isClosed ||
+        current is! PetLoaded ||
+        current.pet.id != id ||
+        current.isDeleting ||
+        current.isRefreshing) {
+      return;
+    }
+    final request = ++_petRequest;
+    emit(PetLoaded(current.pet, isRefreshing: true));
+    final result = await repository.getPetById(id);
+    if (isClosed ||
+        request != _petRequest ||
+        state is! PetLoaded ||
+        (state as PetLoaded).isDeleting) {
+      return;
+    }
+    switch (result) {
+      case Success<Pet>():
+        emit(PetLoaded(result.data));
+      case Error<Pet>():
+        emit(PetLoaded(current.pet, refreshError: result.failure.message));
+    }
+  }
+
   Future<void> updatePet(Pet pet, UpdatePetParams params) async {
     emit(const PetLoading());
 
@@ -74,6 +102,7 @@ final class PetCubit extends Cubit<PetState> {
 
   Future<void> deletePet(Pet pet) async {
     if (state case PetLoaded(isDeleting: true)) return;
+    ++_petRequest;
     emit(PetLoaded(pet, isDeleting: true));
 
     final result = await _deletePet(pet);

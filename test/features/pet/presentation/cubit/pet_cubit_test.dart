@@ -116,6 +116,58 @@ void main() {
       expect: () => [const PetLoading(), const PetError('Pet not found')],
     );
   });
+  group('refreshPet', () {
+    blocTest<PetCubit, PetState>(
+      'keeps the loaded profile while refreshing and retains it on failure',
+      build: () {
+        when(() => repository.getPetById(pet.id)).thenAnswer(
+          (_) async => const Error(LocalDatabaseFailure('Refresh failed')),
+        );
+        return PetCubit(repository, createPet, updatePet, deletePet);
+      },
+      seed: () => const PetLoaded(pet),
+      act: (cubit) => cubit.refreshPet(pet.id),
+      expect: () => [
+        const PetLoaded(pet, isRefreshing: true),
+        const PetLoaded(pet, refreshError: 'Refresh failed'),
+      ],
+    );
+    blocTest<PetCubit, PetState>(
+      'refresh replaces the profile without a loading-only state',
+      build: () {
+        when(
+          () => repository.getPetById(pet.id),
+        ).thenAnswer((_) async => Success(pet.copyWith(weight: 4.5)));
+        return PetCubit(repository, createPet, updatePet, deletePet);
+      },
+      seed: () => const PetLoaded(pet),
+      act: (cubit) => cubit.refreshPet(pet.id),
+      expect: () => [
+        const PetLoaded(pet, isRefreshing: true),
+        PetLoaded(pet.copyWith(weight: 4.5)),
+      ],
+    );
+    test('a late refresh cannot clear a deletion failure', () async {
+      when(
+        () => repository.getPetById(pet.id),
+      ).thenAnswer((_) async => const Success(pet));
+      final cubit = PetCubit(repository, createPet, updatePet, deletePet);
+      addTearDown(cubit.close);
+      await cubit.getPetById(pet.id);
+      final pending = Completer<Result<Pet>>();
+      when(
+        () => repository.getPetById(pet.id),
+      ).thenAnswer((_) => pending.future);
+      when(() => deletePet(pet)).thenAnswer(
+        (_) async => const Error(LocalDatabaseFailure('Delete failed')),
+      );
+      final refresh = cubit.refreshPet(pet.id);
+      await cubit.deletePet(pet);
+      pending.complete(const Success(pet));
+      await refresh;
+      expect(cubit.state, const PetLoaded(pet, deleteError: 'Delete failed'));
+    });
+  });
   group('createPet', () {
     blocTest<PetCubit, PetState>(
       'emits PetLoading and PetCreated when use case succeeds',

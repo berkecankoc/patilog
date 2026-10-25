@@ -8,20 +8,45 @@ import 'package:petlytics/features/weight_history/presentation/cubit/weight_hist
 final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
   final WeightHistoryRepository repository;
   final IdGenerator _idGenerator;
+  int _loadRequest = 0;
 
   WeightHistoryCubit(this.repository, this._idGenerator)
     : super(const WeightHistoryInitial());
 
   Future<void> loadWeightHistory(String petId) async {
-    emit(const WeightHistoryLoading());
+    if (isClosed ||
+        state is WeightHistoryLoaded &&
+            (state as WeightHistoryLoaded).isDeleting) {
+      return;
+    }
+    final previous =
+        state is WeightHistoryLoaded &&
+            (state as WeightHistoryLoaded).entries.every(
+              (entry) => entry.petId == petId,
+            )
+        ? state as WeightHistoryLoaded
+        : null;
+    final request = ++_loadRequest;
+    emit(
+      previous == null
+          ? const WeightHistoryLoading()
+          : WeightHistoryLoaded(previous.entries, isRefreshing: true),
+    );
     final result = await repository.getWeightEntries(petId);
-    if (isClosed) return;
+    if (isClosed || request != _loadRequest) return;
 
     switch (result) {
       case Success<List<WeightEntry>>():
         emit(WeightHistoryLoaded(result.data));
       case Error<List<WeightEntry>>():
-        emit(WeightHistoryError(result.failure.message));
+        emit(
+          previous == null
+              ? WeightHistoryError(result.failure.message)
+              : WeightHistoryLoaded(
+                  previous.entries,
+                  refreshError: result.failure.message,
+                ),
+        );
     }
   }
 
@@ -74,6 +99,7 @@ final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
   Future<void> deleteWeightEntry(WeightEntry entry) async {
     final current = state;
     if (current is! WeightHistoryLoaded || current.isDeleting) return;
+    ++_loadRequest;
     emit(
       WeightHistoryLoaded(
         current.entries,

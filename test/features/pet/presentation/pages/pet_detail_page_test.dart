@@ -94,10 +94,8 @@ void main() {
           );
           expect(find.byTooltip('Edit profile'), findsOneWidget);
           expect(find.byTooltip('My pets'), findsNothing);
-          expect(
-            tester.getTopLeft(find.text('Profile details')).dy,
-            lessThan(tester.getTopLeft(find.text('Care records')).dy),
-          );
+          expect(find.text('Care records'), findsNothing);
+          expect(find.byType(ExpansionTile), findsNothing);
           expect(
             find.descendant(
               of: find.byType(AppBar),
@@ -107,25 +105,14 @@ void main() {
           );
           expect(
             find.descendant(
-              of: find.byType(ExpansionTile),
+              of: find.byType(Card),
               matching: find.byTooltip('Edit profile'),
             ),
             findsOneWidget,
           );
-          for (final title in [
-            'Vet visits',
-            'Vaccinations',
-            'Medications',
-            'Weight history',
-          ]) {
-            expect(find.text(title), findsOneWidget);
-          }
-          expect(find.text('Not provided'), findsNothing);
           await tester.ensureVisible(find.text('Profile details'));
           await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
           await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
-          await tester.tap(find.text('Profile details'));
-          await tester.pumpAndSettle();
           const fieldOrder = [
             'Sex',
             'Breed',
@@ -137,7 +124,7 @@ void main() {
           final displayedFields = tester
               .widgetList<Text>(
                 find.descendant(
-                  of: find.byType(ExpansionTile),
+                  of: find.byType(Card),
                   matching: find.byType(Text),
                 ),
               )
@@ -155,7 +142,7 @@ void main() {
           ]) {
             expect(
               find.descendant(
-                of: find.byType(ExpansionTile),
+                of: find.byType(Card),
                 matching: find.byIcon(icon),
               ),
               findsOneWidget,

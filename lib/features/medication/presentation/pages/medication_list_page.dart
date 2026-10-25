@@ -1,3 +1,6 @@
+import 'package:petlytics/core/widgets/pet_care_tabs.dart';
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +9,6 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
-import 'package:petlytics/core/widgets/my_pets_button.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
@@ -26,43 +28,6 @@ class MedicationListPage extends StatefulWidget {
 
 class _MedicationListPageState extends State<MedicationListPage> {
   int _tab = 0;
-  GoRouter? _router;
-  bool _active = false;
-  bool _handledReturn = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final router = GoRouter.of(context);
-    if (identical(router, _router)) return;
-    _router?.routerDelegate.removeListener(_routeChanged);
-    _router = router;
-    _active = router.state.uri.path == AppRoutes.medications(widget.petId);
-    router.routerDelegate.addListener(_routeChanged);
-  }
-
-  void _routeChanged() {
-    final active =
-        _router!.state.uri.path == AppRoutes.medications(widget.petId);
-    if (active && !_active) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted ||
-            _router!.state.uri.path != AppRoutes.medications(widget.petId)) {
-          return;
-        }
-        if (!_handledReturn) _reload();
-        _handledReturn = false;
-      });
-    }
-    _active = active;
-  }
-
-  @override
-  void dispose() {
-    _router?.routerDelegate.removeListener(_routeChanged);
-    super.dispose();
-  }
-
   Future<void> _reload() =>
       context.read<MedicationCubit>().loadMedications(widget.petId);
   Future<void> _add() async {
@@ -70,8 +35,7 @@ class _MedicationListPageState extends State<MedicationListPage> {
       AppRoutes.addEditMedication(widget.petId),
       extra: MedicationFormExtra(petId: widget.petId, petName: widget.petName),
     );
-    if (mounted) {
-      _handledReturn = true;
+    if (mounted && PetCareChanges.maybeOf(context) == null) {
       if (saved == true) await _reload();
     }
   }
@@ -81,8 +45,7 @@ class _MedicationListPageState extends State<MedicationListPage> {
       AppRoutes.medicationDetail(widget.petId, medication.id),
       extra: PetCareRouteExtra(petId: widget.petId, petName: widget.petName),
     );
-    if (!mounted) return;
-    _handledReturn = true;
+    if (!mounted || PetCareChanges.maybeOf(context) != null) return;
     if (deleted != null) {
       context.read<MedicationCubit>().removeDeletedMedication(deleted);
     } else {
@@ -317,6 +280,7 @@ class _MedicationListPageState extends State<MedicationListPage> {
 
   @override
   Widget build(BuildContext context) => MedicationClock(
+    active: PetCareTabs.maybeOf(context)?.active == PetCareTab.medications,
     onResume: _reload,
     child: BlocBuilder<MedicationCubit, MedicationState>(
       builder: (context, state) {
@@ -326,27 +290,22 @@ class _MedicationListPageState extends State<MedicationListPage> {
           canPop: !busy,
           child: Scaffold(
             resizeToAvoidBottomInset: false,
-            appBar: AppBar(
-              toolbarHeight: PetCareTitle.toolbarHeight(context),
+            appBar: petCareAppBar(
+              context,
               title: PetCareTitle(
                 title: 'Medications',
                 petName: widget.petName,
               ),
-              leading: busy
-                  ? const IconButton(onPressed: null, icon: BackButtonIcon())
+              toolbarHeight: PetCareTitle.toolbarHeight(context),
+              busy: busy,
+              progress:
+                  loaded?.isRefreshing == true ||
+                      loaded?.doses.isLoading == true ||
+                      busy
+                  ? const LinearProgressIndicator(
+                      semanticsLabel: 'Updating medications',
+                    )
                   : null,
-              actions: [MyPetsButton(enabled: !busy)],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(4),
-                child:
-                    loaded?.isRefreshing == true ||
-                        loaded?.doses.isLoading == true ||
-                        busy
-                    ? const LinearProgressIndicator(
-                        semanticsLabel: 'Updating medications',
-                      )
-                    : const SizedBox(height: 4),
-              ),
             ),
             floatingActionButton:
                 loaded != null && (_tab == 1 || loaded.medications.isEmpty)

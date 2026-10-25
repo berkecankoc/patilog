@@ -1,3 +1,5 @@
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
@@ -84,6 +86,13 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
 
   void _leave({bool? result}) {
     if (_allowPop) return;
+    if (result == true) {
+      PetCareChanges.recordChanged(
+        context,
+        widget.petId,
+        PetCareTab.weightHistory,
+      );
+    }
     setState(() => _allowPop = true);
     // Update the pop guard before leaving after save or confirmed discard.
     WidgetsBinding.instance.addPostFrameCallback((_) {
