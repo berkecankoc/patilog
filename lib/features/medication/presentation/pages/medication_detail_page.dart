@@ -450,7 +450,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
           _visit(current!, busy),
         ],
         const SizedBox(height: 16),
-        FilledButton.tonalIcon(
+        FilledButton.icon(
           style: FilledButton.styleFrom(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
