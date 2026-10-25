@@ -11,6 +11,9 @@ import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
+import 'package:petlytics/core/widgets/app_keyboard.dart';
+import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
@@ -375,7 +378,7 @@ class MedicationTestHarness {
               padding: EdgeInsets.only(bottom: bottomInset),
               viewPadding: EdgeInsets.only(bottom: bottomInset),
             ),
-            child: child!,
+            child: AppKeyboard(child: child!),
           ),
         ),
       ),
@@ -422,6 +425,46 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, label));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('medication suggestions clear the fixed Continue action', (
+    tester,
+  ) async {
+    when(
+      () => app.repository.getSuggestions(clinicName: any(named: 'clinicName')),
+    ).thenAnswer(
+      (_) async => const Success(
+        MedicationSuggestions(
+          medicationNames: ['Medicine A', 'Medicine B', 'Medicine C'],
+          clinicNames: [],
+          veterinarianNames: [],
+        ),
+      ),
+    );
+    await app.pump(
+      tester,
+      location: '/pets/pet/medications/form',
+      keyboard: 280,
+    );
+    final name = find.widgetWithText(TextFormField, 'Medication name');
+    await tester.enterText(name, 'Med');
+    await tester.pumpAndSettle();
+    final menu = find
+        .ancestor(
+          of: find.byType(MenuItemButton).first,
+          matching: find.byType(Material),
+        )
+        .first;
+    final actions = find.byKey(const ValueKey('multi-step-form-actions'));
+    expect(
+      tester.getRect(menu).bottom,
+      lessThanOrEqualTo(tester.getRect(actions).top),
+    );
+    expect(find.text('Continue').hitTestable(), findsOneWidget);
+    await tester.tap(find.widgetWithText(MenuItemButton, 'Medicine A'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextFormField>(name).controller!.text, 'Medicine A');
+    verifyNever(() => app.repository.createMedication(any()));
+  });
 
   testWidgets('dosage example is visible only for focused empty input', (
     tester,
@@ -500,7 +543,7 @@ void main() {
       ),
       findsNothing,
     );
-    await tester.drag(find.byType(ListView).last, const Offset(0, -700));
+    await tester.drag(find.byType(AppFormScrollView), const Offset(0, -700));
     await tester.pump();
     expect(tester.takeException(), isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
@@ -641,13 +684,115 @@ void main() {
       location: AppRoutes.addEditMedication('pet'),
       bottomInset: 34,
     );
-    final footer = find.byKey(const ValueKey('medication-form-actions'));
+    final footer = find.byKey(const ValueKey('multi-step-form-actions'));
     expect(tester.getBottomRight(footer).dy, 844);
     expect(
       tester.getBottomRight(find.widgetWithText(ElevatedButton, 'Continue')).dy,
       lessThanOrEqualTo(810),
     );
   });
+
+  testWidgets(
+    'new schedule starts at Schedule and Back preserves its draft before exit',
+    (tester) async {
+      app.medications = [app.sample()];
+      final router = await app.pump(tester);
+      unawaited(
+        router.push<bool>(
+          AppRoutes.addEditMedication('pet'),
+          extra: MedicationFormExtra(
+            petId: 'pet',
+            petName: 'Simba',
+            medication: app.medications.single,
+            newSchedule: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AppMultiStepForm), findsOneWidget);
+      expect(find.text('Step 2 of 3 · Schedule'), findsOneWidget);
+      final time = find.widgetWithText(TextFormField, '08:00');
+      await tester.ensureVisible(time);
+      await tester.enterText(time, '0930');
+      await tap(tester, 'Continue');
+      expect(find.text('Step 3 of 3 · Review'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Step 2 of 3 · Schedule'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, '09:30'), findsOneWidget);
+      await tester.tap(find.byType(BackButton).last);
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Keep editing'));
+      await tester.pumpAndSettle();
+      await tap(tester, 'Continue');
+      await tap(tester, 'Schedule doses');
+      expect(app.medications.single.periods.length, 2);
+      expect(app.medications.single.periods.last.doseTimes, [570, 1200]);
+      verify(
+        () => app.repository.createPeriod(
+          'pet',
+          any(),
+          medicationName: 'Medication A',
+        ),
+      ).called(1);
+    },
+  );
+
+  testWidgets(
+    'dose history failure keeps the edited draft and retry unlocks saving',
+    (tester) async {
+      final pending = Completer<Result<bool>>();
+      when(
+        () => app.repository.hasDoseLogs('pet', 'med', 'period'),
+      ).thenAnswer((_) => pending.future);
+      app.medications = [app.sample()];
+      final router = await app.pump(tester);
+      unawaited(
+        router.push<bool>(
+          AppRoutes.addEditMedication('pet'),
+          extra: MedicationFormExtra(
+            petId: 'pet',
+            medication: app.medications.single,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.widgetWithText(TextButton, 'Edit').first);
+      await tester.pump();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Medication name'),
+        'Draft name',
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Done'));
+      await tester.pump();
+      expect(
+        tester
+            .widget<ElevatedButton>(
+              find.widgetWithText(ElevatedButton, 'Save changes'),
+            )
+            .onPressed,
+        isNull,
+      );
+      pending.complete(
+        const Error(LocalDatabaseFailure('History unavailable')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('History unavailable').hitTestable(), findsOneWidget);
+      expect(find.text('Draft name'), findsOneWidget);
+      when(
+        () => app.repository.hasDoseLogs('pet', 'med', 'period'),
+      ).thenAnswer((_) async => const Success(false));
+      await tester.tap(find.text('Retry dose history'));
+      await tester.pumpAndSettle();
+      expect(find.text('History unavailable'), findsNothing);
+      expect(find.text('Draft name'), findsOneWidget);
+      await tap(tester, 'Save changes');
+      expect(app.medications.single.name, 'Draft name');
+      expect(app.medications.single.periods.length, 1);
+    },
+  );
 
   testWidgets(
     'dose calendar stays in detail and opens mixed day records without a list round trip',
@@ -747,8 +892,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Draft medication'), findsOneWidget);
       expect(find.text('Save failed'), findsOneWidget);
+      expect(find.text('Retry saving'), findsNothing);
       app.pendingCreate = null;
-      await tester.tap(find.text('Retry saving'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Add medication'));
       await tester.pumpAndSettle();
       expect(app.medications.single.name, 'Draft medication');
     },

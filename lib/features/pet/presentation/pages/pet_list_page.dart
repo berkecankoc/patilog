@@ -23,6 +23,7 @@ class PetListPage extends StatefulWidget {
 class _PetListPageState extends State<PetListPage> {
   GoRouter? _router;
   bool _active = false;
+  bool _handledDeletion = false;
 
   @override
   void didChangeDependencies() {
@@ -41,11 +42,22 @@ class _PetListPageState extends State<PetListPage> {
       // Both Back and My pets can reveal a retained list route.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _router!.state.uri.path == AppRoutes.pets) {
-          context.read<PetCubit>().loadPets();
+          if (!_handledDeletion) context.read<PetCubit>().loadPets();
+          _handledDeletion = false;
         }
       });
     }
     _active = active;
+  }
+
+  Future<void> _openPet(Pet pet) async {
+    final deletedId = await context.push<String>(AppRoutes.petDetail(pet.id));
+    if (!mounted || deletedId == null || deletedId != pet.id) return;
+    final cubit = context.read<PetCubit>();
+    if (cubit.state is PetsLoaded) {
+      cubit.removeDeletedPet(deletedId);
+      _handledDeletion = true;
+    }
   }
 
   @override
@@ -66,7 +78,7 @@ class _PetListPageState extends State<PetListPage> {
             PetsLoaded(:final pets) =>
               pets.isEmpty
                   ? _EmptyPetsView(onAddPet: () => _openAddPet(context))
-                  : _PetListView(pets: pets),
+                  : _PetListView(pets: pets, onOpenPet: _openPet),
 
             PetError(:final message) => Padding(
               padding: const EdgeInsets.only(bottom: 96),
@@ -147,7 +159,8 @@ class _EmptyPetsView extends StatelessWidget {
 
 class _PetListView extends StatelessWidget {
   final List<Pet> pets;
-  const _PetListView({required this.pets});
+  final ValueChanged<Pet> onOpenPet;
+  const _PetListView({required this.pets, required this.onOpenPet});
 
   @override
   Widget build(BuildContext context) {
@@ -178,8 +191,10 @@ class _PetListView extends StatelessWidget {
                     112,
                   ),
                   itemCount: pets.length,
-                  itemBuilder: (context, index) =>
-                      _PetListItem(pet: pets[index]),
+                  itemBuilder: (context, index) => _PetListItem(
+                    pet: pets[index],
+                    onTap: () => onOpenPet(pets[index]),
+                  ),
                   separatorBuilder: (context, index) => VerticalGap.md,
                 ),
               ),
@@ -193,7 +208,8 @@ class _PetListView extends StatelessWidget {
 
 class _PetListItem extends StatelessWidget {
   final Pet pet;
-  const _PetListItem({required this.pet});
+  final VoidCallback onTap;
+  const _PetListItem({required this.pet, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +218,7 @@ class _PetListItem extends StatelessWidget {
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push(AppRoutes.petDetail(pet.id)),
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(

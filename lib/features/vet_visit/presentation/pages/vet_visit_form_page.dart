@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
+import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_state.dart';
@@ -33,8 +33,6 @@ class VetVisitFormPage extends StatefulWidget {
 class _VetVisitFormPageState extends State<VetVisitFormPage> {
   static const _medicalTextMaxLength = 200;
 
-  final _formKey = GlobalKey<FormState>();
-  final _saveErrorKey = GlobalKey();
   final _reason = TextEditingController();
   final _clinic = TextEditingController();
   final _veterinarian = TextEditingController();
@@ -94,15 +92,6 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
       return;
     }
     if (widget.visit != null && !_hasChanges) return;
-    final invalid = _formKey.currentState!.validateGranularly();
-    if (invalid.isNotEmpty) {
-      Scrollable.ensureVisible(
-        invalid.first.context,
-        alignment: 0.1,
-        duration: const Duration(milliseconds: 200),
-      );
-      return;
-    }
     FocusScope.of(context).unfocus();
     final cost = parseVetVisitCost(_amount.text);
     cubit.saveVetVisit(
@@ -152,299 +141,251 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
     if (discard == true && mounted) _leave();
   }
 
-  Widget _saveActions(bool saving) => AppFormActions(
-    label: widget.visit == null ? 'Add visit' : 'Save changes',
-    saving: saving,
-    fixed: widget.visit != null,
-    onPressed: widget.visit != null && !_hasChanges ? null : _submit,
+  Widget _visitDetails() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      TextFormField(
+        key: const Key('visit-reason'),
+        controller: _reason,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(labelText: 'Reason for visit'),
+        minLines: 1,
+        maxLines: 3,
+        validator: (value) {
+          final reason = value?.trim() ?? '';
+          if (reason.isEmpty) {
+            return 'Enter a reason for the visit';
+          }
+          return reason.characters.length > 100
+              ? 'Keep reason within 100 characters'
+              : null;
+        },
+      ),
+      VerticalGap.md,
+      AppDateField(
+        labelText: 'Visit date',
+        value: _visitedOn,
+        firstDate: DateTime(1900),
+        lastDate: DateTime.now(),
+        onChanged: (date) {
+          if (date != null) {
+            setState(() => _visitedOn = date);
+          }
+        },
+      ),
+      if (widget.visit != null &&
+          !DateUtils.isSameDay(_visitedOn, _initialDate)) ...[
+        VerticalGap.xs,
+        Text(
+          'Dates of any linked vaccinations will also change.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+      VerticalGap.xl,
+    ],
+  );
+
+  Widget _review(VetVisitFormState state, ValueChanged<int> edit) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text('Review visit', style: Theme.of(context).textTheme.titleLarge),
+      VerticalGap.md,
+      AppFormReviewSection(
+        title: 'Visit details',
+        icon: Icons.event_note_outlined,
+        onEdit: () => edit(0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppDetailField(label: 'Visit reason', value: _reason.text),
+            VerticalGap.md,
+            AppDetailField(
+              label: 'Visit date',
+              value: MaterialLocalizations.of(
+                context,
+              ).formatShortDate(_visitedOn),
+            ),
+            if (widget.visit != null &&
+                !DateUtils.isSameDay(_visitedOn, _initialDate)) ...[
+              VerticalGap.sm,
+              const Text('Dates of any linked vaccinations will also change.'),
+            ],
+          ],
+        ),
+      ),
+      VerticalGap.md,
+      AppFormOptionalSection(
+        title: 'Clinic & veterinarian (optional)',
+        icon: Icons.local_hospital_outlined,
+        initiallyExpanded: widget.visit != null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppSuggestionField(
+              label: 'Clinic (optional)',
+              loading: state.isLoadingSuggestions,
+              controller: _clinic,
+              suggestions: state.suggestions.clinicNames,
+              onChanged: (value) => context
+                  .read<VetVisitFormCubit>()
+                  .loadSuggestions(clinicName: value),
+            ),
+            VerticalGap.md,
+            AppSuggestionField(
+              label: 'Veterinarian (optional)',
+              controller: _veterinarian,
+              suggestions: state.suggestions.veterinarianNames,
+            ),
+            if (state.suggestionsError != null) ...[
+              VerticalGap.sm,
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  state.suggestionsError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.sm,
+                    ),
+                    alignment: AlignmentDirectional.centerStart,
+                  ),
+                  onPressed: () => context
+                      .read<VetVisitFormCubit>()
+                      .loadSuggestions(clinicName: _clinic.text),
+                  child: const Text('Retry suggestions'),
+                ),
+              ),
+            ],
+            VerticalGap.xl,
+          ],
+        ),
+      ),
+      VerticalGap.md,
+      AppFormOptionalSection(
+        title: 'Medical notes (optional)',
+        icon: Icons.medical_information_outlined,
+        initiallyExpanded: widget.visit != null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              key: const Key('visit-diagnosis'),
+              controller: _diagnosis,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Diagnosis (optional)',
+              ),
+              minLines: 1,
+              maxLines: 4,
+              maxLength: _medicalTextMaxLength,
+              validator: (value) =>
+                  (value?.characters.length ?? 0) > _medicalTextMaxLength
+                  ? 'Keep diagnosis within $_medicalTextMaxLength characters'
+                  : null,
+            ),
+            VerticalGap.md,
+            TextFormField(
+              key: const Key('visit-notes'),
+              controller: _notes,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              minLines: 1,
+              maxLines: 6,
+              maxLength: _medicalTextMaxLength,
+              validator: (value) =>
+                  (value?.characters.length ?? 0) > _medicalTextMaxLength
+                  ? 'Keep notes within $_medicalTextMaxLength characters'
+                  : null,
+            ),
+            VerticalGap.xl,
+          ],
+        ),
+      ),
+      VerticalGap.md,
+      AppFormOptionalSection(
+        title: 'Cost (optional)',
+        icon: Icons.payments_outlined,
+        initiallyExpanded: widget.visit != null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              key: const Key('visit-cost'),
+              controller: _amount,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
+              decoration: const InputDecoration(labelText: 'Amount (optional)'),
+              validator: (value) =>
+                  value == null ||
+                      value.trim().isEmpty ||
+                      parseVetVisitCost(value) != null
+                  ? null
+                  : 'Enter a valid amount with up to 2 decimal places',
+            ),
+            VerticalGap.md,
+            DropdownButtonFormField<VetVisitCurrency>(
+              initialValue: _currency,
+              isExpanded: true,
+              borderRadius: BorderRadius.circular(AppSpacing.md),
+              decoration: const InputDecoration(labelText: 'Currency'),
+              items: [
+                for (final currency in VetVisitCurrency.values)
+                  DropdownMenuItem(value: currency, child: Text(currency.code)),
+              ],
+              onChanged: _amount.text.trim().isEmpty
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() => _currency = value);
+                      }
+                    },
+            ),
+          ],
+        ),
+      ),
+    ],
   );
 
   @override
-  Widget build(BuildContext context) {
-    return BlocConsumer<VetVisitFormCubit, VetVisitFormState>(
-      listenWhen: (previous, current) =>
-          previous.isSaved != current.isSaved ||
-          previous.saveError != current.saveError,
-      listener: (context, state) {
-        if (state.isSaved) {
-          _leave(result: true);
-        } else if (state.saveError != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final errorContext = _saveErrorKey.currentContext;
-            if (mounted && errorContext != null) {
-              Scrollable.ensureVisible(
-                errorContext,
-                alignment: 0,
-                duration: const Duration(milliseconds: 200),
-              );
-            }
-          });
-        }
-      },
-      builder: (context, state) {
-        final saving = state.isSaving || state.isSaved;
-        return PopScope<bool>(
-          canPop: !state.isSaving && (_allowPop || !_hasChanges),
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop && !saving) _requestExit();
-          },
-          child: Scaffold(
-            appBar: AppBar(
-              toolbarHeight: PetCareTitle.toolbarHeight(context),
-              title: PetCareTitle(
-                title: widget.visit == null ? 'Add visit' : 'Edit visit',
-                petName: widget.petName,
-              ),
-              leading: IconButton(
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                onPressed: saving ? null : _requestExit,
-                icon: const BackButtonIcon(),
-              ),
-            ),
-            body: Column(
-              children: [
-                Expanded(
-                  child: SafeArea(
-                    bottom: widget.visit == null,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 640),
-                        child: SingleChildScrollView(
-                          keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          child: AbsorbPointer(
-                            absorbing: saving,
-                            child: Form(
-                              key: _formKey,
-                              onChanged: () => setState(() {}),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  if (state.saveError != null) ...[
-                                    Semantics(
-                                      key: _saveErrorKey,
-                                      liveRegion: true,
-                                      child: Text(
-                                        state.saveError!,
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.error,
-                                        ),
-                                      ),
-                                    ),
-                                    VerticalGap.md,
-                                  ],
-                                  const AppSectionHeading(
-                                    title: 'Visit details',
-                                    icon: Icons.event_note_outlined,
-                                  ),
-                                  VerticalGap.md,
-                                  TextFormField(
-                                    key: const Key('visit-reason'),
-                                    controller: _reason,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Reason for visit',
-                                    ),
-                                    minLines: 1,
-                                    maxLines: 3,
-                                    validator: (value) {
-                                      final reason = value?.trim() ?? '';
-                                      if (reason.isEmpty) {
-                                        return 'Enter a reason for the visit';
-                                      }
-                                      return reason.characters.length > 100
-                                          ? 'Keep reason within 100 characters'
-                                          : null;
-                                    },
-                                  ),
-                                  VerticalGap.md,
-                                  AppDateField(
-                                    labelText: 'Visit date',
-                                    value: _visitedOn,
-                                    firstDate: DateTime(1900),
-                                    lastDate: DateTime.now(),
-                                    onChanged: (date) {
-                                      if (date != null) {
-                                        setState(() => _visitedOn = date);
-                                      }
-                                    },
-                                  ),
-                                  if (widget.visit != null &&
-                                      !DateUtils.isSameDay(
-                                        _visitedOn,
-                                        _initialDate,
-                                      )) ...[
-                                    VerticalGap.xs,
-                                    Text(
-                                      'Dates of any linked vaccinations will also change.',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
-                                    ),
-                                  ],
-                                  VerticalGap.xl,
-                                  const AppSectionHeading(
-                                    title: 'Clinic & veterinarian',
-                                    icon: Icons.local_hospital_outlined,
-                                  ),
-                                  VerticalGap.md,
-                                  AppSuggestionField(
-                                    label: 'Clinic (optional)',
-                                    loading: state.isLoadingSuggestions,
-                                    controller: _clinic,
-                                    suggestions: state.suggestions.clinicNames,
-                                    onChanged: (value) => context
-                                        .read<VetVisitFormCubit>()
-                                        .loadSuggestions(clinicName: value),
-                                  ),
-                                  VerticalGap.md,
-                                  AppSuggestionField(
-                                    label: 'Veterinarian (optional)',
-                                    controller: _veterinarian,
-                                    suggestions:
-                                        state.suggestions.veterinarianNames,
-                                  ),
-                                  if (state.suggestionsError != null) ...[
-                                    VerticalGap.sm,
-                                    Semantics(
-                                      liveRegion: true,
-                                      child: Text(
-                                        state.suggestionsError!,
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.error,
-                                        ),
-                                      ),
-                                    ),
-                                    Align(
-                                      alignment:
-                                          AlignmentDirectional.centerStart,
-                                      child: TextButton(
-                                        onPressed: () => context
-                                            .read<VetVisitFormCubit>()
-                                            .loadSuggestions(
-                                              clinicName: _clinic.text,
-                                            ),
-                                        child: const Text('Retry suggestions'),
-                                      ),
-                                    ),
-                                  ],
-                                  VerticalGap.xl,
-                                  const AppSectionHeading(
-                                    title: 'Medical notes',
-                                    icon: Icons.medical_information_outlined,
-                                  ),
-                                  VerticalGap.md,
-                                  TextFormField(
-                                    key: const Key('visit-diagnosis'),
-                                    controller: _diagnosis,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Diagnosis (optional)',
-                                    ),
-                                    minLines: 1,
-                                    maxLines: 4,
-                                    maxLength: _medicalTextMaxLength,
-                                    validator: (value) =>
-                                        (value?.characters.length ?? 0) >
-                                            _medicalTextMaxLength
-                                        ? 'Keep diagnosis within $_medicalTextMaxLength characters'
-                                        : null,
-                                  ),
-                                  VerticalGap.md,
-                                  TextFormField(
-                                    key: const Key('visit-notes'),
-                                    controller: _notes,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Notes (optional)',
-                                    ),
-                                    minLines: 1,
-                                    maxLines: 6,
-                                    maxLength: _medicalTextMaxLength,
-                                    validator: (value) =>
-                                        (value?.characters.length ?? 0) >
-                                            _medicalTextMaxLength
-                                        ? 'Keep notes within $_medicalTextMaxLength characters'
-                                        : null,
-                                  ),
-                                  VerticalGap.xl,
-                                  const AppSectionHeading(
-                                    title: 'Cost',
-                                    icon: Icons.payments_outlined,
-                                  ),
-                                  VerticalGap.md,
-                                  TextFormField(
-                                    key: const Key('visit-cost'),
-                                    controller: _amount,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    textInputAction: TextInputAction.done,
-                                    onFieldSubmitted: (_) => _submit(),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Amount (optional)',
-                                    ),
-                                    validator: (value) =>
-                                        value == null ||
-                                            value.trim().isEmpty ||
-                                            parseVetVisitCost(value) != null
-                                        ? null
-                                        : 'Enter a valid amount with up to 2 decimal places',
-                                  ),
-                                  VerticalGap.md,
-                                  DropdownButtonFormField<VetVisitCurrency>(
-                                    initialValue: _currency,
-                                    isExpanded: true,
-                                    borderRadius: BorderRadius.circular(
-                                      AppSpacing.md,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Currency',
-                                    ),
-                                    items: [
-                                      for (final currency
-                                          in VetVisitCurrency.values)
-                                        DropdownMenuItem(
-                                          value: currency,
-                                          child: Text(currency.code),
-                                        ),
-                                    ],
-                                    onChanged: _amount.text.trim().isEmpty
-                                        ? null
-                                        : (value) {
-                                            if (value != null) {
-                                              setState(() => _currency = value);
-                                            }
-                                          },
-                                  ),
-                                  if (widget.visit == null) ...[
-                                    VerticalGap.xl,
-                                    _saveActions(saving),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (widget.visit != null) _saveActions(saving),
-              ],
-            ),
+  Widget build(BuildContext context) =>
+      BlocConsumer<VetVisitFormCubit, VetVisitFormState>(
+        listener: (context, state) {
+          if (state.isSaved) _leave(result: true);
+        },
+        builder: (context, state) => AppMultiStepForm(
+          title: PetCareTitle(
+            title: widget.visit == null ? 'Add visit' : 'Edit visit',
+            petName: widget.petName,
           ),
-        );
-      },
-    );
-  }
+          toolbarHeight: PetCareTitle.toolbarHeight(context),
+          editing: widget.visit != null,
+          isSaving: () {
+            final current = context.read<VetVisitFormCubit>().state;
+            return current.isSaving || current.isSaved;
+          },
+          allowPop: _allowPop,
+          canSubmit: widget.visit == null || _hasChanges,
+          submitLabel: widget.visit == null ? 'Add visit' : 'Save changes',
+          saveError: state.saveError,
+          onSubmit: _submit,
+          onExit: _requestExit,
+          onChanged: () => setState(() {}),
+          steps: [
+            AppFormStep(title: 'Visit', builder: (_, _) => _visitDetails()),
+            AppFormStep(
+              title: 'Review',
+              builder: (_, edit) => _review(state, edit),
+            ),
+          ],
+        ),
+      );
 }

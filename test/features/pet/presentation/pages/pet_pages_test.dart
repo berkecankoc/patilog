@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../../helpers/multi_step_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/router/app_routes.dart';
@@ -200,8 +201,9 @@ void main() {
         );
         addTearDown(cubit.close);
         await pumpPage(tester, PetFormPage(pet: storedPet), cubit, scale: 1);
-        await tester.enterText(
-          find.byType(TextFormField).first,
+        await enterFormText(
+          tester,
+          find.byType(TextFormField, skipOffstage: false).first,
           'Updated Buddy',
         );
         FocusManager.instance.primaryFocus?.unfocus();
@@ -225,7 +227,7 @@ void main() {
         expect(attempts, 2);
         expect(find.byType(SnackBar), findsNothing);
         expect(find.byTooltip('Remove photo'), findsOneWidget);
-        await tester.tap(find.widgetWithText(ElevatedButton, 'Save changes'));
+        await submitForm(tester);
         await tester.pumpAndSettle();
         final params =
             verify(() => update(storedPet, captureAny())).captured.single
@@ -324,6 +326,7 @@ void main() {
           cubit,
           scale: 1,
         );
+        await editForm(tester);
         if (!validPhoto) {
           await tester.runAsync(() async {
             await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -373,12 +376,20 @@ void main() {
           scale: scale,
           brightness: brightness,
         );
+        await enterFormText(
+          tester,
+          find.widgetWithText(TextFormField, 'Name', skipOffstage: false),
+          'Milo',
+        );
         for (final field in [
-          find.byType(DropdownButtonFormField<PetSpecies>),
-          find.byType(DropdownButtonFormField<PetSex>),
-          find.byType(DropdownButtonFormField<ReproductiveStatus>),
+          find.byType(DropdownButtonFormField<PetSpecies>, skipOffstage: false),
+          find.byType(DropdownButtonFormField<PetSex>, skipOffstage: false),
+          find.byType(
+            DropdownButtonFormField<ReproductiveStatus>,
+            skipOffstage: false,
+          ),
         ]) {
-          await tester.ensureVisible(field);
+          await revealFormField(tester, field);
           await tester.pumpAndSettle();
           final fieldBounds = tester.getRect(field);
           await tester.tap(field);
@@ -452,13 +463,14 @@ void main() {
           const Error(LocalDatabaseFailure('Could not save. Please retry.')),
     );
     await pumpPage(tester, const PetFormPage(), cubit, scale: 1);
-    await tester.enterText(find.byType(TextFormField).first, 'Fluffy');
+    await enterFormText(
+      tester,
+      find.byType(TextFormField, skipOffstage: false).first,
+      'Fluffy',
+    );
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'Add pet'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Add pet'));
-    await tester.pumpAndSettle();
+    await submitForm(tester);
     expect(find.text('Could not save. Please retry.'), findsOneWidget);
     expect(find.text('Fluffy'), findsOneWidget);
     expect(
@@ -468,7 +480,7 @@ void main() {
     verify(() => createPet(any())).called(1);
   });
 
-  for (final exit in ['system', 'app bar', 'My pets']) {
+  for (final exit in ['system', 'app bar']) {
     testWidgets('updated pet name appears in list after $exit', (tester) async {
       var currentPet = pet;
       final repository = MockRepository();
@@ -502,20 +514,20 @@ void main() {
       await tester.ensureVisible(find.byTooltip('Edit profile'));
       await tester.tap(find.byTooltip('Edit profile'));
       await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byType(TextFormField).first,
+      await enterFormText(
+        tester,
+        find.byType(TextFormField, skipOffstage: false).first,
         'Updated pet name',
       );
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
+      await reviewForm(tester);
       expect(find.text('Save changes').hitTestable(), findsOneWidget);
       await tester.tap(find.text('Save changes'));
       await tester.pumpAndSettle();
       expect(find.text('Updated pet name'), findsOneWidget);
       if (exit == 'system') {
         await tester.binding.handlePopRoute();
-      } else if (exit == 'My pets') {
-        await tester.tap(find.byTooltip('My pets'));
       } else {
         await tester.tap(find.byType(BackButton));
       }

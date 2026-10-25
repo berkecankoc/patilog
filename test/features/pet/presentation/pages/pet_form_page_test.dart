@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../../helpers/multi_step_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
+import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
@@ -107,7 +109,7 @@ void main() {
             textScaler: TextScaler.linear(scale),
             viewInsets: EdgeInsets.only(bottom: keyboard ? 280 : 0),
           ),
-          child: child!,
+          child: AppKeyboard(child: child!),
         ),
       ),
     );
@@ -121,28 +123,124 @@ void main() {
     WidgetTester tester, [
     String name = 'Updated Buddy',
   ]) async {
-    final field = find.byType(TextFormField).first;
-    await tester.ensureVisible(field);
-    await tester.enterText(field, name);
+    final field = find.widgetWithText(
+      TextFormField,
+      'Name',
+      skipOffstage: false,
+    );
+    await revealFormField(tester, field);
+    await enterFormText(tester, field, name);
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
+    await reviewForm(tester);
+  }
+
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('weight keyboard dismisses without saving on $platform', (
+      tester,
+    ) async {
+      await pumpForm(tester, keyboard: true, platform: platform);
+      final weight = find.widgetWithText(
+        TextFormField,
+        'Weight (optional)',
+        skipOffstage: false,
+      );
+      await enterFormText(tester, weight, '12.345');
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(of: weight, matching: find.byType(TextField)),
+            )
+            .textInputAction,
+        TextInputAction.done,
+      );
+      expect(tester.testTextInput.isVisible, isTrue);
+      await tester.tap(find.text('Edit pet'));
+      await tester.pumpAndSettle();
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(tester.widget<TextFormField>(weight).controller!.text, '12.345');
+      await tester.tap(weight);
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(tester.testTextInput.isVisible, isFalse);
+      await tester.tap(weight);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Hide keyboard'));
+      await tester.pumpAndSettle();
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(tester.widget<TextFormField>(weight).controller!.text, '12.345');
+      verifyNever(() => create(any()));
+      verifyNever(() => update(pet, any()));
+    });
   }
 
   for (final editing in [false, true]) {
     final label = editing ? 'Save changes' : 'Add pet';
+    testWidgets(
+      'multi-step pet ${editing ? 'edit' : 'add'} reviews before saving',
+      (tester) async {
+        await pumpForm(tester, existing: editing ? pet : null);
+        expect(
+          find.text(editing ? 'Step 2 of 2 · Review' : 'Step 1 of 2 · Pet'),
+          findsOneWidget,
+        );
+        await changeName(tester, 'Milo');
+        expect(find.text('Step 2 of 2 · Review'), findsOneWidget);
+        await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(TextButton, 'Back'), findsNothing);
+        expect(find.widgetWithText(ElevatedButton, 'Done'), findsOneWidget);
+        expect(
+          tester
+              .widget<TextFormField>(find.widgetWithText(TextFormField, 'Name'))
+              .controller!
+              .text,
+          'Milo',
+        );
+        await reviewForm(tester);
+        expect(find.text('Milo'), findsOneWidget);
+        verifyNever(() => create(any()));
+        verifyNever(() => update(pet, any()));
+      },
+    );
+    testWidgets('$label suppresses Android stretch while scrolling', (
+      tester,
+    ) async {
+      await pumpForm(tester, existing: editing ? pet : null);
+      final form = find.byType(PetFormPage);
+      expect(
+        find.descendant(
+          of: form,
+          matching: find.byType(StretchingOverscrollIndicator),
+        ),
+        findsNothing,
+      );
+      await tester.drag(
+        find.descendant(of: form, matching: find.byType(Scrollable)).first,
+        const Offset(0, 400),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
     for (final input in ['4.125', '4,125', '0.001']) {
       testWidgets('$label accepts gram precision in weight "$input"', (
         tester,
       ) async {
         await pumpForm(tester, existing: editing ? pet : null);
         if (!editing) await changeName(tester, 'Buddy');
-        final field = find.widgetWithText(TextFormField, 'Weight (optional)');
-        await tester.ensureVisible(field);
-        await tester.enterText(field, input);
+        final field = find.widgetWithText(
+          TextFormField,
+          'Weight (optional)',
+          skipOffstage: false,
+        );
+        await revealFormField(tester, field);
+        await enterFormText(tester, field, input);
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
         final button = find.widgetWithText(ElevatedButton, label);
-        await tester.ensureVisible(button);
+        await revealFormField(tester, button);
         await tester.pumpAndSettle();
         await tester.tap(button);
         await tester.pumpAndSettle();
@@ -172,14 +270,18 @@ void main() {
         scale: 2,
       );
       if (!editing) await changeName(tester, 'Buddy');
-      final field = find.widgetWithText(TextFormField, 'Weight (optional)');
+      final field = find.widgetWithText(
+        TextFormField,
+        'Weight (optional)',
+        skipOffstage: false,
+      );
       for (final input in ['4.1256', '4,1256', '0.0001', '1e-4']) {
-        await tester.ensureVisible(field);
-        await tester.enterText(field, input);
+        await revealFormField(tester, field);
+        await enterFormText(tester, field, input);
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
         final button = find.widgetWithText(ElevatedButton, label);
-        await tester.ensureVisible(button);
+        await revealFormField(tester, button);
         await tester.pumpAndSettle();
         await tester.tap(button);
         await tester.pumpAndSettle();
@@ -209,7 +311,7 @@ void main() {
         await pumpForm(tester, existing: editing ? pet : null);
         await changeName(tester, input);
         final button = find.widgetWithText(ElevatedButton, label);
-        await tester.ensureVisible(button);
+        await revealFormField(tester, button);
         await tester.pumpAndSettle();
         await tester.tap(button);
         await tester.pumpAndSettle();
@@ -233,18 +335,16 @@ void main() {
         await pumpForm(tester, existing: editing ? pet : null);
         final tooLong = 'a' * 21;
         await changeName(tester, tooLong);
-        final button = find.widgetWithText(ElevatedButton, label);
-        await tester.ensureVisible(button);
-        await tester.pumpAndSettle();
-        await tester.tap(button);
-        await tester.pumpAndSettle();
+        await submitForm(tester);
         expect(
           find.text('Keep name within 20 characters').hitTestable(),
           findsOneWidget,
         );
         expect(
           tester
-              .widget<TextFormField>(find.byType(TextFormField).first)
+              .widget<TextFormField>(
+                find.byType(TextFormField, skipOffstage: false).first,
+              )
               .controller!
               .text,
           tooLong,
@@ -252,10 +352,7 @@ void main() {
         verifyNever(() => create(any()));
         verifyNever(() => update(pet, any()));
         await changeName(tester, 'a' * 20);
-        await tester.ensureVisible(button);
-        await tester.pumpAndSettle();
-        await tester.tap(button);
-        await tester.pumpAndSettle();
+        await submitForm(tester);
         expect(await routeResult, isTrue);
         if (editing) {
           final params =
@@ -273,11 +370,11 @@ void main() {
     testWidgets(
       editing
           ? 'edit saves from basic details with fixed actions'
-          : 'add saves only from actions after the form details',
+          : 'add saves only from Review with fixed actions',
       (tester) async {
         await pumpForm(tester, existing: editing ? pet : null);
         final button = find.widgetWithText(ElevatedButton, label);
-        final bounds = tester.getRect(button);
+        if (!editing) expect(button, findsNothing);
         await changeName(tester);
         if (editing) {
           expect(button.hitTestable(), findsOneWidget);
@@ -285,18 +382,9 @@ void main() {
             find.text('Microchip ID (optional)').hitTestable(),
             findsNothing,
           );
-          expect(tester.getRect(button), bounds);
         } else {
-          expect(button.hitTestable(), findsNothing);
-          await tester.ensureVisible(button);
-          await tester.pumpAndSettle();
           expect(button.hitTestable(), findsOneWidget);
-          expect(
-            tester.getTopLeft(button).dy,
-            greaterThan(
-              tester.getBottomRight(find.text('Microchip ID (optional)')).dy,
-            ),
-          );
+          expect(find.text('Step 2 of 2 · Review'), findsOneWidget);
         }
         await tester.tap(button);
         await tester.pumpAndSettle();
@@ -322,12 +410,7 @@ void main() {
         (tester) async {
           await pumpForm(tester, existing: editing ? pet : null);
           await changeName(tester);
-          if (systemBack) {
-            await tester.binding.handlePopRoute();
-          } else {
-            await tester.tap(find.byTooltip('Back'));
-          }
-          await tester.pumpAndSettle();
+          await leaveForm(tester, systemBack: systemBack);
           expect(find.text('Discard changes?'), findsOneWidget);
           await tester.tap(find.text('Keep editing'));
           await tester.pumpAndSettle();
@@ -382,12 +465,16 @@ void main() {
     tester,
   ) async {
     await pumpForm(tester);
-    final field = find.byType(DropdownButtonFormField<PetSpecies>);
-    await tester.ensureVisible(field);
+    final field = find.byType(
+      DropdownButtonFormField<PetSpecies>,
+      skipOffstage: false,
+    );
+    await revealFormField(tester, field);
     await tester.tap(field);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bird').last);
     await tester.pumpAndSettle();
+    await reviewForm(tester);
     expect(
       tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
       isNotNull,
@@ -401,9 +488,9 @@ void main() {
     tester,
   ) async {
     await pumpForm(tester);
-    final weight = find.byType(TextFormField).at(2);
-    await tester.ensureVisible(weight);
-    await tester.enterText(weight, '-1');
+    final weight = find.byType(TextFormField, skipOffstage: false).at(2);
+    await revealFormField(tester, weight);
+    await enterFormText(tester, weight, '-1');
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await changeName(tester);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
@@ -341,6 +342,8 @@ class _DoseSheetState extends State<_DoseSheet> {
                   context,
                 ).copyWith(overscroll: false),
                 child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(24),
                   child: Form(
                     key: _form,
@@ -358,6 +361,8 @@ class _DoseSheetState extends State<_DoseSheet> {
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ),
+                            if (MediaQuery.viewInsetsOf(context).bottom > 0)
+                              const AppHideKeyboardButton(),
                             IconButton(
                               tooltip: 'Close',
                               onPressed: blocked ? null : _close,
@@ -400,6 +405,9 @@ class _DoseSheetState extends State<_DoseSheet> {
                             onChanged: (_) => setState(() {}),
                             enabled: !blocked,
                             keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) =>
+                                FocusScope.of(context).unfocus(),
                             inputFormatters: const [DoseTimeInputFormatter()],
                             decoration: const InputDecoration(
                               labelText: 'Given at',

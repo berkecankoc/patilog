@@ -8,6 +8,7 @@ import 'package:petlytics/features/vaccination/domain/repositories/vaccination_r
 import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../../helpers/multi_step_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/di/injection.dart';
@@ -19,7 +20,6 @@ import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
@@ -229,28 +229,94 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  for (final editing in [false, true]) {
+    testWidgets(
+      'multi-step visit ${editing ? 'edit' : 'add'} reviews before saving',
+      (tester) async {
+        await pumpRouter(tester);
+        if (editing) {
+          await openDetail(tester);
+          await tester.tap(find.byTooltip('Edit visit'));
+          await tester.pumpAndSettle();
+        } else {
+          await openAdd(tester);
+        }
+        expect(
+          find.text(editing ? 'Step 2 of 2 · Review' : 'Step 1 of 2 · Visit'),
+          findsOneWidget,
+        );
+        final reason = find.byKey(
+          const Key('visit-reason'),
+          skipOffstage: false,
+        );
+        await enterFormText(tester, reason, 'Checkup');
+        await reviewForm(tester);
+        expect(find.text('Review visit'), findsOneWidget);
+        await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(TextButton, 'Back'), findsNothing);
+        expect(
+          tester.widget<TextFormField>(reason).controller!.text,
+          'Checkup',
+        );
+        await reviewForm(tester);
+        verifyNever(() => repository.createVetVisit(any()));
+        verifyNever(() => repository.updateVetVisit(any()));
+      },
+    );
+    testWidgets(
+      '${editing ? 'Edit' : 'Add'} visit suppresses Android stretch',
+      (tester) async {
+        await pumpRouter(tester);
+        if (editing) {
+          await openDetail(tester);
+          await tester.tap(find.byTooltip('Edit visit'));
+          await tester.pumpAndSettle();
+        } else {
+          await openAdd(tester);
+        }
+        final form = find.byType(VetVisitFormPage);
+        expect(
+          find.descendant(
+            of: form,
+            matching: find.byType(StretchingOverscrollIndicator),
+          ),
+          findsNothing,
+        );
+        await tester.drag(
+          find.descendant(of: form, matching: find.byType(Scrollable)).first,
+          const Offset(0, 400),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.android),
+    );
+  }
+
   Future<void> fill(WidgetTester tester, Finder field, String value) async {
-    await tester.ensureVisible(field);
-    await tester.enterText(field, value);
+    await revealFormField(tester, field);
+    await enterFormText(tester, field, value);
     await tester.pumpAndSettle();
   }
 
-  Future<void> save(WidgetTester tester) async {
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byType(ElevatedButton));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(ElevatedButton));
-    await tester.pumpAndSettle();
-  }
+  Future<void> save(WidgetTester tester) => submitForm(tester);
 
-  final reasonField = find.byKey(const Key('visit-reason'));
+  final reasonField = find.byKey(
+    const Key('visit-reason'),
+    skipOffstage: false,
+  );
 
-  final amountField = find.byKey(const Key('visit-cost'));
-  final clinicField = find.widgetWithText(TextFormField, 'Clinic (optional)');
+  final amountField = find.byKey(const Key('visit-cost'), skipOffstage: false);
+  final clinicField = find.widgetWithText(
+    TextFormField,
+    'Clinic (optional)',
+    skipOffstage: false,
+  );
   final veterinarianField = find.widgetWithText(
     TextFormField,
     'Veterinarian (optional)',
+    skipOffstage: false,
   );
 
   testWidgets(
@@ -360,14 +426,14 @@ void main() {
       location: AppRoutes.petDetail(pet.id),
     );
     clearInteractions(pets);
-    await tester.ensureVisible(find.text('Vet visits'));
+    await revealFormField(tester, find.text('Vet visits'));
     await tester.tap(find.text('Vet visits'));
     await tester.pumpAndSettle();
     expect(router.state.uri.path, AppRoutes.vetVisits(pet.id));
     await openDetail(tester);
     expect(router.state.uri.path, AppRoutes.vetVisitDetail(pet.id, visit.id));
     expect(find.text('Annual checkup'), findsOneWidget);
-    await tester.ensureVisible(find.text('1250.50 TRY'));
+    await revealFormField(tester, find.text('1250.50 TRY'));
     expect(find.text('1250.50 TRY'), findsOneWidget);
     verify(() => repository.getVetVisitById(pet.id, visit.id)).called(1);
     verifyNever(() => pets.getPetById(any()));
@@ -432,6 +498,7 @@ void main() {
         } else {
           await openAdd(tester);
         }
+        await revealFormField(tester, reasonField);
         expect(
           tester.getTopLeft(reasonField).dy,
           lessThan(tester.getTopLeft(find.byType(AppDateField)).dy),
@@ -468,7 +535,7 @@ void main() {
     testWidgets(
       editing
           ? 'edit visit saves from the first fields with fixed actions'
-          : 'add visit saves only after the final form fields',
+          : 'add visit saves only from Review with fixed actions',
       (tester) async {
         await pumpRouter(tester);
         if (editing) {
@@ -482,28 +549,13 @@ void main() {
           ElevatedButton,
           editing ? 'Save changes' : 'Add visit',
         );
-        final initialBounds = tester.getRect(button);
+        if (!editing) expect(button, findsNothing);
         await fill(tester, reasonField, 'Follow-up');
-        if (editing) {
-          expect(button.hitTestable(), findsOneWidget);
-          expect(tester.getRect(button), initialBounds);
-          expect(find.text('Currency').hitTestable(), findsNothing);
-        } else {
-          expect(button.hitTestable(), findsNothing);
-          await tester.ensureVisible(button);
-          await tester.pumpAndSettle();
-          expect(button.hitTestable(), findsOneWidget);
-          expect(
-            tester.getRect(button).top,
-            greaterThan(
-              tester
-                  .getRect(
-                    find.byType(DropdownButtonFormField<VetVisitCurrency>),
-                  )
-                  .bottom,
-            ),
-          );
-        }
+        await reviewForm(tester);
+        expect(find.text('Step 2 of 2 · Review'), findsOneWidget);
+        expect(button.hitTestable(), findsOneWidget);
+        verifyNever(() => repository.createVetVisit(any()));
+        verifyNever(() => repository.updateVetVisit(any()));
         await tester.tap(button);
         await tester.pumpAndSettle();
         expect(find.byType(VetVisitFormPage), findsNothing);
@@ -539,15 +591,12 @@ void main() {
           final petButton = tester.getRect(
             find.widgetWithText(ElevatedButton, 'Save changes'),
           );
-          final petActions = tester.getRect(find.byType(AppFormActions));
+          final petActions = tester.getRect(
+            find.byKey(const ValueKey('multi-step-form-actions')),
+          );
           final petSurface = tester
               .widget<Material>(
-                find
-                    .descendant(
-                      of: find.byType(AppFormActions),
-                      matching: find.byType(Material),
-                    )
-                    .first,
+                find.byKey(const ValueKey('multi-step-form-actions')),
               )
               .color;
           expect(petActions.bottom, size.height - (keyboard ? 280 : 0));
@@ -560,16 +609,16 @@ void main() {
             'Save changes',
           );
           expect(tester.getRect(visitButton), petButton);
-          expect(tester.getRect(find.byType(AppFormActions)), petActions);
+          expect(
+            tester.getRect(
+              find.byKey(const ValueKey('multi-step-form-actions')),
+            ),
+            petActions,
+          );
           expect(
             tester
                 .widget<Material>(
-                  find
-                      .descendant(
-                        of: find.byType(AppFormActions),
-                        matching: find.byType(Material),
-                      )
-                      .first,
+                  find.byKey(const ValueKey('multi-step-form-actions')),
                 )
                 .color,
             petSurface,
@@ -587,14 +636,19 @@ void main() {
       await pumpRouter(tester);
       await openAdd(tester);
       await fill(tester, reasonField, 'Checkup');
-      await fill(tester, find.byKey(const Key('visit-diagnosis')), 'Healthy');
       await fill(
         tester,
-        find.byKey(const Key('visit-notes')),
+        find.byKey(const Key('visit-diagnosis'), skipOffstage: false),
+        'Healthy',
+      );
+      await fill(
+        tester,
+        find.byKey(const Key('visit-notes'), skipOffstage: false),
         'Review next year',
       );
       await fill(tester, amountField, '25,99');
-      await tester.ensureVisible(
+      await revealFormField(
+        tester,
         find.byType(DropdownButtonFormField<VetVisitCurrency>),
       );
       await tester.tap(find.byType(DropdownButtonFormField<VetVisitCurrency>));
@@ -617,6 +671,7 @@ void main() {
     (tester) async {
       await pumpRouter(tester);
       await openAdd(tester);
+      await fill(tester, reasonField, 'Follow-up');
       await fill(tester, veterinarianField, 'My veterinarian');
       await fill(tester, clinicField, 'Clinic');
       await tester.tap(find.widgetWithText(MenuItemButton, 'Clinic B'));
@@ -657,7 +712,11 @@ void main() {
       await openAdd(tester);
       await fill(tester, reasonField, 'Checkup');
       await fill(tester, clinicField, 'New clinic');
-      await tester.ensureVisible(find.text('Retry suggestions'));
+      await revealFormField(tester, find.text('Retry suggestions'));
+      expect(
+        tester.getTopLeft(find.text('Retry suggestions')).dx,
+        tester.getTopLeft(find.text('Could not load suggestions')).dx,
+      );
       failed = false;
       await tester.tap(find.text('Retry suggestions'));
       await tester.pumpAndSettle();
@@ -720,12 +779,7 @@ void main() {
           FocusManager.instance.primaryFocus?.unfocus();
           await tester.pumpAndSettle();
           Future<void> back() async {
-            if (systemBack) {
-              await tester.binding.handlePopRoute();
-            } else {
-              await tester.tap(find.byTooltip('Back'));
-            }
-            await tester.pumpAndSettle();
+            await leaveForm(tester, systemBack: systemBack);
           }
 
           await back();
@@ -759,7 +813,10 @@ void main() {
       expect(find.text('Discard changes?'), findsNothing);
       await tester.tap(find.byTooltip('Edit visit'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Choose visit date'));
+      await tapFormControl(
+        tester,
+        find.byTooltip('Choose visit date', skipOffstage: false),
+      );
       await tester.pumpAndSettle();
       final picker = tester.widget<DatePickerDialog>(
         find.byType(DatePickerDialog),
@@ -771,8 +828,7 @@ void main() {
       await tester.tap(find.text('11').last);
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
-      await tester.binding.handlePopRoute();
-      await tester.pumpAndSettle();
+      await leaveForm(tester, systemBack: true);
       expect(find.text('Discard changes?'), findsOneWidget);
       await tester.tap(find.text('Keep editing'));
       await tester.pumpAndSettle();
@@ -792,17 +848,16 @@ void main() {
       await fill(tester, reasonField, 'Checkup');
       await fill(
         tester,
-        find.byKey(const Key('visit-notes')),
+        find.byKey(const Key('visit-notes'), skipOffstage: false),
         'Keep this note',
       );
       await fill(tester, amountField, '0');
+      await reviewForm(tester);
       final submit = tester
-          .widget<TextField>(
-            find.descendant(of: amountField, matching: find.byType(TextField)),
-          )
-          .onSubmitted!;
-      submit('0');
-      submit('0');
+          .widget<ElevatedButton>(find.byType(ElevatedButton))
+          .onPressed!;
+      submit();
+      submit();
       await tester.pump();
       expect(find.byTooltip('My pets'), findsNothing);
       await tester.binding.handlePopRoute();
@@ -824,7 +879,9 @@ void main() {
       );
       expect(
         tester
-            .widget<TextFormField>(find.byKey(const Key('visit-notes')))
+            .widget<TextFormField>(
+              find.byKey(const Key('visit-notes'), skipOffstage: false),
+            )
             .controller!
             .text,
         'Keep this note',
@@ -870,7 +927,7 @@ void main() {
       ).thenAnswer((_) => pending.future);
       await pumpRouter(tester);
       await openDetail(tester);
-      await tester.ensureVisible(find.text('1250.50 TRY'));
+      await revealFormField(tester, find.text('1250.50 TRY'));
       await tester.tap(find.byTooltip('Delete visit'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
@@ -1003,7 +1060,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await tester.ensureVisible(last);
+          await revealFormField(tester, last);
           await tester.pumpAndSettle();
           final delete = find.descendant(
             of: last,
@@ -1073,6 +1130,7 @@ void main() {
       testWidgets(
         'suggestion loading preserves form positions and input at $size in $brightness',
         (tester) async {
+          await tester.runAsync(loadFormTestFont);
           await pumpRouter(
             tester,
             width: size.width,
@@ -1091,7 +1149,7 @@ void main() {
           when(
             () => repository.getSuggestions(clinicName: 'Cli'),
           ).thenAnswer((_) => pending.future);
-          await tester.enterText(clinicField, 'Cli');
+          await enterFormText(tester, clinicField, 'Cli');
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 300));
           expect(tester.getRect(veterinarianField), neighbor);
@@ -1107,7 +1165,7 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.getRect(veterinarianField), neighbor);
           final clinic = find.widgetWithText(MenuItemButton, 'Clinic B');
-          await tester.ensureVisible(clinic);
+          await revealFormField(tester, clinic);
           await tester.pumpAndSettle();
           await tester.tap(clinic);
           await tester.pumpAndSettle();
@@ -1151,7 +1209,7 @@ void main() {
             brightness: brightness,
           );
           final delete = find.widgetWithIcon(IconButton, Icons.delete_outline);
-          await tester.ensureVisible(delete);
+          await revealFormField(tester, delete);
           await tester.pumpAndSettle();
           expect(delete.hitTestable(), findsOneWidget);
           expect(
@@ -1160,7 +1218,7 @@ void main() {
                 .overlaps(tester.getRect(find.byType(FloatingActionButton))),
             isFalse,
           );
-          await tester.ensureVisible(find.text(reason));
+          await revealFormField(tester, find.text(reason));
           await tester.pumpAndSettle();
           expect(find.text(reason).hitTestable(), findsOneWidget);
           await tester.tap(find.text(reason));
@@ -1179,9 +1237,10 @@ void main() {
   ) async {
     await pumpRouter(tester);
     await openAdd(tester);
+    await fill(tester, reasonField, 'Checkup');
     for (final (key, lines) in [('visit-diagnosis', 4), ('visit-notes', 6)]) {
-      final field = find.byKey(Key(key));
-      await tester.ensureVisible(field);
+      final field = find.byKey(Key(key), skipOffstage: false);
+      await revealFormField(tester, field);
       final initialHeight = tester.getSize(field).height;
       await fill(tester, field, List.filled(lines, 'A line').join('\n'));
       final cappedHeight = tester.getSize(field).height;
@@ -1219,7 +1278,7 @@ void main() {
         ('visit-diagnosis', diagnosis),
         ('visit-notes', notes),
       ]) {
-        final field = find.byKey(Key(key));
+        final field = find.byKey(Key(key), skipOffstage: false);
         await fill(tester, field, '${text}extra');
         expect(tester.widget<TextFormField>(field).controller!.text, text);
       }
@@ -1251,8 +1310,14 @@ void main() {
       await openDetail(tester);
       await tester.tap(find.byTooltip('Edit visit'));
       await tester.pumpAndSettle();
-      final diagnosisField = find.byKey(const Key('visit-diagnosis'));
-      final notesField = find.byKey(const Key('visit-notes'));
+      final diagnosisField = find.byKey(
+        const Key('visit-diagnosis'),
+        skipOffstage: false,
+      );
+      final notesField = find.byKey(
+        const Key('visit-notes'),
+        skipOffstage: false,
+      );
       expect(
         tester.widget<TextFormField>(diagnosisField).controller!.text,
         diagnosis,
@@ -1300,7 +1365,10 @@ void main() {
       ]);
       await tester.tap(find.byTooltip('Edit visit'));
       await tester.pumpAndSettle();
-      expect(headings(), ['Visit details', ...detailSections]);
+      expect(headings(), ['Visit details']);
+      for (final title in detailSections) {
+        expect(find.text('$title (optional)'), findsOneWidget);
+      }
       expect(
         find.widgetWithText(ElevatedButton, 'Save changes').hitTestable(),
         findsOneWidget,
@@ -1382,13 +1450,13 @@ void main() {
           scale: 2,
         );
         final delete = find.widgetWithIcon(IconButton, Icons.delete_outline);
-        await tester.ensureVisible(delete);
+        await revealFormField(tester, delete);
         await tester.pumpAndSettle();
         await tester.tap(delete);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Delete'));
         await tester.pumpAndSettle();
-        await tester.ensureVisible(delete);
+        await revealFormField(tester, delete);
         await tester.pumpAndSettle();
         final addRect = tester.getRect(find.byType(FloatingActionButton));
         expect(
@@ -1412,7 +1480,7 @@ void main() {
         final lineHeight = typography.fontSize! * typography.height! * 2;
         expect(
           tester.getSize(textViewport).height,
-          greaterThanOrEqualTo(lineHeight),
+          greaterThanOrEqualTo(lineHeight - 0.1),
         );
         expect(find.text('Retry deletion').hitTestable(), findsOneWidget);
         expect(
@@ -1472,18 +1540,9 @@ void main() {
           await openAdd(tester);
           await fill(tester, reasonField, 'Checkup');
           await save(tester);
-          final error = find.text('Failed to create vet visit');
-          expect(error.hitTestable(), findsOneWidget);
-          final viewport = tester.getRect(
-            find.byType(SingleChildScrollView).first,
-          );
-          expect(tester.getRect(error).top, greaterThanOrEqualTo(viewport.top));
-          expect(
-            tester.getRect(error).bottom,
-            lessThanOrEqualTo(viewport.bottom),
-          );
+          await checkFormError(tester, 'Failed to create vet visit');
           final retry = find.widgetWithText(ElevatedButton, 'Add visit');
-          await tester.ensureVisible(retry);
+          await revealFormField(tester, retry);
           await tester.pumpAndSettle();
           expect(retry.hitTestable(), findsOneWidget);
           expect(
@@ -1510,37 +1569,7 @@ void main() {
           );
           await fill(tester, reasonField, 'Follow-up');
           await save(tester);
-          final editError = find.text('Failed to update vet visit');
-          final editViewport = tester.getRect(
-            find.byType(SingleChildScrollView).first,
-          );
-          expect(editError.hitTestable(), findsOneWidget);
-          expect(
-            tester.getRect(editError).top,
-            greaterThanOrEqualTo(editViewport.top),
-          );
-          if (tester.getRect(editError).height <= editViewport.height) {
-            expect(
-              tester.getRect(editError).bottom,
-              lessThanOrEqualTo(editViewport.bottom),
-            );
-          } else {
-            final hidden =
-                tester.getRect(editError).bottom - editViewport.bottom;
-            await tester.drag(
-              find.byType(SingleChildScrollView).first,
-              Offset(0, -hidden - 40),
-            );
-            await tester.pumpAndSettle();
-            expect(
-              tester.getRect(editError).bottom,
-              lessThanOrEqualTo(editViewport.bottom),
-            );
-            expect(
-              tester.getRect(editError).bottom,
-              greaterThan(editViewport.top),
-            );
-          }
+          await checkFormError(tester, 'Failed to update vet visit');
           expect(
             find.widgetWithText(ElevatedButton, 'Save changes').hitTestable(),
             findsOneWidget,

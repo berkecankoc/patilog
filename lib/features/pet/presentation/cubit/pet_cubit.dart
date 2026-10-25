@@ -86,4 +86,10 @@ final class PetCubit extends Cubit<PetState> {
         emit(PetLoaded(pet, deleteError: result.failure.message));
     }
   }
+
+  void removeDeletedPet(String petId) {
+    final current = state;
+    if (isClosed || current is! PetsLoaded) return;
+    emit(PetsLoaded(current.pets.where((pet) => pet.id != petId).toList()));
+  }
 }

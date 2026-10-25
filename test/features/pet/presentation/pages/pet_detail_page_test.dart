@@ -93,6 +93,7 @@ void main() {
             findsNothing,
           );
           expect(find.byTooltip('Edit profile'), findsOneWidget);
+          expect(find.byTooltip('My pets'), findsNothing);
           expect(
             tester.getTopLeft(find.text('Profile details')).dy,
             lessThan(tester.getTopLeft(find.text('Care records')).dy),

@@ -80,6 +80,7 @@ void main() {
     Brightness brightness = Brightness.light,
     TargetPlatform platform = TargetPlatform.android,
     String? initialLocation,
+    bool openProfile = true,
   }) async {
     tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1;
@@ -108,7 +109,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    if (initialLocation == null) {
+    if (initialLocation == null && openProfile) {
       await tester.tap(find.text(pet.name));
       await tester.pumpAndSettle();
     }
@@ -133,22 +134,24 @@ void main() {
     verifyZeroInteractions(images);
   });
 
-  testWidgets(
-    'confirmation returns to a refreshed list without the deleted pet',
-    (tester) async {
-      await pumpProfile(tester);
-      await confirmDialog(tester);
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
-      expect(find.byType(PetListPage), findsOneWidget);
-      expect(find.byType(PetDetailPage), findsNothing);
-      expect(find.text(pet.name), findsNothing);
-      expect(find.text(other.name), findsOneWidget);
-      verify(() => repository.deletePet(pet.id)).called(1);
-      verify(() => repository.getPets()).called(2);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('confirmation removes the known pet without rereading the list', (
+    tester,
+  ) async {
+    await pumpProfile(tester);
+    when(repository.getPets).thenAnswer(
+      (_) async => const Error(LocalDatabaseFailure('Refresh failed')),
+    );
+    await confirmDialog(tester);
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PetListPage), findsOneWidget);
+    expect(find.byType(PetDetailPage), findsNothing);
+    expect(find.text(pet.name), findsNothing);
+    expect(find.text(other.name), findsOneWidget);
+    verify(() => repository.deletePet(pet.id)).called(1);
+    verify(() => repository.getPets()).called(1);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('deleting the last pet returns to the empty list', (
     tester,
@@ -164,6 +167,73 @@ void main() {
     expect(find.text('No pets yet'), findsOneWidget);
     expect(find.text(pet.name), findsNothing);
     verify(() => repository.deletePet(pet.id)).called(1);
+    verify(() => repository.getPets()).called(1);
+  });
+
+  testWidgets(
+    'known deletion preserves list scroll and later returns refresh',
+    (tester) async {
+      final many = [
+        for (var index = 0; index < 30; index++)
+          Pet(
+            id: 'other-$index',
+            name: 'Pet $index',
+            species: other.species,
+            sex: other.sex,
+            reproductiveStatus: other.reproductiveStatus,
+          ),
+        pet,
+        other,
+      ];
+      when(repository.getPets).thenAnswer(
+        (_) async => Success(
+          many.where((item) => !deleted || item.id != pet.id).toList(),
+        ),
+      );
+      when(
+        () => repository.getPetById(other.id),
+      ).thenAnswer((_) async => const Success(other));
+      await pumpProfile(tester, openProfile: false);
+      await tester.scrollUntilVisible(
+        find.text(pet.name),
+        400,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+      final position = tester
+          .state<ScrollableState>(find.byType(Scrollable))
+          .position;
+      final offset = position.pixels;
+      expect(offset, greaterThan(0));
+      await tester.tap(find.text(pet.name));
+      await tester.pumpAndSettle();
+      await confirmDialog(tester);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text(pet.name), findsNothing);
+      expect(position.pixels, greaterThan(0));
+      verify(repository.getPets).called(1);
+      await tester.ensureVisible(find.text(other.name));
+      await tester.tap(find.text(other.name));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      verify(repository.getPets).called(1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('direct profile deletion refreshes without a pending list push', (
+    tester,
+  ) async {
+    await pumpProfile(tester, initialLocation: AppRoutes.petDetail(pet.id));
+    await confirmDialog(tester);
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PetListPage), findsOneWidget);
+    expect(find.text(pet.name), findsNothing);
+    expect(find.text(other.name), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('failure keeps the profile and allows a confirmed retry', (
@@ -212,7 +282,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PetListPage), findsOneWidget);
     verify(() => repository.deletePet(pet.id)).called(2);
-    verify(() => repository.getPets()).called(2);
+    verify(() => repository.getPets()).called(1);
   });
 
   testWidgets(

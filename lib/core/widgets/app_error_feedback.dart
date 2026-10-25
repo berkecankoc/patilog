@@ -6,13 +6,13 @@ import 'package:petlytics/core/theme/app_spacing.dart';
 class AppErrorFeedback extends StatelessWidget {
   final String message;
   final String retryLabel;
-  final VoidCallback onRetry;
+  final VoidCallback? onRetry;
 
   const AppErrorFeedback({
     super.key,
     required this.message,
-    required this.retryLabel,
-    required this.onRetry,
+    this.retryLabel = 'Retry',
+    this.onRetry,
   });
 
   @override
@@ -39,18 +39,21 @@ class AppErrorFeedback extends StatelessWidget {
                 ),
               ),
             ),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  alignment: AlignmentDirectional.centerStart,
+            if (onRetry != null)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.sm,
+                    ),
+                    alignment: AlignmentDirectional.centerStart,
+                  ),
+                  onPressed: onRetry,
+                  child: Text(retryLabel),
                 ),
-                onPressed: onRetry,
-                child: Text(retryLabel),
               ),
-            ),
           ],
         ),
       ),

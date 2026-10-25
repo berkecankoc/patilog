@@ -6,6 +6,7 @@ import 'package:petlytics/features/medication/presentation/cubit/medication_cubi
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../../helpers/multi_step_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/di/injection.dart';
@@ -301,22 +302,34 @@ void main() {
     return router;
   }
 
-  final name = find.widgetWithText(TextFormField, 'Vaccine name');
-  final notes = find.byKey(const Key('vaccination-notes'));
-  final clinic = find.widgetWithText(TextFormField, 'Clinic (optional)');
-  final vet = find.widgetWithText(TextFormField, 'Veterinarian (optional)');
+  final name = find.widgetWithText(
+    TextFormField,
+    'Vaccine name',
+    skipOffstage: false,
+  );
+  final notes = find.byKey(const Key('vaccination-notes'), skipOffstage: false);
+  final clinic = find.widgetWithText(
+    TextFormField,
+    'Clinic (optional)',
+    skipOffstage: false,
+  );
+  final vet = find.widgetWithText(
+    TextFormField,
+    'Veterinarian (optional)',
+    skipOffstage: false,
+  );
 
   Future<void> expandRelated(WidgetTester tester, String title) async {
     final row = find.widgetWithText(ListTile, title);
-    await tester.ensureVisible(row);
+    await revealFormField(tester, row);
     await tester.pumpAndSettle();
     await tester.tap(row);
     await tester.pumpAndSettle();
   }
 
   Future<void> fill(WidgetTester tester, Finder field, String value) async {
-    await tester.ensureVisible(field);
-    await tester.enterText(field, value);
+    await revealFormField(tester, field);
+    await enterFormText(tester, field, value);
     await tester.pumpAndSettle();
   }
 
@@ -339,24 +352,14 @@ void main() {
             .first,
       );
     }
-    await tester.ensureVisible(find.text(record.vaccineName));
+    await revealFormField(tester, find.text(record.vaccineName));
     await tester.pumpAndSettle();
     await tester.tap(find.text(record.vaccineName));
     await tester.pumpAndSettle();
   }
 
-  Future<void> submit(WidgetTester tester, {bool settle = true}) async {
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byType(ElevatedButton));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(ElevatedButton));
-    if (settle) {
-      await tester.pumpAndSettle();
-    } else {
-      await tester.pump();
-    }
-  }
+  Future<void> submit(WidgetTester tester, {bool settle = true}) =>
+      submitForm(tester, settle: settle);
 
   testWidgets(
     'linked visit loads on expansion, retries locally and stays cached on reopen',
@@ -377,7 +380,7 @@ void main() {
       when(
         () => visitRepository.getVetVisitById(pet.id, visit.id),
       ).thenAnswer((_) async => Success(visit));
-      await tester.ensureVisible(find.text('Retry visit'));
+      await revealFormField(tester, find.text('Retry visit'));
       await tester.tap(find.text('Retry visit'));
       await tester.pumpAndSettle();
       expect(find.text('Checkup'), findsOneWidget);
@@ -400,7 +403,7 @@ void main() {
       );
       await expandRelated(tester, 'Linked vaccinations');
       final arrow = find.byTooltip('Open vaccination: Rabies');
-      await tester.ensureVisible(arrow);
+      await revealFormField(tester, arrow);
       await tester.tap(arrow);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Edit vaccination'));
@@ -411,13 +414,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Updated vaccine'), findsOneWidget);
       final updatedArrow = find.byTooltip('Open vaccination: Updated vaccine');
-      await tester.ensureVisible(updatedArrow);
+      await revealFormField(tester, updatedArrow);
       await tester.tap(updatedArrow);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Edit vaccination'));
       await tester.pumpAndSettle();
-      final visitField = find.byType(DropdownButtonFormField<String>);
-      await tester.ensureVisible(visitField);
+      final visitField = find.byType(
+        DropdownButtonFormField<String>,
+        skipOffstage: false,
+      );
+      await revealFormField(tester, visitField);
       await tester.tap(visitField);
       await tester.pumpAndSettle();
       await tester.tap(find.text('No linked visit').last);
@@ -436,7 +442,7 @@ void main() {
       await tester.tap(find.text('Checkup'));
       await tester.pumpAndSettle();
       await expandRelated(tester, 'Linked vaccinations');
-      await tester.ensureVisible(arrow);
+      await revealFormField(tester, arrow);
       await tester.tap(arrow);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Delete vaccination'));
@@ -474,7 +480,7 @@ void main() {
       when(
         () => repository.getVaccinations(pet.id, vetVisitId: visit.id),
       ).thenAnswer((_) async => Success(records));
-      await tester.ensureVisible(find.text('Retry vaccinations'));
+      await revealFormField(tester, find.text('Retry vaccinations'));
       await tester.tap(find.text('Retry vaccinations'));
       await tester.pumpAndSettle();
       final section = find.widgetWithText(
@@ -485,11 +491,11 @@ void main() {
           .descendant(of: section, matching: find.byType(Scrollable))
           .last;
       final last = find.byTooltip('Open vaccination: Vaccine 39');
-      await tester.ensureVisible(scrollable);
+      await revealFormField(tester, scrollable);
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(last, 200, scrollable: scrollable);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(last);
+      await revealFormField(tester, last);
       await tester.pumpAndSettle();
       expect(last.hitTestable(), findsOneWidget);
       await tester.tap(last);
@@ -527,19 +533,22 @@ void main() {
       location: AppRoutes.vaccinationDetail(pet.id, records.single.id),
     );
     await expandRelated(tester, 'Linked vet visit');
-    await tester.ensureVisible(find.byTooltip('Open vet visit'));
+    await revealFormField(tester, find.byTooltip('Open vet visit'));
     await tester.tap(find.byTooltip('Open vet visit'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Edit visit'));
     await tester.pumpAndSettle();
     await fill(
       tester,
-      find.byKey(const Key('visit-reason')),
+      find.byKey(const Key('visit-reason'), skipOffstage: false),
       'Updated visit reason',
     );
     expect(find.byTooltip('My pets'), findsNothing);
-    await tester.ensureVisible(find.byTooltip('Choose visit date'));
-    await tester.tap(find.byTooltip('Choose visit date'));
+    await revealFormField(
+      tester,
+      find.byTooltip('Choose visit date', skipOffstage: false),
+    );
+    await tester.tap(find.byTooltip('Choose visit date', skipOffstage: false));
     await tester.pumpAndSettle();
     await tester.tap(find.text('3').last);
     await tester.tap(find.text('OK'));
@@ -554,7 +563,7 @@ void main() {
     expect(find.byType(VaccinationDetailPage), findsOneWidget);
     expect(find.text('Updated visit reason'), findsOneWidget);
     expect(find.text('Jan 3, 2020'), findsOneWidget);
-    await tester.ensureVisible(find.text('Updated visit reason'));
+    await revealFormField(tester, find.text('Updated visit reason'));
     await tester.pumpAndSettle();
     expect(find.text('Updated visit reason').hitTestable(), findsOneWidget);
     verify(() => visitRepository.updateVetVisit(any())).called(1);
@@ -586,7 +595,7 @@ void main() {
           ListTile,
           linkedVisit ? 'Linked vet visit' : 'Linked vaccinations',
         );
-        await tester.ensureVisible(header);
+        await revealFormField(tester, header);
         await tester.tap(header);
         await tester.pump(const Duration(milliseconds: 300));
         await tester.tap(find.byTooltip('My pets'));
@@ -625,7 +634,7 @@ void main() {
         );
         await expandRelated(tester, 'Linked vaccinations');
         final retry = find.text('Retry vaccinations');
-        await tester.ensureVisible(retry);
+        await revealFormField(tester, retry);
         await tester.pumpAndSettle();
         expect(retry.hitTestable(), findsOneWidget);
         when(
@@ -634,7 +643,7 @@ void main() {
         await tester.tap(retry);
         await tester.pumpAndSettle();
         final arrow = find.byTooltip('Open vaccination: Rabies');
-        await tester.ensureVisible(arrow);
+        await revealFormField(tester, arrow);
         await tester.pumpAndSettle();
         expect(arrow.hitTestable(), findsOneWidget);
         await tester.tap(arrow);
@@ -651,15 +660,19 @@ void main() {
     String label,
     DateTime date,
   ) async {
-    final choose = find.byTooltip('Choose ${label.toLowerCase()}');
-    await tester.ensureVisible(choose);
+    final choose = find.byTooltip(
+      'Choose ${label.toLowerCase()}',
+      skipOffstage: false,
+    );
+    await revealFormField(tester, choose);
     await tester.tap(choose);
     await tester.pumpAndSettle();
     final dialog = find.byType(DatePickerDialog);
     final l10n = MaterialLocalizations.of(tester.element(dialog));
     await tester.tap(find.byTooltip(l10n.inputDateModeButtonLabel));
     await tester.pumpAndSettle();
-    await tester.enterText(
+    await enterFormText(
+      tester,
       find.descendant(of: dialog, matching: find.byType(TextField)).first,
       '${date.month}/${date.day}/${date.year}',
     );
@@ -668,8 +681,11 @@ void main() {
   }
 
   Future<void> chooseStatus(WidgetTester tester, String label) async {
-    final field = find.byType(DropdownButtonFormField<VaccinationStatus>);
-    await tester.ensureVisible(field);
+    final field = find.byType(
+      DropdownButtonFormField<VaccinationStatus>,
+      skipOffstage: false,
+    );
+    await revealFormField(tester, field);
     await tester.tap(field);
     await tester.pumpAndSettle();
     await tester.tap(find.text(label).last);
@@ -677,6 +693,45 @@ void main() {
   }
 
   for (final editing in [false, true]) {
+    testWidgets(
+      'multi-step vaccination ${editing ? 'edit' : 'add'} reviews before saving',
+      (tester) async {
+        await pumpRouter(tester);
+        if (editing) {
+          await open(tester, administered);
+          await tester.tap(find.byTooltip('Edit vaccination'));
+          await tester.pumpAndSettle();
+        } else {
+          await add(tester);
+        }
+        expect(
+          find.text(
+            editing ? 'Step 2 of 2 · Review' : 'Step 1 of 2 · Vaccination',
+          ),
+          findsOneWidget,
+        );
+        await fill(tester, name, 'Rabies');
+        await reviewForm(tester);
+        expect(find.text('Review vaccination'), findsOneWidget);
+        await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(TextButton, 'Back'), findsNothing);
+        expect(tester.widget<TextFormField>(name).controller!.text, 'Rabies');
+        await reviewForm(tester);
+        verifyNever(
+          () => repository.createVaccination(
+            any(),
+            nextDose: any(named: 'nextDose'),
+          ),
+        );
+        verifyNever(
+          () => repository.updateVaccination(
+            any(),
+            nextDose: any(named: 'nextDose'),
+          ),
+        );
+      },
+    );
     testWidgets(
       'linked ${editing ? 'edit' : 'add'} inherits visit date and unlocks on unlink',
       (tester) async {
@@ -700,11 +755,17 @@ void main() {
         }
         expect(find.byTooltip('My pets'), findsNothing);
         await fill(tester, name, 'Linked vaccine');
-        final dateFinder = find.byKey(const Key('vaccination-date'));
+        final dateFinder = find.byKey(
+          const Key('vaccination-date'),
+          skipOffstage: false,
+        );
         AppDateField date() => tester.widget<AppDateField>(dateFinder);
         Future<void> select(String reason) async {
-          final field = find.byType(DropdownButtonFormField<String>);
-          await tester.ensureVisible(field);
+          final field = find.byType(
+            DropdownButtonFormField<String>,
+            skipOffstage: false,
+          );
+          await revealFormField(tester, field);
           await tester.tap(field);
           await tester.pumpAndSettle();
           await tester.tap(find.textContaining(reason).last);
@@ -715,23 +776,29 @@ void main() {
         expect(date().value, visit.visitedOn);
         expect(date().readOnly, isTrue);
         expect(find.text('Date from linked vet visit'), findsOneWidget);
-        await tester.ensureVisible(dateFinder);
+        await revealFormField(tester, dateFinder);
         await tester.tap(
           find.descendant(of: dateFinder, matching: find.byType(TextField)),
         );
         await tester.pumpAndSettle();
         expect(find.byType(DatePickerDialog), findsNothing);
-        expect(find.byTooltip('Choose administration date'), findsNothing);
+        expect(
+          find.byTooltip('Choose administration date', skipOffstage: false),
+          findsNothing,
+        );
         await select('Follow-up visit');
         expect(date().value, second.visitedOn);
         await select('No linked visit');
         expect(date().value, second.visitedOn);
         expect(date().readOnly, isFalse);
         expect(find.text('Date from linked vet visit'), findsNothing);
-        await tester.ensureVisible(
-          find.byTooltip('Choose administration date'),
+        await revealFormField(
+          tester,
+          find.byTooltip('Choose administration date', skipOffstage: false),
         );
-        await tester.tap(find.byTooltip('Choose administration date'));
+        await tester.tap(
+          find.byTooltip('Choose administration date', skipOffstage: false),
+        );
         await tester.pumpAndSettle();
         expect(
           tester
@@ -829,7 +896,7 @@ void main() {
     (tester) async {
       await pumpRouter(tester, location: AppRoutes.petDetail(pet.id));
       clearInteractions(pets);
-      await tester.ensureVisible(find.text('Vaccinations'));
+      await revealFormField(tester, find.text('Vaccinations'));
       await tester.tap(find.text('Vaccinations'));
       await tester.pumpAndSettle();
       expect(find.byType(VaccinationListPage), findsOneWidget);
@@ -872,7 +939,10 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.byType(AppFormActions).hitTestable(), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Continue').hitTestable(),
+        findsOneWidget,
+      );
       expect(
         tester.widget<AppFormActions>(find.byType(AppFormActions)).fixed,
         isFalse,
@@ -961,7 +1031,7 @@ void main() {
       await pickDate(tester, 'Next dose date (optional)', today);
       await pickDate(tester, 'Administration date', today);
       final next = tester.widget<AppDateField>(
-        find.byKey(const Key('vaccination-next-date')),
+        find.byKey(const Key('vaccination-next-date'), skipOffstage: false),
       );
       expect(next.firstDate, DateTime(today.year, today.month, today.day + 1));
       await submit(tester);
@@ -1002,7 +1072,7 @@ void main() {
       await tester.tap(find.byTooltip('Edit vaccination'));
       await tester.pumpAndSettle();
       final field = tester.widget<AppDateField>(
-        find.byKey(const Key('vaccination-date')),
+        find.byKey(const Key('vaccination-date'), skipOffstage: false),
       );
       expect(field.value, overdue.date);
       expect(field.firstDate, today);
@@ -1018,7 +1088,9 @@ void main() {
           nextDose: any(named: 'nextDose'),
         ),
       );
-      await tester.tap(find.byTooltip('Choose planned date'));
+      await tester.tap(
+        find.byTooltip('Choose planned date', skipOffstage: false),
+      );
       await tester.pumpAndSettle();
       final picker = tester.widget<DatePickerDialog>(
         find.byType(DatePickerDialog),
@@ -1029,7 +1101,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<AppDateField>(find.byKey(const Key('vaccination-date')))
+            .widget<AppDateField>(
+              find.byKey(const Key('vaccination-date'), skipOffstage: false),
+            )
             .value,
         overdue.date,
       );
@@ -1049,7 +1123,9 @@ void main() {
       expect(
         DateUtils.dateOnly(
           tester
-              .widget<AppDateField>(find.byKey(const Key('vaccination-date')))
+              .widget<AppDateField>(
+                find.byKey(const Key('vaccination-date'), skipOffstage: false),
+              )
               .lastDate,
         ),
         today,
@@ -1058,14 +1134,17 @@ void main() {
       expect(
         tester
             .widget<AppDateField>(
-              find.byKey(const Key('vaccination-next-date')),
+              find.byKey(
+                const Key('vaccination-next-date'),
+                skipOffstage: false,
+              ),
             )
             .firstDate,
         today,
       );
       await chooseStatus(tester, 'Planned');
       final plannedDate = tester.widget<AppDateField>(
-        find.byKey(const Key('vaccination-date')),
+        find.byKey(const Key('vaccination-date'), skipOffstage: false),
       );
       expect(plannedDate.firstDate, today);
       expect(plannedDate.value, today);
@@ -1079,7 +1158,10 @@ void main() {
       await add(tester);
       await fill(tester, name, 'Future vaccine');
       await chooseStatus(tester, 'Planned');
-      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+      expect(
+        find.byType(DropdownButtonFormField<String>, skipOffstage: false),
+        findsNothing,
+      );
       expect(find.text('Next dose'), findsNothing);
       final future = DateTime(DateTime.now().year + 1, 2, 3);
       await pickDate(tester, 'Planned date', future);
@@ -1103,7 +1185,7 @@ void main() {
         records.singleWhere((v) => v.id == planned.id).status,
         VaccinationStatus.planned,
       );
-      expect(find.text('Next dose'), findsOneWidget);
+      expect(find.text('Next dose (optional)'), findsOneWidget);
       await submit(tester);
       final saved = records.singleWhere((v) => v.id == planned.id);
       expect(saved.status, VaccinationStatus.administered);
@@ -1141,8 +1223,12 @@ void main() {
           brightness: Brightness.dark,
         );
         await add(tester);
-        final field = find.byType(DropdownButtonFormField<String>);
-        await tester.ensureVisible(field);
+        await fill(tester, name, 'Linked vaccine');
+        final field = find.byType(
+          DropdownButtonFormField<String>,
+          skipOffstage: false,
+        );
+        await revealFormField(tester, field);
         await tester.pumpAndSettle();
         final initialHeight = tester.getSize(field).height;
         await tester.tap(field);
@@ -1163,7 +1249,7 @@ void main() {
           scrollable: menuScroll,
           maxScrolls: 200,
         );
-        await tester.ensureVisible(last);
+        await revealFormField(tester, last);
         await tester.pumpAndSettle();
         expect(last.hitTestable(), findsOneWidget);
         await tester.tap(last);
@@ -1183,7 +1269,7 @@ void main() {
           'Clinic 149',
         );
         expect(tester.widget<TextFormField>(vet).controller!.text, 'Dr. 149');
-        await tester.ensureVisible(field);
+        await revealFormField(tester, field);
         await tester.pumpAndSettle();
         await tester.tap(field);
         await tester.pumpAndSettle();
@@ -1202,7 +1288,7 @@ void main() {
               .last,
           maxScrolls: 200,
         );
-        await tester.ensureVisible(first);
+        await revealFormField(tester, first);
         await tester.pumpAndSettle();
         await tester.tap(first);
         await tester.pumpAndSettle();
@@ -1224,9 +1310,13 @@ void main() {
     (tester) async {
       await pumpRouter(tester);
       await add(tester);
+      await fill(tester, name, 'Linked vaccine');
       await fill(tester, clinic, 'Custom clinic');
-      final field = find.byType(DropdownButtonFormField<String>);
-      await tester.ensureVisible(field);
+      final field = find.byType(
+        DropdownButtonFormField<String>,
+        skipOffstage: false,
+      );
+      await revealFormField(tester, field);
       await tester.tap(field);
       await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Checkup').last);
@@ -1249,6 +1339,43 @@ void main() {
     },
   );
 
+  for (final editing in [false, true]) {
+    testWidgets(
+      '${editing ? 'Edit' : 'Add'} vaccination suppresses Android stretch',
+      (tester) async {
+        final router = await pumpRouter(tester);
+        if (editing) {
+          router.push(
+            AppRoutes.addEditVaccination(pet.id),
+            extra: VaccinationFormExtra(
+              petId: pet.id,
+              petName: pet.name,
+              vaccination: administered,
+            ),
+          );
+          await tester.pumpAndSettle();
+        } else {
+          await add(tester);
+        }
+        final form = find.byType(VaccinationFormPage);
+        expect(
+          find.descendant(
+            of: form,
+            matching: find.byType(StretchingOverscrollIndicator),
+          ),
+          findsNothing,
+        );
+        await tester.drag(
+          find.descendant(of: form, matching: find.byType(Scrollable)).first,
+          const Offset(0, 400),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.android),
+    );
+  }
+
   testWidgets(
     'option failures can retry independently while entered text remains',
     (tester) async {
@@ -1263,11 +1390,20 @@ void main() {
       await pumpRouter(tester);
       await add(tester);
       await fill(tester, name, 'Manual vaccine');
-      await tester.ensureVisible(find.text('Retry visits'));
+      await revealFormField(tester, clinic);
+      await revealFormField(tester, find.text('Retry visits'));
+      expect(
+        tester.getTopLeft(find.text('Retry visits')).dx,
+        tester.getTopLeft(find.text('Visits failed')).dx,
+      );
       await tester.tap(find.text('Retry visits'));
       await tester.pumpAndSettle();
       verify(() => visitRepository.getVetVisits(pet.id)).called(2);
-      await tester.ensureVisible(find.text('Retry suggestions'));
+      await revealFormField(tester, find.text('Retry suggestions'));
+      expect(
+        tester.getTopLeft(find.text('Retry suggestions')).dx,
+        tester.getTopLeft(find.text('Suggestions failed')).dx,
+      );
       await tester.tap(find.text('Retry suggestions'));
       await tester.pumpAndSettle();
       await submit(tester);
@@ -1294,12 +1430,7 @@ void main() {
             await add(tester);
           }
           await fill(tester, name, 'Changed');
-          if (systemBack) {
-            await tester.binding.handlePopRoute();
-          } else {
-            await tester.tap(find.byTooltip('Back'));
-          }
-          await tester.pumpAndSettle();
+          await leaveForm(tester, systemBack: systemBack);
           expect(find.text('Discard changes?'), findsOneWidget);
           await tester.tap(find.text('Keep editing'));
           await tester.pumpAndSettle();
@@ -1330,8 +1461,7 @@ void main() {
     await tester.tap(find.byTooltip('Edit vaccination'));
     await tester.pumpAndSettle();
     await pickDate(tester, 'Administration date', DateTime(2020, 1, 3));
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    await leaveForm(tester, systemBack: true);
     expect(find.text('Discard changes?'), findsOneWidget);
   });
 
@@ -1360,7 +1490,11 @@ void main() {
       pending.complete(const Error(LocalDatabaseFailure('Save failed')));
       await tester.pumpAndSettle();
       expect(find.text('Save failed').hitTestable(), findsOneWidget);
-      expect(find.text('Retry save').hitTestable(), findsOneWidget);
+      expect(find.text('Retry save'), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Add vaccination').hitTestable(),
+        findsOneWidget,
+      );
       expect(
         tester.widget<TextFormField>(name).controller!.text,
         'Keep this name',
@@ -1381,7 +1515,7 @@ void main() {
           nextDose: any(named: 'nextDose'),
         ),
       ).thenAnswer((_) async => const Success(null));
-      await tester.tap(find.text('Retry save'));
+      await submit(tester);
       await tester.pumpAndSettle();
       expect(find.byType(VaccinationListPage), findsOneWidget);
     },
@@ -1436,7 +1570,7 @@ void main() {
           expect(linkedVisitStyle.fontSize, sectionStyle.fontSize);
           expect(linkedVisitStyle.fontWeight, sectionStyle.fontWeight);
           final row = find.widgetWithText(ListTile, 'Linked vet visit');
-          await tester.ensureVisible(row);
+          await revealFormField(tester, row);
           await tester.pumpAndSettle();
           final titleCenter = tester
               .getCenter(find.text('Linked vet visit'))
@@ -1467,7 +1601,7 @@ void main() {
             () => visitRepository.getVetVisitById(pet.id, visit.id),
           ).called(1);
           final arrow = find.byTooltip('Open vet visit');
-          await tester.ensureVisible(arrow);
+          await revealFormField(tester, arrow);
           await tester.pumpAndSettle();
           expect(arrow.hitTestable(), findsOneWidget);
           await tester.tap(arrow);
@@ -1483,7 +1617,7 @@ void main() {
           expect(vaccinationsStyle.fontWeight, visitSectionStyle.fontWeight);
           await expandRelated(tester, 'Linked vaccinations');
           final vaccineArrow = find.byTooltip('Open vaccination: Rabies');
-          await tester.ensureVisible(vaccineArrow);
+          await revealFormField(tester, vaccineArrow);
           await tester.pumpAndSettle();
           expect(vaccineArrow.hitTestable(), findsOneWidget);
           await tester.tap(vaccineArrow);
@@ -1523,7 +1657,7 @@ void main() {
       await pumpRouter(tester);
       await open(tester, linked);
       final link = find.widgetWithText(ListTile, 'Linked vet visit');
-      await tester.ensureVisible(link);
+      await revealFormField(tester, link);
       await tester.pumpAndSettle();
       expect(
         tester.getTopLeft(link).dy,
@@ -1533,7 +1667,7 @@ void main() {
       await tester.tap(link);
       await tester.pumpAndSettle();
       expect(find.text('Checkup'), findsOneWidget);
-      await tester.ensureVisible(find.byTooltip('Open vet visit'));
+      await revealFormField(tester, find.byTooltip('Open vet visit'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Open vet visit'));
       await tester.pumpAndSettle();
@@ -1730,7 +1864,7 @@ void main() {
           .first;
       final remove = find.byTooltip('Delete Vaccine 8 from Jan 2, 2020');
       await tester.scrollUntilVisible(remove, 200, scrollable: scrollable);
-      await tester.ensureVisible(find.byKey(const ValueKey('row-8')));
+      await revealFormField(tester, find.byKey(const ValueKey('row-8')));
       await tester.pumpAndSettle();
       final position = tester.state<ScrollableState>(scrollable).position;
       final originalOffset = position.pixels;
@@ -1785,8 +1919,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final picker = find.byType(DropdownButtonFormField<String>);
-      await tester.ensureVisible(picker);
+      final picker = find.byType(
+        DropdownButtonFormField<String>,
+        skipOffstage: false,
+      );
+      await revealFormField(tester, picker);
       await tester.pumpAndSettle();
       expect(find.text('Linked visit unavailable'), findsOneWidget);
       await tester.tap(picker);
@@ -1821,6 +1958,7 @@ void main() {
       testWidgets(
         'clinical suggestions stay stable through pending loads at $size in $brightness',
         (tester) async {
+          await tester.runAsync(loadFormTestFont);
           await pumpRouter(
             tester,
             size: size,
@@ -1837,7 +1975,7 @@ void main() {
           when(
             () => repository.getSuggestions(clinicName: 'Cli'),
           ).thenAnswer((_) => pending.future);
-          await tester.enterText(clinic, 'Cli');
+          await enterFormText(tester, clinic, 'Cli');
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 300));
           expect(tester.getRect(vet), neighbor);
@@ -1854,7 +1992,7 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.getRect(vet), neighbor);
           final option = find.widgetWithText(MenuItemButton, 'Clinic B');
-          await tester.ensureVisible(option);
+          await revealFormField(tester, option);
           await tester.pumpAndSettle();
           expect(option.hitTestable(), findsOneWidget);
           await tester.tap(option);
@@ -1938,7 +2076,7 @@ void main() {
               tester.widget<AppFormActions>(find.byType(AppFormActions)).fixed,
               isFalse,
             );
-            await tester.ensureVisible(action);
+            await revealFormField(tester, action);
           }
           await tester.pumpAndSettle();
           expect(action.hitTestable(), findsOneWidget);
@@ -1948,7 +2086,10 @@ void main() {
           expect(
             tester
                 .widget<DropdownButtonFormField<VaccinationStatus>>(
-                  find.byType(DropdownButtonFormField<VaccinationStatus>),
+                  find.byType(
+                    DropdownButtonFormField<VaccinationStatus>,
+                    skipOffstage: false,
+                  ),
                 )
                 .initialValue,
             VaccinationStatus.administered,
@@ -1961,7 +2102,7 @@ void main() {
           );
           await tester.tap(find.byTooltip('Back'));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text('Discard changes').last);
+          await revealFormField(tester, find.text('Discard changes').last);
           await tester.tap(find.text('Discard changes').last);
           await tester.pumpAndSettle();
           final deletion = Completer<Result<void>>();
@@ -1970,7 +2111,7 @@ void main() {
           ).thenAnswer((_) => deletion.future);
           await tester.tap(find.byTooltip('Delete vaccination'));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text('Delete').last);
+          await revealFormField(tester, find.text('Delete').last);
           await tester.tap(find.text('Delete').last);
           await tester.pump();
           expect(tester.widget<ElevatedButton>(action).onPressed, isNull);
@@ -1983,7 +2124,7 @@ void main() {
           }
           await tester.tap(find.text('Retry deletion'));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text('Cancel'));
+          await revealFormField(tester, find.text('Cancel'));
           await tester.tap(find.text('Cancel'));
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
@@ -2015,10 +2156,7 @@ void main() {
             ),
           );
           await submit(tester);
-          expect(
-            find.text('Failed to update vaccination').hitTestable(),
-            findsOneWidget,
-          );
+          await checkFormError(tester, 'Failed to update vaccination');
           expect(find.byType(ElevatedButton).hitTestable(), findsOneWidget);
           expect(tester.takeException(), isNull);
           expect(find.text('Retry save'), findsNothing);
@@ -2036,7 +2174,7 @@ void main() {
           );
           await tester.tap(find.byTooltip('Delete vaccination'));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text('Delete').last);
+          await revealFormField(tester, find.text('Delete').last);
           await tester.tap(find.text('Delete').last);
           await tester.pumpAndSettle();
           expect(find.text('Delete failed').hitTestable(), findsOneWidget);
@@ -2044,7 +2182,7 @@ void main() {
           clearInteractions(repository);
           await tester.tap(find.text('Retry deletion'));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text('Cancel'));
+          await revealFormField(tester, find.text('Cancel'));
           await tester.tap(find.text('Cancel'));
           await tester.pumpAndSettle();
           verifyNever(() => repository.deleteVaccination(any(), any()));
@@ -2082,7 +2220,7 @@ void main() {
                 .descendant(of: scroll, matching: find.byType(Scrollable))
                 .first,
           );
-          await tester.ensureVisible(find.byKey(const ValueKey('row-15')));
+          await revealFormField(tester, find.byKey(const ValueKey('row-15')));
           await tester.pumpAndSettle();
           final button = tester.getRect(find.byType(FloatingActionButton));
           expect(tester.getRect(scroll).bottom, size.height - 34);
@@ -2092,7 +2230,7 @@ void main() {
           expect(lastDelete.hitTestable(), findsOneWidget);
           await tester.tap(lastDelete);
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text('Delete').last);
+          await revealFormField(tester, find.text('Delete').last);
           await tester.tap(find.text('Delete').last);
           await tester.pumpAndSettle();
           expect(records.any((v) => v.id == 'row-15'), isFalse);

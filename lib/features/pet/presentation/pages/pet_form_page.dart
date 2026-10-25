@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
+import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart'
@@ -120,8 +120,6 @@ class PetFormPage extends StatefulWidget {
 class _PetFormPageState extends State<PetFormPage> {
   static const _nameMaxLength = 20;
 
-  final _formKey = GlobalKey<FormState>();
-
   final _nameController = TextEditingController();
   final _breedController = TextEditingController();
   final _weightController = TextEditingController();
@@ -194,16 +192,6 @@ class _PetFormPageState extends State<PetFormPage> {
       return;
     }
     if (widget.pet != null && !_hasChanges) return;
-    final invalidFields = _formKey.currentState!.validateGranularly();
-    if (invalidFields.isNotEmpty) {
-      Scrollable.ensureVisible(
-        invalidFields.first.context,
-        alignment: 0.1,
-        duration: const Duration(milliseconds: 200),
-      );
-      return;
-    }
-
     setState(() => _saveError = null);
     FocusScope.of(context).unfocus();
 
@@ -319,307 +307,248 @@ class _PetFormPageState extends State<PetFormPage> {
     if (discard == true && mounted) _leave();
   }
 
-  Widget _saveActions(bool saving) {
-    return AppFormActions(
-      label: widget.pet == null ? 'Add pet' : 'Save changes',
-      saving: saving,
-      fixed: widget.pet != null,
-      onPressed: widget.pet != null && !_hasChanges ? null : _submit,
-      feedback: _saveError == null
-          ? null
-          : Semantics(
-              liveRegion: true,
-              child: Text(
-                _saveError!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-                semanticsLabel: 'Could not save pet: $_saveError',
-              ),
+  Widget _basicDetails() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Center(
+        child: _PetImageField(
+          imagePath: _pickedImagePath,
+          isStored: _pickedImagePath == widget.pet?.imagePath,
+          onTap: _pickImage,
+          onRemove: () {
+            setState(() {
+              _pickedImagePath = null;
+            });
+          },
+        ),
+      ),
+
+      VerticalGap.lg,
+      const AppSectionHeading(title: 'Basic details', icon: Icons.info_outline),
+      VerticalGap.md,
+
+      TextFormField(
+        controller: _nameController,
+        decoration: const InputDecoration(labelText: 'Name'),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Name is required';
+          }
+          if (value.trim().characters.length > _nameMaxLength) {
+            return 'Keep name within $_nameMaxLength characters';
+          }
+
+          return null;
+        },
+      ),
+
+      VerticalGap.md,
+
+      Column(
+        children: [
+          DropdownButtonFormField<PetSpecies>(
+            isExpanded: true,
+            borderRadius: BorderRadius.circular(16),
+            initialValue: _species,
+            items: PetSpecies.values.map((species) {
+              return DropdownMenuItem(
+                value: species,
+                child: Text(species.label),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value == null) return;
+
+              setState(() {
+                _species = value;
+              });
+            },
+            decoration: const InputDecoration(labelText: 'Species'),
+          ),
+
+          VerticalGap.md,
+
+          DropdownButtonFormField<PetSex>(
+            isExpanded: true,
+            borderRadius: BorderRadius.circular(16),
+            initialValue: _sex,
+            items: PetSex.values.map((sex) {
+              return DropdownMenuItem(value: sex, child: Text(sex.label));
+            }).toList(),
+            onChanged: (value) {
+              if (value == null) return;
+
+              setState(() {
+                _sex = value;
+              });
+            },
+            decoration: const InputDecoration(labelText: 'Sex'),
+          ),
+        ],
+      ),
+
+      VerticalGap.md,
+
+      TextFormField(
+        controller: _breedController,
+        decoration: const InputDecoration(labelText: 'Breed (optional)'),
+      ),
+
+      VerticalGap.md,
+    ],
+  );
+
+  Widget _healthDetails() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      DropdownButtonFormField<ReproductiveStatus>(
+        isExpanded: true,
+        borderRadius: BorderRadius.circular(16),
+        initialValue: _reproductiveStatus,
+        items: ReproductiveStatus.values.map((status) {
+          return DropdownMenuItem(value: status, child: Text(status.label));
+        }).toList(),
+        onChanged: (value) {
+          if (value == null) return;
+
+          setState(() {
+            _reproductiveStatus = value;
+          });
+        },
+        decoration: const InputDecoration(labelText: 'Reproductive Status'),
+      ),
+
+      VerticalGap.md,
+
+      Column(
+        children: [
+          AppDateField(
+            labelText: 'Birth date (optional)',
+            value: _birthDate,
+            firstDate: DateTime(1980),
+            lastDate: DateTime.now(),
+            clearable: true,
+            onChanged: (date) => setState(() => _birthDate = date),
+          ),
+
+          VerticalGap.md,
+
+          TextFormField(
+            controller: _weightController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
+            decoration: const InputDecoration(
+              labelText: 'Weight (optional)',
+              suffixText: 'kg',
+              errorMaxLines: 5,
             ),
-    );
-  }
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return null;
+              }
+
+              final weight = parseWeight(value);
+
+              if (weight == null || !weight.isFinite) {
+                return 'Enter a valid weight';
+              }
+
+              if (weight <= 0) {
+                return 'Weight must be greater than 0';
+              }
+
+              if (!hasValidWeightPrecision(value)) {
+                return 'Use up to 3 decimal places';
+              }
+
+              return null;
+            },
+          ),
+        ],
+      ),
+
+      VerticalGap.md,
+
+      const AppSectionHeading(
+        title: 'Identification',
+        icon: Icons.badge_outlined,
+      ),
+      VerticalGap.md,
+      TextFormField(
+        controller: _microchipIdController,
+        decoration: const InputDecoration(labelText: 'Microchip ID (optional)'),
+      ),
+    ],
+  );
 
   @override
-  Widget build(BuildContext context) {
-    return BlocConsumer<PetCubit, PetState>(
-      listener: (context, state) {
-        if (state case PetCreated() || PetUpdated()) {
-          _leave(result: true);
-        }
-
-        if (state case PetError(:final message)) {
-          setState(() => _saveError = message);
-        }
+  Widget build(BuildContext context) => BlocConsumer<PetCubit, PetState>(
+    listener: (context, state) {
+      if (state case PetCreated() || PetUpdated()) {
+        _leave(result: true);
+      } else if (state case PetError(:final message)) {
+        setState(() => _saveError = message);
+      }
+    },
+    builder: (context, state) => AppMultiStepForm(
+      title: Text(widget.pet == null ? 'Add pet' : 'Edit pet'),
+      editing: widget.pet != null,
+      isSaving: () {
+        final current = context.read<PetCubit>().state;
+        return current is PetLoading ||
+            current is PetCreated ||
+            current is PetUpdated;
       },
-      builder: (context, state) {
-        final saving = state is PetLoading;
-        return PopScope<bool>(
-          canPop: !saving && (_allowPop || !_hasChanges),
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop && !saving) _requestExit();
-          },
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(widget.pet == null ? 'Add pet' : 'Edit pet'),
-              leading: IconButton(
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                icon: const BackButtonIcon(),
-                onPressed: saving ? null : _requestExit,
-              ),
-            ),
-            body: Column(
-              children: [
-                Expanded(
-                  child: AbsorbPointer(
-                    absorbing: saving,
-                    child: SafeArea(
-                      bottom: widget.pet == null,
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 640),
-                          child: SingleChildScrollView(
-                            keyboardDismissBehavior:
-                                ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.all(AppSpacing.lg),
-                            child: Form(
-                              key: _formKey,
-                              onChanged: () => setState(() {}),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    widget.pet == null
-                                        ? 'Meet your new companion'
-                                        : 'Edit pet details',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.headlineSmall,
-                                  ),
-                                  VerticalGap.sm,
-                                  Text(
-                                    widget.pet == null
-                                        ? 'Start with a name and species. You can add more details whenever you’re ready.'
-                                        : 'Update the information below, then save your changes.',
-                                  ),
-                                  VerticalGap.lg,
-                                  Center(
-                                    child: _PetImageField(
-                                      imagePath: _pickedImagePath,
-                                      isStored:
-                                          _pickedImagePath ==
-                                          widget.pet?.imagePath,
-                                      onTap: _pickImage,
-                                      onRemove: () {
-                                        setState(() {
-                                          _pickedImagePath = null;
-                                        });
-                                      },
-                                    ),
-                                  ),
-
-                                  VerticalGap.lg,
-                                  const AppSectionHeading(
-                                    title: 'Basic details',
-                                    icon: Icons.info_outline,
-                                  ),
-                                  VerticalGap.md,
-
-                                  TextFormField(
-                                    controller: _nameController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Name',
-                                    ),
-                                    validator: (value) {
-                                      if (value == null ||
-                                          value.trim().isEmpty) {
-                                        return 'Name is required';
-                                      }
-                                      if (value.trim().characters.length >
-                                          _nameMaxLength) {
-                                        return 'Keep name within $_nameMaxLength characters';
-                                      }
-
-                                      return null;
-                                    },
-                                  ),
-
-                                  VerticalGap.md,
-
-                                  Column(
-                                    children: [
-                                      DropdownButtonFormField<PetSpecies>(
-                                        isExpanded: true,
-                                        borderRadius: BorderRadius.circular(16),
-                                        initialValue: _species,
-                                        items: PetSpecies.values.map((species) {
-                                          return DropdownMenuItem(
-                                            value: species,
-                                            child: Text(species.label),
-                                          );
-                                        }).toList(),
-                                        onChanged: (value) {
-                                          if (value == null) return;
-
-                                          setState(() {
-                                            _species = value;
-                                          });
-                                        },
-                                        decoration: const InputDecoration(
-                                          labelText: 'Species',
-                                        ),
-                                      ),
-
-                                      VerticalGap.md,
-
-                                      DropdownButtonFormField<PetSex>(
-                                        isExpanded: true,
-                                        borderRadius: BorderRadius.circular(16),
-                                        initialValue: _sex,
-                                        items: PetSex.values.map((sex) {
-                                          return DropdownMenuItem(
-                                            value: sex,
-                                            child: Text(sex.label),
-                                          );
-                                        }).toList(),
-                                        onChanged: (value) {
-                                          if (value == null) return;
-
-                                          setState(() {
-                                            _sex = value;
-                                          });
-                                        },
-                                        decoration: const InputDecoration(
-                                          labelText: 'Sex',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  VerticalGap.md,
-
-                                  TextFormField(
-                                    controller: _breedController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Breed (optional)',
-                                    ),
-                                  ),
-
-                                  VerticalGap.md,
-
-                                  const AppSectionHeading(
-                                    title: 'Health details',
-                                    icon: Icons.health_and_safety_outlined,
-                                  ),
-                                  VerticalGap.md,
-                                  DropdownButtonFormField<ReproductiveStatus>(
-                                    isExpanded: true,
-                                    borderRadius: BorderRadius.circular(16),
-                                    initialValue: _reproductiveStatus,
-                                    items: ReproductiveStatus.values.map((
-                                      status,
-                                    ) {
-                                      return DropdownMenuItem(
-                                        value: status,
-                                        child: Text(status.label),
-                                      );
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      if (value == null) return;
-
-                                      setState(() {
-                                        _reproductiveStatus = value;
-                                      });
-                                    },
-                                    decoration: const InputDecoration(
-                                      labelText: 'Reproductive Status',
-                                    ),
-                                  ),
-
-                                  VerticalGap.md,
-
-                                  Column(
-                                    children: [
-                                      AppDateField(
-                                        labelText: 'Birth date (optional)',
-                                        value: _birthDate,
-                                        firstDate: DateTime(1980),
-                                        lastDate: DateTime.now(),
-                                        clearable: true,
-                                        onChanged: (date) =>
-                                            setState(() => _birthDate = date),
-                                      ),
-
-                                      VerticalGap.md,
-
-                                      TextFormField(
-                                        controller: _weightController,
-                                        keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
-                                        decoration: const InputDecoration(
-                                          labelText: 'Weight (optional)',
-                                          suffixText: 'kg',
-                                          errorMaxLines: 3,
-                                        ),
-                                        validator: (value) {
-                                          if (value == null ||
-                                              value.trim().isEmpty) {
-                                            return null;
-                                          }
-
-                                          final weight = parseWeight(value);
-
-                                          if (weight == null ||
-                                              !weight.isFinite) {
-                                            return 'Enter a valid weight';
-                                          }
-
-                                          if (weight <= 0) {
-                                            return 'Weight must be greater than 0';
-                                          }
-
-                                          if (!hasValidWeightPrecision(value)) {
-                                            return 'Use up to 3 decimal places';
-                                          }
-
-                                          return null;
-                                        },
-                                      ),
-                                    ],
-                                  ),
-
-                                  VerticalGap.md,
-
-                                  const AppSectionHeading(
-                                    title: 'Identification',
-                                    icon: Icons.badge_outlined,
-                                  ),
-                                  VerticalGap.md,
-                                  TextFormField(
-                                    controller: _microchipIdController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Microchip ID (optional)',
-                                    ),
-                                  ),
-                                  if (widget.pet == null) ...[
-                                    VerticalGap.xl,
-                                    _saveActions(saving),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+      allowPop: _allowPop,
+      canSubmit: widget.pet == null || _hasChanges,
+      submitLabel: widget.pet == null ? 'Add pet' : 'Save changes',
+      saveError: _saveError,
+      onSubmit: _submit,
+      onExit: _requestExit,
+      onChanged: () => setState(() {}),
+      steps: [
+        AppFormStep(title: 'Pet', builder: (_, _) => _basicDetails()),
+        AppFormStep(
+          title: 'Review',
+          builder: (context, edit) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Review pet', style: Theme.of(context).textTheme.titleLarge),
+              VerticalGap.md,
+              AppFormReviewSection(
+                title: 'Basic details',
+                icon: Icons.info_outline,
+                onEdit: () => edit(0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AppDetailField(label: 'Name', value: _nameController.text),
+                    VerticalGap.md,
+                    AppDetailField(label: 'Species', value: _species.label),
+                    VerticalGap.md,
+                    AppDetailField(label: 'Sex', value: _sex.label),
+                    if (_breedController.text.trim().isNotEmpty) ...[
+                      VerticalGap.md,
+                      AppDetailField(
+                        label: 'Breed',
+                        value: _breedController.text,
                       ),
-                    ),
-                  ),
+                    ],
+                  ],
                 ),
-                if (widget.pet != null) _saveActions(saving),
-              ],
-            ),
+              ),
+              VerticalGap.md,
+              AppFormOptionalSection(
+                title: 'Health & identification (optional)',
+                icon: Icons.health_and_safety_outlined,
+                initiallyExpanded: widget.pet != null,
+                child: _healthDetails(),
+              ),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
