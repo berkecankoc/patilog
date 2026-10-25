@@ -1,3 +1,5 @@
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -448,7 +450,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
           _visit(current!, busy),
         ],
         const SizedBox(height: 16),
-        FilledButton.tonalIcon(
+        FilledButton.icon(
           style: FilledButton.styleFrom(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -501,9 +503,29 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
   Widget build(BuildContext context) => MedicationClock(
     onResume: _reload,
     child: BlocConsumer<MedicationCubit, MedicationState>(
+      listenWhen: (previous, current) =>
+          current is MedicationDeleted ||
+          previous is MedicationsLoaded &&
+              previous.pendingAction != null &&
+              current is MedicationsLoaded &&
+              current.pendingAction == null &&
+              current.actionError == null,
       listener: (context, state) {
         if (state case MedicationDeleted(:final medicationId)) {
+          PetCareChanges.recordChanged(
+            context,
+            widget.petId,
+            PetCareTab.medications,
+            deletedId: medicationId,
+          );
           context.pop(medicationId);
+        } else {
+          // Successful dose/period actions must update the cached tracking tab.
+          PetCareChanges.recordChanged(
+            context,
+            widget.petId,
+            PetCareTab.medications,
+          );
         }
       },
       builder: (context, state) {

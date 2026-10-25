@@ -13,6 +13,8 @@ import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/router/app_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
@@ -135,6 +137,41 @@ void main() {
   }
 
   Future<void> save(WidgetTester tester) => submitForm(tester);
+
+  for (final mismatch in ['context', 'record']) {
+    testWidgets(
+      'measurement form rejects mismatched $mismatch ownership in extras',
+      (tester) async {
+        final router = await pumpRouter(tester);
+        final foreign = WeightEntry(
+          id: 'foreign',
+          petId: 'other',
+          weight: 8,
+          measuredAt: DateTime(2026),
+        );
+        unawaited(
+          router.push<bool>(
+            AppRoutes.addEditWeightEntry(pet.id),
+            extra: WeightEntryFormExtra(
+              petId: mismatch == 'context' ? 'other' : pet.id,
+              petName: mismatch == 'context' ? 'Wrong pet' : pet.name,
+              entry: mismatch == 'record' ? foreign : entry,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<WeightEntryFormPage>(find.byType(WeightEntryFormPage))
+              .entry,
+          isNull,
+        );
+        expect(find.text('Wrong pet'), findsNothing);
+        expect(find.text('Add measurement'), findsOneWidget);
+        verifyNever(() => repository.updateWeightEntry(any()));
+      },
+    );
+  }
 
   for (final editing in [false, true]) {
     testWidgets(
@@ -271,7 +308,13 @@ void main() {
       findsOneWidget,
     );
     currentPet = pet.copyWith(name: 'Luna');
-    await tester.tap(find.byTooltip('Back'));
+    PetCareChanges.recordChanged(
+      tester.element(find.byType(WeightHistoryPage)),
+      pet.id,
+      PetCareTab.profile,
+    );
+    await revealFormField(tester, find.widgetWithText(Tab, 'Profile'));
+    await tester.tap(find.widgetWithText(Tab, 'Profile'));
     await tester.pumpAndSettle();
     clearInteractions(pets);
     await revealFormField(tester, find.text('Weight history'));
@@ -413,8 +456,8 @@ void main() {
       expect(find.text('4.5 kg'), findsNothing);
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
-      expect(find.text(other.name).hitTestable(), findsOneWidget);
-      expect(find.text(pet.name), findsNothing);
+      expect(router.state.uri.path, AppRoutes.pets);
+      expect(find.text(other.name), findsNothing);
     },
   );
 
@@ -448,7 +491,12 @@ void main() {
             scale: 2,
             brightness: brightness,
           );
-          final scroll = find.byType(SingleChildScrollView);
+          final scroll = find
+              .ancestor(
+                of: find.text('No measurements yet'),
+                matching: find.byType(SingleChildScrollView),
+              )
+              .first;
           final viewport = find
               .ancestor(of: scroll, matching: find.byType(Expanded))
               .first;
@@ -468,6 +516,8 @@ void main() {
           await revealFormField(tester, description);
           await tester.pumpAndSettle();
           expect(description.hitTestable(), findsOneWidget);
+          await tester.drag(scroll, const Offset(0, -600));
+          await tester.pumpAndSettle();
           expect(
             tester
                 .getRect(description)
@@ -560,7 +610,16 @@ void main() {
         await pumpRouter(tester, width: 320, scale: 2);
         if (editing) {
           final row = find.widgetWithText(ListTile, '4.5 kg');
-          await tester.scrollUntilVisible(row, 200);
+          await tester.scrollUntilVisible(
+            row,
+            200,
+            scrollable: find
+                .descendant(
+                  of: find.byType(CustomScrollView),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          );
           await tester.pumpAndSettle();
           await revealFormField(tester, row);
           await tester.pumpAndSettle();
@@ -802,7 +861,8 @@ void main() {
       '4.9',
     );
     await save(tester);
-    await tester.tap(find.byTooltip('Back'));
+    await revealFormField(tester, find.widgetWithText(Tab, 'Profile'));
+    await tester.tap(find.widgetWithText(Tab, 'Profile'));
     await tester.pumpAndSettle();
     await revealFormField(tester, find.text('Profile details'));
     await tester.tap(find.text('Profile details'));
@@ -1183,7 +1243,8 @@ void main() {
       pending.complete(const Success(null));
       await tester.pumpAndSettle();
       expect(find.text('4.5 kg'), findsNothing);
-      await tester.tap(find.byTooltip('Back'));
+      await revealFormField(tester, find.widgetWithText(Tab, 'Profile'));
+      await tester.tap(find.widgetWithText(Tab, 'Profile'));
       await tester.pumpAndSettle();
       await revealFormField(tester, find.text('Profile details'));
       await tester.tap(find.text('Profile details'));

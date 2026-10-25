@@ -1,8 +1,94 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/widgets/app_keyboard.dart';
 
 void main() {
+  testWidgets(
+    'rapid field switching with selection menus keeps copy working on iOS',
+    (tester) async {
+      final first = TextEditingController(text: 'First');
+      final second = TextEditingController(text: 'Second');
+      addTearDown(first.dispose);
+      addTearDown(second.dispose);
+      String? clipboard;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.contextMenu,
+        (_) async => null,
+      );
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboard = (call.arguments as Map)['text'] as String?;
+          }
+          if (call.method == 'Clipboard.getData') return {'text': clipboard};
+          if (call.method == 'Clipboard.hasStrings') {
+            return {'value': clipboard != null};
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.contextMenu,
+          null,
+        );
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(supportsShowingSystemContextMenu: true),
+            child: AppKeyboard(child: child!),
+          ),
+          home: Scaffold(
+            body: Column(
+              children: [
+                TextField(controller: first),
+                const SizedBox(height: 160),
+                TextField(controller: second),
+              ],
+            ),
+          ),
+        ),
+      );
+      final fields = find.byType(EditableText);
+      await tester.tap(find.byType(TextField).first);
+      await tester.pumpAndSettle();
+      final firstEditor = tester.state<EditableTextState>(fields.first);
+      firstEditor.selectAll(SelectionChangedCause.longPress);
+      firstEditor.showToolbar();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(TextField).last);
+      final secondEditor = tester.state<EditableTextState>(fields.last);
+      secondEditor.selectAll(SelectionChangedCause.longPress);
+      secondEditor.showToolbar();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(secondEditor.widget.focusNode.hasFocus, isTrue);
+      expect(find.byType(SystemContextMenu), findsNothing);
+      await tester.tap(find.text('Copy'));
+      await tester.pumpAndSettle();
+      expect(clipboard, 'Second');
+      expect(first.text, 'First');
+      expect(second.text, 'Second');
+      clipboard = 'Updated';
+      secondEditor.selectAll(SelectionChangedCause.toolbar);
+      secondEditor.showToolbar();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Paste'));
+      await tester.pumpAndSettle();
+      expect(second.text, 'Updated');
+      expect(tester.takeException(), isNull);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
     testWidgets(
       'outside touch dismisses keyboard and retains input on $platform',

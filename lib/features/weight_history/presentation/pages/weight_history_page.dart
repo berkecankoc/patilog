@@ -1,3 +1,6 @@
+import 'package:petlytics/core/widgets/pet_care_tabs.dart';
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +9,6 @@ import 'package:petlytics/core/utils/weight_utils.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/my_pets_button.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
@@ -27,7 +29,8 @@ class WeightHistoryPage extends StatelessWidget {
       AppRoutes.addEditWeightEntry(petId),
       extra: WeightEntryFormExtra(petId: petId, petName: petName, entry: entry),
     );
-    if (saved == true && context.mounted) {
+    if (!context.mounted || PetCareChanges.maybeOf(context) != null) return;
+    if (saved == true) {
       await context.read<WeightHistoryCubit>().loadWeightHistory(petId);
     }
   }
@@ -47,6 +50,17 @@ class WeightHistoryPage extends StatelessWidget {
     );
     if (confirmed == true && context.mounted) {
       await context.read<WeightHistoryCubit>().deleteWeightEntry(entry);
+      if (!context.mounted) return;
+      if (context.read<WeightHistoryCubit>().state case WeightHistoryLoaded(
+        :final entries,
+      ) when !entries.any((item) => item.id == entry.id)) {
+        PetCareChanges.recordChanged(
+          context,
+          petId,
+          PetCareTab.weightHistory,
+          listIsCurrent: true,
+        );
+      }
     }
   }
 
@@ -58,25 +72,15 @@ class WeightHistoryPage extends StatelessWidget {
         return PopScope(
           canPop: !deleting,
           child: Scaffold(
-            appBar: AppBar(
-              toolbarHeight: PetCareTitle.toolbarHeight(context),
+            appBar: petCareAppBar(
+              context,
               title: PetCareTitle(title: 'Weight history', petName: petName),
-              actions: [MyPetsButton(enabled: !deleting)],
-              leading: deleting
-                  ? IconButton(
-                      tooltip: MaterialLocalizations.of(
-                        context,
-                      ).backButtonTooltip,
-                      onPressed: null,
-                      icon: const BackButtonIcon(),
-                    )
-                  : null,
-              bottom: deleting
-                  ? const PreferredSize(
-                      preferredSize: Size.fromHeight(4),
-                      child: LinearProgressIndicator(
-                        semanticsLabel: 'Deleting measurement',
-                      ),
+              toolbarHeight: PetCareTitle.toolbarHeight(context),
+              busy: deleting,
+              progress:
+                  deleting || state is WeightHistoryLoaded && state.isRefreshing
+                  ? const LinearProgressIndicator(
+                      semanticsLabel: 'Updating measurements',
                     )
                   : null,
             ),
@@ -99,6 +103,7 @@ class WeightHistoryPage extends StatelessWidget {
                       :final entries,
                       :final deleteError,
                       :final deletionEntry,
+                      :final refreshError,
                     ) =>
                       Column(
                         children: [
@@ -108,6 +113,15 @@ class WeightHistoryPage extends StatelessWidget {
                                 message: deleteError,
                                 retryLabel: 'Retry deletion',
                                 onRetry: () => _delete(context, deletionEntry),
+                              ),
+                            )
+                          else if (refreshError != null)
+                            Flexible(
+                              child: AppErrorFeedback(
+                                message: refreshError,
+                                onRetry: () => context
+                                    .read<WeightHistoryCubit>()
+                                    .loadWeightHistory(petId),
                               ),
                             ),
                           Expanded(

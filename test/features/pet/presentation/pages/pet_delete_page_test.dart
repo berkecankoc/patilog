@@ -296,7 +296,7 @@ void main() {
       await confirmDialog(tester);
       await tester.tap(find.text('Delete'));
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Deleting pet…'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
       expect(find.text(pet.name), findsOneWidget);
       expect(
         tester

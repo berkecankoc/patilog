@@ -24,16 +24,27 @@ final class WeightHistoryLoaded extends WeightHistoryState {
   final bool isDeleting;
   final WeightEntry? deletionEntry;
   final String? deleteError;
+  final bool isRefreshing;
+  final String? refreshError;
 
   const WeightHistoryLoaded(
     this.entries, {
     this.isDeleting = false,
     this.deletionEntry,
     this.deleteError,
+    this.isRefreshing = false,
+    this.refreshError,
   });
 
   @override
-  List<Object?> get props => [entries, isDeleting, deletionEntry, deleteError];
+  List<Object?> get props => [
+    entries,
+    isDeleting,
+    deletionEntry,
+    deleteError,
+    isRefreshing,
+    refreshError,
+  ];
 }
 
 final class WeightEntryCreated extends WeightHistoryState {

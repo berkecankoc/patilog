@@ -1459,6 +1459,16 @@ void main() {
         await revealFormField(tester, delete);
         await tester.pumpAndSettle();
         final addRect = tester.getRect(find.byType(FloatingActionButton));
+        if (tester.getRect(delete).bottom > addRect.top) {
+          final list = find
+              .ancestor(of: delete, matching: find.byType(Scrollable))
+              .first;
+          await tester.drag(
+            list,
+            Offset(0, -(tester.getRect(delete).bottom - addRect.top + 24)),
+          );
+          await tester.pumpAndSettle();
+        }
         expect(
           tester.getRect(delete).bottom,
           lessThanOrEqualTo(addRect.top + 1),

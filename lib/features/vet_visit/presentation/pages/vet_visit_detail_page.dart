@@ -1,3 +1,5 @@
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
@@ -106,7 +108,15 @@ class VetVisitDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<VetVisitCubit, VetVisitState>(
       listener: (context, state) {
-        if (state case VetVisitDeleted(:final visitId)) context.pop(visitId);
+        if (state case VetVisitDeleted(:final visitId)) {
+          PetCareChanges.recordChanged(
+            context,
+            petId,
+            PetCareTab.vetVisits,
+            deletedId: visitId,
+          );
+          context.pop(visitId);
+        }
       },
       builder: (context, state) {
         final colors = Theme.of(context).colorScheme;

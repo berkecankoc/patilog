@@ -1808,8 +1808,7 @@ void main() {
       );
       router.pop();
       await tester.pumpAndSettle();
-      router.pop();
-      await tester.pumpAndSettle();
+      expect(router.state.uri.path, AppRoutes.vaccinations(otherPet.id));
       expect(find.text(otherPet.name), findsOneWidget);
       expect(find.text(pet.name), findsNothing);
       verify(

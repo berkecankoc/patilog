@@ -1,3 +1,5 @@
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -179,6 +181,13 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
 
   void _leave([bool? saved]) {
     if (_allowPop) return;
+    if (saved == true) {
+      PetCareChanges.recordChanged(
+        context,
+        widget.petId,
+        PetCareTab.medications,
+      );
+    }
     setState(() => _allowPop = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.pop(saved);

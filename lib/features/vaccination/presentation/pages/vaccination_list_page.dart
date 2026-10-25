@@ -1,3 +1,6 @@
+import 'package:petlytics/core/widgets/pet_care_tabs.dart';
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +9,6 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/my_pets_button.dart';
 import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
@@ -27,7 +29,8 @@ class VaccinationListPage extends StatelessWidget {
       AppRoutes.addEditVaccination(petId),
       extra: VaccinationFormExtra(petId: petId, petName: petName),
     );
-    if (saved == true && context.mounted) {
+    if (!context.mounted || PetCareChanges.maybeOf(context) != null) return;
+    if (saved == true) {
       await context.read<VaccinationCubit>().loadVaccinations(petId);
     }
   }
@@ -37,7 +40,7 @@ class VaccinationListPage extends StatelessWidget {
       AppRoutes.vaccinationDetail(petId, vaccination.id),
       extra: PetCareRouteExtra(petId: petId, petName: petName),
     );
-    if (!context.mounted) return;
+    if (!context.mounted || PetCareChanges.maybeOf(context) != null) return;
     final cubit = context.read<VaccinationCubit>();
     if (deletedId != null) {
       cubit.removeDeletedVaccination(deletedId);
@@ -52,6 +55,17 @@ class VaccinationListPage extends StatelessWidget {
       await context.read<VaccinationCubit>().deleteListedVaccination(
         vaccination,
       );
+      if (!context.mounted) return;
+      if (context.read<VaccinationCubit>().state case VaccinationsLoaded(
+        :final vaccinations,
+      ) when !vaccinations.any((item) => item.id == vaccination.id)) {
+        PetCareChanges.recordChanged(
+          context,
+          petId,
+          PetCareTab.vaccinations,
+          listIsCurrent: true,
+        );
+      }
     }
   }
 
@@ -195,27 +209,14 @@ class VaccinationListPage extends StatelessWidget {
           return PopScope(
             canPop: !deleting,
             child: Scaffold(
-              appBar: AppBar(
-                toolbarHeight: PetCareTitle.toolbarHeight(context),
+              appBar: petCareAppBar(
+                context,
                 title: PetCareTitle(title: 'Vaccinations', petName: petName),
-                actions: [MyPetsButton(enabled: !busy)],
-                leading: deleting
-                    ? IconButton(
-                        tooltip: MaterialLocalizations.of(
-                          context,
-                        ).backButtonTooltip,
-                        onPressed: null,
-                        icon: const BackButtonIcon(),
-                      )
-                    : null,
-                bottom: busy
-                    ? PreferredSize(
-                        preferredSize: const Size.fromHeight(4),
-                        child: LinearProgressIndicator(
-                          semanticsLabel: deleting
-                              ? 'Deleting vaccination'
-                              : 'Refreshing vaccinations',
-                        ),
+                toolbarHeight: PetCareTitle.toolbarHeight(context),
+                busy: deleting,
+                progress: busy
+                    ? const LinearProgressIndicator(
+                        semanticsLabel: 'Updating vaccinations',
                       )
                     : null,
               ),

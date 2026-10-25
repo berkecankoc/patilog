@@ -1,4 +1,7 @@
 import 'package:flutter/widgets.dart';
+import 'package:petlytics/core/router/pet_care_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
+import 'package:petlytics/features/pet/presentation/pages/pet_care_page.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_form_cubit.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_visits_cubit.dart';
@@ -42,13 +45,43 @@ Widget _petCarePage({
       : null;
   if (petName != null) return builder(petName);
 
-  // Direct URLs may have no display context; ordinary navigation supplies it.
-  return BlocProvider<PetCubit>(
-    key: ValueKey(petId),
-    create: (_) => getIt<PetCubit>()..getPetById(petId),
-    child: BlocBuilder<PetCubit, PetState>(
-      builder: (_, state) =>
-          builder(state is PetLoaded ? state.pet.name : null),
+  // The pet flow owns one lookup; late display context cannot replace a form.
+  return BlocBuilder<PetCubit, PetState>(
+    builder: (_, state) => builder(state is PetLoaded ? state.pet.name : null),
+  );
+}
+
+Page<String> _careRootPage(GoRouterState state, PetCareTab tab) {
+  final petId = state.pathParameters['petId']!;
+  // Sibling tab routes reconcile the same page instead of pushing tab history.
+  return NoTransitionPage<String>(
+    key: ValueKey(('pet-care', petId)),
+    child: MultiBlocProvider(
+      providers: [
+        BlocProvider<VetVisitCubit>(create: (_) => getIt<VetVisitCubit>()),
+        BlocProvider<VaccinationCubit>(
+          create: (_) => getIt<VaccinationCubit>(),
+        ),
+        BlocProvider<MedicationCubit>(create: (_) => getIt<MedicationCubit>()),
+        BlocProvider<WeightHistoryCubit>(
+          create: (_) => getIt<WeightHistoryCubit>(),
+        ),
+      ],
+      child: PetCarePage(
+        petId: petId,
+        tab: tab,
+        builders: {
+          PetCareTab.profile: (_) => PetDetailPage(petId: petId),
+          PetCareTab.vetVisits: (name) =>
+              VetVisitListPage(petId: petId, petName: name),
+          PetCareTab.vaccinations: (name) =>
+              VaccinationListPage(petId: petId, petName: name),
+          PetCareTab.medications: (name) =>
+              MedicationListPage(petId: petId, petName: name),
+          PetCareTab.weightHistory: (name) =>
+              WeightHistoryPage(petId: petId, petName: name),
+        },
+      ),
     ),
   );
 }
@@ -75,33 +108,29 @@ final appRouter = GoRouter(
           },
         ),
 
-        GoRoute(
-          path: ':petId',
-          builder: (context, state) {
+        ShellRoute(
+          builder: (context, state, child) {
             final petId = state.pathParameters['petId']!;
-
-            return BlocProvider(
+            return BlocProvider<PetCubit>(
               key: ValueKey(petId),
-              create: (context) => getIt<PetCubit>()..getPetById(petId),
-              child: PetDetailPage(petId: petId),
+              create: (_) => getIt<PetCubit>()..getPetById(petId),
+              child: PetCareChangeScope(
+                key: ValueKey(petId),
+                petId: petId,
+                child: child,
+              ),
             );
           },
           routes: [
             GoRoute(
-              path: 'medications',
-              builder: (context, state) {
-                final petId = state.pathParameters['petId']!;
-                return _petCarePage(
-                  petId: petId,
-                  extra: state.extra,
-                  builder: (petName) => BlocProvider<MedicationCubit>(
-                    key: ValueKey(petId),
-                    create: (_) =>
-                        getIt<MedicationCubit>()..loadMedications(petId),
-                    child: MedicationListPage(petId: petId, petName: petName),
-                  ),
-                );
-              },
+              path: ':petId',
+              pageBuilder: (context, state) =>
+                  _careRootPage(state, PetCareTab.profile),
+            ),
+            GoRoute(
+              path: ':petId/medications',
+              pageBuilder: (context, state) =>
+                  _careRootPage(state, PetCareTab.medications),
               routes: [
                 GoRoute(
                   path: 'form',
@@ -174,20 +203,9 @@ final appRouter = GoRouter(
               ],
             ),
             GoRoute(
-              path: 'vaccinations',
-              builder: (context, state) {
-                final petId = state.pathParameters['petId']!;
-                return _petCarePage(
-                  petId: petId,
-                  extra: state.extra,
-                  builder: (petName) => BlocProvider<VaccinationCubit>(
-                    key: ValueKey(petId),
-                    create: (_) =>
-                        getIt<VaccinationCubit>()..loadVaccinations(petId),
-                    child: VaccinationListPage(petId: petId, petName: petName),
-                  ),
-                );
-              },
+              path: ':petId/vaccinations',
+              pageBuilder: (context, state) =>
+                  _careRootPage(state, PetCareTab.vaccinations),
               routes: [
                 GoRoute(
                   path: 'form',
@@ -260,34 +278,31 @@ final appRouter = GoRouter(
               ],
             ),
             GoRoute(
-              path: 'vet-visits',
-              builder: (context, state) {
-                final petId = state.pathParameters['petId']!;
-                return _petCarePage(
-                  petId: petId,
-                  extra: state.extra,
-                  builder: (petName) => BlocProvider<VetVisitCubit>(
-                    key: ValueKey(petId),
-                    create: (_) => getIt<VetVisitCubit>()..loadVetVisits(petId),
-                    child: VetVisitListPage(petId: petId, petName: petName),
-                  ),
-                );
-              },
+              path: ':petId/vet-visits',
+              pageBuilder: (context, state) =>
+                  _careRootPage(state, PetCareTab.vetVisits),
               routes: [
                 GoRoute(
                   path: 'form',
                   builder: (context, state) {
                     final petId = state.pathParameters['petId']!;
-                    final visit = switch (state.extra) {
+                    final candidate = switch (state.extra) {
                       VetVisitFormExtra(:final visit) => visit,
                       VetVisit visit => visit,
                       _ => null,
                     };
+                    final extra = state.extra;
+                    final visit =
+                        candidate?.petId == petId &&
+                            (extra is! PetCareRouteExtra ||
+                                extra.petId == petId)
+                        ? candidate
+                        : null;
                     return _petCarePage(
                       petId: petId,
                       extra: state.extra,
                       builder: (petName) => BlocProvider<VetVisitFormCubit>(
-                        key: ValueKey(petId),
+                        key: ValueKey((petId, visit?.id)),
                         create: (_) =>
                             getIt<VetVisitFormCubit>()
                               ..loadSuggestions(clinicName: visit?.clinicName),
@@ -335,35 +350,31 @@ final appRouter = GoRouter(
               ],
             ),
             GoRoute(
-              path: 'weight-history',
-              builder: (context, state) {
-                final petId = state.pathParameters['petId']!;
-                return _petCarePage(
-                  petId: petId,
-                  extra: state.extra,
-                  builder: (petName) => BlocProvider<WeightHistoryCubit>(
-                    key: ValueKey(petId),
-                    create: (_) =>
-                        getIt<WeightHistoryCubit>()..loadWeightHistory(petId),
-                    child: WeightHistoryPage(petId: petId, petName: petName),
-                  ),
-                );
-              },
+              path: ':petId/weight-history',
+              pageBuilder: (context, state) =>
+                  _careRootPage(state, PetCareTab.weightHistory),
               routes: [
                 GoRoute(
                   path: 'form',
                   builder: (context, state) {
                     final petId = state.pathParameters['petId']!;
-                    final entry = switch (state.extra) {
+                    final candidate = switch (state.extra) {
                       WeightEntryFormExtra(:final entry) => entry,
                       WeightEntry entry => entry,
                       _ => null,
                     };
+                    final extra = state.extra;
+                    final entry =
+                        candidate?.petId == petId &&
+                            (extra is! PetCareRouteExtra ||
+                                extra.petId == petId)
+                        ? candidate
+                        : null;
                     return _petCarePage(
                       petId: petId,
                       extra: state.extra,
                       builder: (petName) => BlocProvider<WeightHistoryCubit>(
-                        key: ValueKey(petId),
+                        key: ValueKey((petId, entry?.id)),
                         create: (_) => getIt<WeightHistoryCubit>(),
                         child: WeightEntryFormPage(
                           petId: petId,

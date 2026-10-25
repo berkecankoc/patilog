@@ -23,11 +23,25 @@ final class PetLoaded extends PetState {
   final Pet pet;
   final bool isDeleting;
   final String? deleteError;
+  final bool isRefreshing;
+  final String? refreshError;
 
-  const PetLoaded(this.pet, {this.isDeleting = false, this.deleteError});
+  const PetLoaded(
+    this.pet, {
+    this.isDeleting = false,
+    this.deleteError,
+    this.isRefreshing = false,
+    this.refreshError,
+  });
 
   @override
-  List<Object?> get props => [pet, isDeleting, deleteError];
+  List<Object?> get props => [
+    pet,
+    isDeleting,
+    deleteError,
+    isRefreshing,
+    refreshError,
+  ];
 }
 
 final class PetsLoaded extends PetState {

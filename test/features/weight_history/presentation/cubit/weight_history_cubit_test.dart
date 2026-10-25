@@ -39,6 +39,22 @@ void main() {
 
   WeightHistoryCubit makeCubit() => WeightHistoryCubit(repository, idGenerator);
 
+  blocTest<WeightHistoryCubit, WeightHistoryState>(
+    'refresh failure retains loaded measurements',
+    build: () {
+      when(() => repository.getWeightEntries(entry.petId)).thenAnswer(
+        (_) async => const Error(LocalDatabaseFailure('Refresh failed')),
+      );
+      return makeCubit();
+    },
+    seed: () => WeightHistoryLoaded([entry]),
+    act: (cubit) => cubit.loadWeightHistory(entry.petId),
+    expect: () => [
+      WeightHistoryLoaded([entry], isRefreshing: true),
+      WeightHistoryLoaded([entry], refreshError: 'Refresh failed'),
+    ],
+  );
+
   test('starts in the initial state', () {
     final cubit = makeCubit();
     addTearDown(cubit.close);
