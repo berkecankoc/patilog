@@ -6,17 +6,24 @@ class AppKeyboard extends StatelessWidget {
   const AppKeyboard({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) => Actions(
-    actions: {
-      EditableTextTapOutsideIntent:
-          CallbackAction<EditableTextTapOutsideIntent>(
-            onInvoke: (intent) {
-              intent.focusNode.unfocus();
-              return null;
-            },
-          ),
-    },
-    child: child,
+  Widget build(BuildContext context) => MediaQuery(
+    // Flutter's adaptive selection toolbar avoids overlapping native iOS menus
+    // when focus moves before the previous menu has finished disposing.
+    data: MediaQuery.of(
+      context,
+    ).copyWith(supportsShowingSystemContextMenu: false),
+    child: Actions(
+      actions: {
+        EditableTextTapOutsideIntent:
+            CallbackAction<EditableTextTapOutsideIntent>(
+              onInvoke: (intent) {
+                intent.focusNode.unfocus();
+                return null;
+              },
+            ),
+      },
+      child: child,
+    ),
   );
 }
 
