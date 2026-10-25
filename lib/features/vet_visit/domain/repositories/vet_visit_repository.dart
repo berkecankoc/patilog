@@ -9,6 +9,9 @@ abstract interface class VetVisitRepository {
   /// Returns this pet's visits by date descending, latest insertion first on ties.
   Future<Result<List<VetVisit>>> getVetVisits(String petId);
 
+  /// All pets' visits, date descending, latest insertion first on ties.
+  Future<Result<List<VetVisit>>> getAllVetVisits();
+
   Future<Result<VetVisit>> getVetVisitById(String petId, String visitId);
 
   Future<Result<void>> createVetVisit(VetVisit visit);

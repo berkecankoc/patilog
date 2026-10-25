@@ -54,6 +54,71 @@ void main() {
     repository = MedicationRepositoryImpl(source);
   });
 
+  test(
+    'all medications map complete periods without per-pet queries',
+    () async {
+      final other = Medication(
+        id: 'other',
+        petId: 'other-pet',
+        name: 'Other medicine',
+        periods: [
+          MedicationPeriod(
+            id: 'other-period',
+            medicationId: 'other',
+            startDate: day,
+            intervalDays: 1,
+            doseTimes: [600],
+          ),
+        ],
+      );
+      when(
+        source.getAllMedications,
+      ).thenAnswer((_) async => [MedicationModel.fromEntity(other), model]);
+      expect(
+        await repository.getAllMedications(),
+        Success([other, medication]),
+      );
+      verify(source.getAllMedications).called(1);
+      verifyNever(() => source.getMedications(any()));
+    },
+  );
+
+  test(
+    'all dose logs retain the requested range and actual result fields',
+    () async {
+      final end = DateTime(2026, 10, 21);
+      final other = MedicationDoseLog(
+        periodId: 'other-period',
+        scheduledDate: day,
+        scheduledMinute: 600,
+        status: MedicationDoseStatus.skipped,
+      );
+      when(() => source.getAllDoseLogs(fromDate: day, toDate: end)).thenAnswer(
+        (_) async => [logModel, MedicationDoseLogModel.fromEntity(other)],
+      );
+      expect(
+        await repository.getAllDoseLogs(fromDate: day, toDate: end),
+        Success([log, other]),
+      );
+      verify(() => source.getAllDoseLogs(fromDate: day, toDate: end)).called(1);
+    },
+  );
+
+  test('all-pet reads preserve empty lists as success', () async {
+    when(source.getAllMedications).thenAnswer((_) async => []);
+    when(
+      () => source.getAllDoseLogs(fromDate: day, toDate: day),
+    ).thenAnswer((_) async => []);
+    expect(
+      await repository.getAllMedications(),
+      const Success<List<Medication>>([]),
+    );
+    expect(
+      await repository.getAllDoseLogs(fromDate: day, toDate: day),
+      const Success<List<MedicationDoseLog>>([]),
+    );
+  });
+
   test('period lock read preserves the scoped boolean result', () async {
     for (final hasLogs in [false, true]) {
       when(
@@ -221,6 +286,16 @@ void main() {
           call: () => repository.getMedications('pet'),
           error: 'Failed to load medications',
         ),
+        'all medications': (
+          sourceCall: () => source.getAllMedications(),
+          call: () => repository.getAllMedications(),
+          error: 'Failed to load medications',
+        ),
+        'all doses': (
+          sourceCall: () => source.getAllDoseLogs(fromDate: day, toDate: day),
+          call: () => repository.getAllDoseLogs(fromDate: day, toDate: day),
+          error: 'Failed to load dose records',
+        ),
         'detail': (
           sourceCall: () => source.getMedicationById('pet', 'medicine'),
           call: () => repository.getMedicationById('pet', 'medicine'),
@@ -312,7 +387,13 @@ void main() {
         verify(entry.value.sourceCall).called(1);
       },
     );
-    if (!['list', 'suggestions', 'read doses'].contains(entry.key)) {
+    if (![
+      'list',
+      'all medications',
+      'all doses',
+      'suggestions',
+      'read doses',
+    ].contains(entry.key)) {
       test(
         '${entry.key} maps missing or mismatched ownership to not found',
         () async {

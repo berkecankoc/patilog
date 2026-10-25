@@ -18,6 +18,9 @@ abstract interface class MedicationRepository {
     String? vetVisitId,
   });
 
+  /// All pets' medications, newest insertion first, with all ordered periods.
+  Future<Result<List<Medication>>> getAllMedications();
+
   Future<Result<Medication>> getMedicationById(
     String petId,
     String medicationId,
@@ -80,6 +83,13 @@ abstract interface class MedicationRepository {
   Future<Result<List<MedicationDoseLog>>> getDoseLogs(
     String petId, {
     String? medicationId,
+    required DateTime fromDate,
+    required DateTime toDate,
+  });
+
+  /// All pets' saved results in the inclusive calendar-day range. Uses the same
+  /// ordering/range rules as getDoseLogs; periodId identifies the owning plan.
+  Future<Result<List<MedicationDoseLog>>> getAllDoseLogs({
     required DateTime fromDate,
     required DateTime toDate,
   });

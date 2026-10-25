@@ -50,6 +50,43 @@ void main() {
     repository = VetVisitRepositoryImpl(source);
   });
 
+  group('getAllVetVisits', () {
+    test(
+      'maps records from different pets and preserves source order',
+      () async {
+        final other = VetVisitModel(
+          id: 'other',
+          petId: 'pet-2',
+          visitedOn: date,
+          reason: 'Other pet',
+        );
+        when(source.getAllVetVisits).thenAnswer((_) async => [other, model]);
+        expect(
+          await repository.getAllVetVisits(),
+          Success([other.toEntity(), visit]),
+        );
+        verify(source.getAllVetVisits).called(1);
+        verifyNever(() => source.getVetVisits(any()));
+      },
+    );
+    test('returns an empty list as success', () async {
+      when(source.getAllVetVisits).thenAnswer((_) async => []);
+      expect(
+        await repository.getAllVetVisits(),
+        const Success<List<VetVisit>>([]),
+      );
+    });
+    test('maps storage errors to a safe failure', () async {
+      when(source.getAllVetVisits).thenThrow(const LocalDataSourceException());
+      expect(
+        await repository.getAllVetVisits(),
+        const Error<List<VetVisit>>(
+          LocalDatabaseFailure('Failed to load vet visits'),
+        ),
+      );
+    });
+  });
+
   group('getVetVisits', () {
     test('maps all fields to entities and preserves source order', () async {
       final olderModel = VetVisitModel(

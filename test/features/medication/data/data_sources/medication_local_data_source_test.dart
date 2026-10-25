@@ -118,6 +118,177 @@ void main() {
     await directory.delete(recursive: true);
   });
 
+  test('all-pet reads return empty data before medications exist', () async {
+    expect(await source.getAllMedications(), isEmpty);
+    expect(
+      await source.getAllDoseLogs(fromDate: day(0), toDate: day(0)),
+      isEmpty,
+    );
+  });
+
+  test(
+    'all medications keep complete periods and pet ownership after renaming',
+    () async {
+      final first = medication();
+      final next = period(
+        id: 'next',
+        start: day(1),
+        times: [600],
+        dosage: 'Half',
+        notes: 'Next plan',
+      );
+      final other = medication(
+        id: 'med-2',
+        petId: 'pet-2',
+        periods: [period(id: 'period-2', medicationId: 'med-2')],
+      );
+      await source.createMedication(first);
+      await source.createPeriod('pet-1', next);
+      await source.createMedication(other);
+      final all = await source.getAllMedications();
+      expect(all.first, other);
+      expect(all.last.id, first.id);
+      expect(all.last.periods, [first.periods.single, next]);
+      await source.renameMedication('pet-1', 'med-1', 'Updated');
+      expect((await source.getAllMedications()).map((m) => m.id), [
+        'med-2',
+        'med-1',
+      ]);
+      expect((await source.getAllMedications()).last.name, 'Updated');
+      expect(
+        (await source.getMedications('pet-1')).single.periods,
+        all.last.periods,
+      );
+      expect(await source.getMedications('pet-2'), [other]);
+      await expectLater(
+        source.renameMedication('pet-1', 'med-2', 'Wrong pet'),
+        throwsA(isA<LocalDataNotFoundException>()),
+      );
+      expect(
+        (await source.getMedicationById('pet-2', 'med-2')).name,
+        other.name,
+      );
+    },
+  );
+
+  test(
+    'all dose logs respect calendar bounds and bind results to each pet',
+    () async {
+      await source.createMedication(medication());
+      await source.createMedication(
+        medication(
+          id: 'med-2',
+          petId: 'pet-2',
+          periods: [period(id: 'period-2', medicationId: 'med-2')],
+        ),
+      );
+      await source.saveDoseLog('pet-1', 'med-1', log(date: day(-2)));
+      await source.saveDoseLog(
+        'pet-2',
+        'med-2',
+        log(periodId: 'period-2', date: day(-1)),
+      );
+      await source.saveDoseLog(
+        'pet-1',
+        'med-1',
+        log(date: day(-1), minute: 1200, status: MedicationDoseStatus.skipped),
+      );
+      await source.saveDoseLog('pet-1', 'med-1', log());
+      await source.saveDoseLog(
+        'pet-2',
+        'med-2',
+        log(periodId: 'period-2', status: MedicationDoseStatus.skipped),
+      );
+      final results = await source.getAllDoseLogs(
+        fromDate: DateTime.utc(2026, 10, 19, 23),
+        toDate: day(0),
+      );
+      expect(
+        results.map(
+          (l) =>
+              (l.periodId, calendarDateKey(l.scheduledDate), l.scheduledMinute),
+        ),
+        [
+          ('period-2', '2026-10-19', 480),
+          ('period-1', '2026-10-19', 1200),
+          ('period-1', '2026-10-20', 480),
+          ('period-2', '2026-10-20', 480),
+        ],
+      );
+      expect(results[2].givenAt!.isAtSameMomentAs(clock), isTrue);
+      final doses = const CalculateMedicationDoses()(
+        medications: (await source.getAllMedications())
+            .map((m) => m.toEntity())
+            .toList(),
+        logs: results.map((l) => l.toEntity()).toList(),
+        fromDate: day(0),
+        toDate: day(0),
+      );
+      expect(
+        doses
+            .where((d) => d.scheduledMinute == 480)
+            .map((d) => (d.medication.petId, d.log!.status))
+            .toSet(),
+        {
+          ('pet-1', MedicationDoseStatus.given),
+          ('pet-2', MedicationDoseStatus.skipped),
+        },
+      );
+      expect(
+        doses
+            .where((d) => d.scheduledMinute == 1200)
+            .every((d) => d.log == null),
+        isTrue,
+      );
+      expect(
+        (await source.getDoseLogs(
+          'pet-2',
+          fromDate: day(-1),
+          toDate: day(0),
+        )).length,
+        2,
+      );
+      expect(
+        (await source.getAllDoseLogs(
+          fromDate: day(-1),
+          toDate: DateTime.utc(2026, 10, 19, 23),
+        )).length,
+        2,
+      );
+      await expectLater(
+        source.getAllDoseLogs(fromDate: day(1), toDate: day(0)),
+        throwsA(isA<LocalDataSourceException>()),
+      );
+      await db.delete(
+        DatabaseTables.pets,
+        where: 'id = ?',
+        whereArgs: ['pet-2'],
+      );
+      expect((await source.getAllMedications()).map((m) => m.petId), ['pet-1']);
+      expect(
+        (await source.getAllDoseLogs(
+          fromDate: day(-1),
+          toDate: day(0),
+        )).every((l) => l.periodId == 'period-1'),
+        isTrue,
+      );
+    },
+  );
+
+  for (final operation in ['medications', 'doses']) {
+    test('all-pet $operation reads map SQLite failures', () async {
+      await db.execute(
+        'DROP TABLE ${operation == 'medications' ? DatabaseTables.medications : DatabaseTables.medicationDoseLogs}',
+      );
+      await expectLater(
+        operation == 'medications'
+            ? source.getAllMedications()
+            : source.getAllDoseLogs(fromDate: day(0), toDate: day(0)),
+        throwsA(isA<LocalDataSourceException>()),
+      );
+    });
+  }
+
   test(
     'period lock checks only owned results, including skipped and cleared doses',
     () async {

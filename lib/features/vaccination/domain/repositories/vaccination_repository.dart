@@ -15,6 +15,9 @@ abstract interface class VaccinationRepository {
     String? vetVisitId,
   });
 
+  /// All pets' records, using the same planned/history order as getVaccinations.
+  Future<Result<List<Vaccination>>> getAllVaccinations();
+
   Future<Result<Vaccination>> getVaccinationById(
     String petId,
     String vaccinationId,

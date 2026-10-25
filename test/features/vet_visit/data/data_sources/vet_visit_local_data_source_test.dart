@@ -72,12 +72,40 @@ void main() {
     'returns empty visits and suggestions before any visit is saved',
     () async {
       expect(await source.getVetVisits('pet-1'), isEmpty);
+      expect(await source.getAllVetVisits(), isEmpty);
       expect(
         await source.getSuggestions(),
         const VetVisitSuggestions(clinicNames: [], veterinarianNames: []),
       );
     },
   );
+
+  test(
+    'all-pet visits retain date and insertion order after content edits',
+    () async {
+      final older = visit(id: 'older', day: 13);
+      final other = visit(id: 'other', petId: 'pet-2');
+      final latest = visit(id: 'latest');
+      for (final entry in [older, other, latest]) {
+        await source.createVetVisit(entry);
+      }
+      expect(await source.getAllVetVisits(), [latest, other, older]);
+      final updated = visit(id: 'other', petId: 'pet-2', reason: 'Updated');
+      await source.updateVetVisit(updated);
+      expect(await source.getAllVetVisits(), [latest, updated, older]);
+      expect(await source.getVetVisits('pet-1'), [latest, older]);
+      expect(await source.getVetVisits('pet-2'), [updated]);
+    },
+  );
+
+  test('all-pet visits reflect record and pet deletions', () async {
+    await source.createVetVisit(visit());
+    await source.createVetVisit(visit(id: 'other', petId: 'pet-2'));
+    await source.deleteVetVisit('pet-1', 'visit-1');
+    expect((await source.getAllVetVisits()).map((v) => v.id), ['other']);
+    await db.delete(DatabaseTables.pets, where: 'id = ?', whereArgs: ['pet-2']);
+    expect(await source.getAllVetVisits(), isEmpty);
+  });
 
   for (final updating in [false, true]) {
     test(
@@ -531,6 +559,7 @@ void main() {
 
   for (final operation in [
     'list',
+    'all visits',
     'read',
     'create',
     'update',
@@ -541,6 +570,7 @@ void main() {
       await db.execute('DROP TABLE ${DatabaseTables.vetVisits}');
       final result = switch (operation) {
         'list' => source.getVetVisits('pet-1'),
+        'all visits' => source.getAllVetVisits(),
         'read' => source.getVetVisitById('pet-1', 'visit-1'),
         'create' => source.createVetVisit(visit()),
         'update' => source.updateVetVisit(visit()),

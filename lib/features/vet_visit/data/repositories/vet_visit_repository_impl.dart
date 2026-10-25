@@ -13,6 +13,16 @@ final class VetVisitRepositoryImpl implements VetVisitRepository {
   const VetVisitRepositoryImpl(this.localDataSource);
 
   @override
+  Future<Result<List<VetVisit>>> getAllVetVisits() async {
+    try {
+      final models = await localDataSource.getAllVetVisits();
+      return Success(models.map((model) => model.toEntity()).toList());
+    } on LocalDataSourceException {
+      return const Error(LocalDatabaseFailure('Failed to load vet visits'));
+    }
+  }
+
+  @override
   Future<Result<List<VetVisit>>> getVetVisits(String petId) async {
     try {
       final models = await localDataSource.getVetVisits(petId);

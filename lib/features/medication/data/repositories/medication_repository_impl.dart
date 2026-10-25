@@ -16,6 +16,26 @@ final class MedicationRepositoryImpl implements MedicationRepository {
 
   const MedicationRepositoryImpl(this.localDataSource);
 
+  @override
+  Future<Result<List<Medication>>> getAllMedications() => _result(
+    () async => (await localDataSource.getAllMedications())
+        .map((model) => model.toEntity())
+        .toList(),
+    'Failed to load medications',
+  );
+
+  @override
+  Future<Result<List<MedicationDoseLog>>> getAllDoseLogs({
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) => _result(
+    () async => (await localDataSource.getAllDoseLogs(
+      fromDate: fromDate,
+      toDate: toDate,
+    )).map((model) => model.toEntity()).toList(),
+    'Failed to load dose records',
+  );
+
   Future<Result<T>> _result<T>(
     Future<T> Function() action,
     String message,
