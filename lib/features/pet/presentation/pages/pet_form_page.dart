@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -491,7 +491,7 @@ class _PetFormPageState extends State<PetFormPage> {
         setState(() => _saveError = message);
       }
     },
-    builder: (context, state) => AppPhasedForm(
+    builder: (context, state) => AppMultiStepForm(
       title: Text(widget.pet == null ? 'Add pet' : 'Edit pet'),
       editing: widget.pet != null,
       isSaving: () {

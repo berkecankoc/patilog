@@ -6,7 +6,7 @@ import 'package:petlytics/features/medication/presentation/cubit/medication_cubi
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../../../../helpers/phased_form_helpers.dart';
+import '../../../../helpers/multi_step_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/di/injection.dart';
@@ -694,7 +694,7 @@ void main() {
 
   for (final editing in [false, true]) {
     testWidgets(
-      'phased vaccination ${editing ? 'edit' : 'add'} reviews before saving',
+      'multi-step vaccination ${editing ? 'edit' : 'add'} reviews before saving',
       (tester) async {
         await pumpRouter(tester);
         if (editing) {

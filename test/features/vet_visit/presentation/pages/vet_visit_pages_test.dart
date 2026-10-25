@@ -8,7 +8,7 @@ import 'package:petlytics/features/vaccination/domain/repositories/vaccination_r
 import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../../../../helpers/phased_form_helpers.dart';
+import '../../../../helpers/multi_step_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/di/injection.dart';
@@ -231,7 +231,7 @@ void main() {
 
   for (final editing in [false, true]) {
     testWidgets(
-      'phased visit ${editing ? 'edit' : 'add'} reviews before saving',
+      'multi-step visit ${editing ? 'edit' : 'add'} reviews before saving',
       (tester) async {
         await pumpRouter(tester);
         if (editing) {
@@ -592,11 +592,11 @@ void main() {
             find.widgetWithText(ElevatedButton, 'Save changes'),
           );
           final petActions = tester.getRect(
-            find.byKey(const ValueKey('phased-form-actions')),
+            find.byKey(const ValueKey('multi-step-form-actions')),
           );
           final petSurface = tester
               .widget<Material>(
-                find.byKey(const ValueKey('phased-form-actions')),
+                find.byKey(const ValueKey('multi-step-form-actions')),
               )
               .color;
           expect(petActions.bottom, size.height - (keyboard ? 280 : 0));
@@ -610,13 +610,15 @@ void main() {
           );
           expect(tester.getRect(visitButton), petButton);
           expect(
-            tester.getRect(find.byKey(const ValueKey('phased-form-actions'))),
+            tester.getRect(
+              find.byKey(const ValueKey('multi-step-form-actions')),
+            ),
             petActions,
           );
           expect(
             tester
                 .widget<Material>(
-                  find.byKey(const ValueKey('phased-form-actions')),
+                  find.byKey(const ValueKey('multi-step-form-actions')),
                 )
                 .color,
             petSurface,

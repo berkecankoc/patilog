@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../../../../helpers/phased_form_helpers.dart';
+import '../../../../helpers/multi_step_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/error/failure.dart';
@@ -179,7 +179,7 @@ void main() {
   for (final editing in [false, true]) {
     final label = editing ? 'Save changes' : 'Add pet';
     testWidgets(
-      'phased pet ${editing ? 'edit' : 'add'} reviews before saving',
+      'multi-step pet ${editing ? 'edit' : 'add'} reviews before saving',
       (tester) async {
         await pumpForm(tester, existing: editing ? pet : null);
         expect(

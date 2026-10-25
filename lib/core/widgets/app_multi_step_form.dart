@@ -13,7 +13,7 @@ class AppFormStep {
   const AppFormStep({required this.title, required this.builder});
 }
 
-class AppPhasedForm extends StatefulWidget {
+class AppMultiStepForm extends StatefulWidget {
   final Widget title;
   final double? toolbarHeight;
   final List<AppFormStep> steps;
@@ -30,7 +30,7 @@ class AppPhasedForm extends StatefulWidget {
   final VoidCallback onExit;
   final VoidCallback onChanged;
 
-  const AppPhasedForm({
+  const AppMultiStepForm({
     super.key,
     required this.title,
     this.toolbarHeight,
@@ -49,10 +49,10 @@ class AppPhasedForm extends StatefulWidget {
   });
 
   @override
-  State<AppPhasedForm> createState() => _AppPhasedFormState();
+  State<AppMultiStepForm> createState() => _AppMultiStepFormState();
 }
 
-class _AppPhasedFormState extends State<AppPhasedForm> {
+class _AppMultiStepFormState extends State<AppMultiStepForm> {
   late final _forms = List.generate(
     widget.steps.length,
     (_) => GlobalKey<FormState>(),
@@ -381,7 +381,7 @@ class AppFormNavigationActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    key: const ValueKey('phased-form-actions'),
+    key: const ValueKey('multi-step-form-actions'),
     color: Theme.of(context).colorScheme.surface,
     child: SafeArea(
       top: false,

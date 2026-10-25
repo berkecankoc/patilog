@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
-import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 
 // Ahem's fixed-width letters can consume the entire keyboard-open viewport.
 // Use the SDK's bundled app font when checking large-text form geometry.
@@ -30,7 +30,7 @@ Future<void> reviewForm(WidgetTester tester) async {
 }
 
 Future<void> editForm(WidgetTester tester) async {
-  if (find.byType(AppPhasedForm).evaluate().isNotEmpty &&
+  if (find.byType(AppMultiStepForm).evaluate().isNotEmpty &&
       find.text('Step 2 of 2 · Review').evaluate().isNotEmpty) {
     final edit = find.widgetWithText(TextButton, 'Edit').first;
     await tester.ensureVisible(edit);
@@ -154,7 +154,7 @@ Future<void> submitForm(WidgetTester tester, {bool settle = true}) async {
 
 Future<void> leaveForm(WidgetTester tester, {bool systemBack = false}) async {
   for (var attempt = 0; attempt < 3; attempt++) {
-    if (find.byType(AppPhasedForm).evaluate().isEmpty ||
+    if (find.byType(AppMultiStepForm).evaluate().isEmpty ||
         find.text('Discard changes?').evaluate().isNotEmpty) {
       return;
     }

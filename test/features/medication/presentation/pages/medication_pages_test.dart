@@ -13,7 +13,7 @@ import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
-import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
@@ -454,7 +454,7 @@ void main() {
           matching: find.byType(Material),
         )
         .first;
-    final actions = find.byKey(const ValueKey('phased-form-actions'));
+    final actions = find.byKey(const ValueKey('multi-step-form-actions'));
     expect(
       tester.getRect(menu).bottom,
       lessThanOrEqualTo(tester.getRect(actions).top),
@@ -684,7 +684,7 @@ void main() {
       location: AppRoutes.addEditMedication('pet'),
       bottomInset: 34,
     );
-    final footer = find.byKey(const ValueKey('phased-form-actions'));
+    final footer = find.byKey(const ValueKey('multi-step-form-actions'));
     expect(tester.getBottomRight(footer).dy, 844);
     expect(
       tester.getBottomRight(find.widgetWithText(ElevatedButton, 'Continue')).dy,
@@ -709,7 +709,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(AppPhasedForm), findsOneWidget);
+      expect(find.byType(AppMultiStepForm), findsOneWidget);
       expect(find.text('Step 2 of 3 · Schedule'), findsOneWidget);
       final time = find.widgetWithText(TextFormField, '08:00');
       await tester.ensureVisible(time);

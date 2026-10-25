@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_suggestion_field.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
@@ -643,7 +643,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
               _editing &&
               !widget.newSchedule &&
               (state.isCheckingPeriod || state.hasDoseLogs == null);
-          return AppPhasedForm(
+          return AppMultiStepForm(
             title: PetCareTitle(
               title: widget.newSchedule
                   ? 'Schedule doses'

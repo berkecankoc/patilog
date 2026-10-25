@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -545,7 +545,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
           }
           if (state.isSaved) _leave(result: true);
         },
-        builder: (context, state) => AppPhasedForm(
+        builder: (context, state) => AppMultiStepForm(
           title: PetCareTitle(
             title: widget.recordAdministration
                 ? 'Record administration'

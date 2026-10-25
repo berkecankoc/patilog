@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -171,7 +171,7 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
         setState(() => _saveError = message);
       }
     },
-    builder: (context, state) => AppPhasedForm(
+    builder: (context, state) => AppMultiStepForm(
       title: PetCareTitle(
         title: widget.entry == null ? 'Add measurement' : 'Edit measurement',
         petName: widget.petName,

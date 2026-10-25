@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 
 void main() {
@@ -55,7 +55,7 @@ void main() {
                 padding: EdgeInsets.only(bottom: keyboard > 0 ? 0 : 34),
                 viewPadding: const EdgeInsets.only(bottom: 34),
               ),
-              child: AppPhasedForm(
+              child: AppMultiStepForm(
                 title: const Text('Test form'),
                 editing: editing,
                 isSaving: () => saving,

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_suggestion_field.dart';
-import 'package:petlytics/core/widgets/app_phased_form.dart';
+import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
 
@@ -223,7 +223,7 @@ void main() {
           matching: find.byType(Material),
         )
         .first;
-    final actions = find.byKey(const ValueKey('phased-form-actions'));
+    final actions = find.byKey(const ValueKey('multi-step-form-actions'));
     expect(
       tester.getRect(menu).bottom,
       lessThanOrEqualTo(tester.getRect(actions).top),
@@ -363,7 +363,7 @@ void main() {
                 matching: find.byType(Material),
               )
               .first;
-          final actions = find.byKey(const ValueKey('phased-form-actions'));
+          final actions = find.byKey(const ValueKey('multi-step-form-actions'));
           expect(
             tester.getRect(menu).bottom,
             lessThanOrEqualTo(tester.getRect(actions).top),
