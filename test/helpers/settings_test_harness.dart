@@ -1,0 +1,107 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:petlytics/core/di/injection.dart';
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/core/router/app_router.dart';
+import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/storage/image_storage.dart';
+import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
+import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
+import 'package:petlytics/main.dart';
+import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
+
+import 'multi_step_form_helpers.dart';
+import 'pet_care_test_harness.dart';
+
+class MockSettingsRepository extends Mock implements SettingsRepository {}
+
+class MockImageStorage extends Mock implements ImageStorage {}
+
+class SettingsTestHarness {
+  final care = PetCareTestHarness();
+  final repository = MockSettingsRepository();
+  ThemePreference stored = ThemePreference.system;
+  bool failLoad = false;
+  bool failSave = false;
+  Completer<Result<ThemePreference>>? pendingLoad;
+  Completer<Result<void>>? pendingSave;
+  late SettingsCubit cubit;
+
+  static Future<void> initialize() async {
+    await loadFormTestFont();
+    final sample = PetCareTestHarness().sample();
+    registerFallbackValue(DateTime(2026));
+    registerFallbackValue(ThemePreference.system);
+    registerFallbackValue(sample);
+    registerFallbackValue(sample.periods.single);
+    registerFallbackValue(
+      MedicationDoseLog(
+        periodId: sample.periods.single.id,
+        scheduledDate: DateTime(2026),
+        scheduledMinute: 480,
+        status: MedicationDoseStatus.skipped,
+      ),
+    );
+  }
+
+  void register() {
+    care.register();
+    getIt.registerSingleton<ImageStorage>(MockImageStorage());
+    when(repository.getThemePreference).thenAnswer((_) async {
+      if (pendingLoad case final pending?) return pending.future;
+      return failLoad
+          ? const Error(
+              PreferencesStorageFailure('Failed to load theme preference'),
+            )
+          : Success(stored);
+    });
+    when(() => repository.setThemePreference(any())).thenAnswer((call) async {
+      final result = pendingSave != null
+          ? await pendingSave!.future
+          : failSave
+          ? const Error<void>(
+              PreferencesStorageFailure('Failed to save theme preference'),
+            )
+          : const Success<void>(null);
+      if (result is Success<void>) {
+        stored = call.positionalArguments.single as ThemePreference;
+      }
+      return result;
+    });
+    cubit = SettingsCubit(repository);
+  }
+
+  Future<void> pump(
+    WidgetTester tester, {
+    String location = AppRoutes.settings,
+    Size size = const Size(390, 844),
+    double scale = 1,
+    bool settle = true,
+    GlobalKey? captureKey,
+  }) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = scale;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await getIt.reset();
+    });
+    await cubit.load();
+    appRouter.go(location);
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: captureKey,
+        child: MyApp(settingsCubit: cubit),
+      ),
+    );
+    if (settle) await tester.pumpAndSettle();
+  }
+}

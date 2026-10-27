@@ -5,29 +5,47 @@ import 'package:petlytics/core/router/app_router.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_keyboard.dart';
+import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
+import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await setupDependencies();
 
-  runApp(const MyApp());
+  final settings = getIt<SettingsCubit>();
+  await settings.load();
+
+  runApp(MyApp(settingsCubit: settings));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final SettingsCubit settingsCubit;
+
+  const MyApp({super.key, required this.settingsCubit});
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider<ImageStorage>.value(
-      value: getIt<ImageStorage>(),
-      child: MaterialApp.router(
-        title: 'Petlytics',
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
-        routerConfig: appRouter,
-        builder: (_, child) => AppKeyboard(child: child!),
+    return BlocProvider<SettingsCubit>(
+      create: (_) => settingsCubit,
+      child: RepositoryProvider<ImageStorage>.value(
+        value: getIt<ImageStorage>(),
+        child: BlocSelector<SettingsCubit, SettingsState, ThemePreference>(
+          selector: (state) => state.themePreference,
+          builder: (_, preference) => MaterialApp.router(
+            title: 'Petlytics',
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: switch (preference) {
+              ThemePreference.system => ThemeMode.system,
+              ThemePreference.light => ThemeMode.light,
+              ThemePreference.dark => ThemeMode.dark,
+            },
+            routerConfig: appRouter,
+            builder: (_, child) => AppKeyboard(child: child!),
+          ),
+        ),
       ),
     );
   }

@@ -37,6 +37,8 @@ import 'package:petlytics/features/weight_history/domain/entities/weight_entry.d
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:petlytics/features/weight_history/presentation/pages/weight_entry_form_page.dart';
 import 'package:petlytics/features/weight_history/presentation/pages/weight_history_page.dart';
+import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
+import 'package:petlytics/features/settings/presentation/pages/settings_page.dart';
 
 Widget _petCarePage({
   required String petId,
@@ -129,6 +131,11 @@ Page<String> _careRootPage(GoRouterState state, PetCareTab tab) {
 final appRouter = GoRouter(
   initialLocation: AppRoutes.pets,
   routes: [
+    GoRoute(
+      path: AppRoutes.settings,
+      builder: (_, _) => const SettingsPage(),
+      onExit: (context, _) => !context.read<SettingsCubit>().state.isBusy,
+    ),
     ShellRoute(
       builder: (_, state, child) => BlocProvider<AllPetsCareCubit>(
         create: (_) => getIt<AllPetsCareCubit>(),
