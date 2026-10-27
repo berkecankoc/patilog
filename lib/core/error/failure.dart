@@ -19,3 +19,7 @@ final class NotFoundFailure extends Failure {
 final class ImageStorageFailure extends Failure {
   const ImageStorageFailure(super.message);
 }
+
+final class PreferencesStorageFailure extends Failure {
+  const PreferencesStorageFailure(super.message);
+}

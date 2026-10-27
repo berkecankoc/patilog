@@ -840,6 +840,20 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
               automaticallyImplyLeading: false,
               scrolledUnderElevation: 0,
               title: Text(_destinations[section.index].label),
+              actions: [
+                if (section == AllPetsCareSection.pets)
+                  IconButton(
+                    tooltip: 'Settings',
+                    icon: const Icon(Icons.settings_outlined),
+                    onPressed: state.isBusy
+                        ? null
+                        : () {
+                            if (!_cubit.state.isBusy && _visible) {
+                              context.push(AppRoutes.settings);
+                            }
+                          },
+                  ),
+              ],
             ),
             bottomNavigationBar: DefaultTextStyle.merge(
               maxLines: 2,

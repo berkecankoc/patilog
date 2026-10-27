@@ -1,4 +1,5 @@
 abstract final class AppRoutes {
+  static const settings = '/settings';
   static const pets = '/pets';
   static const allVetVisits = '/vet-visits';
   static const allVaccinations = '/vaccinations';
