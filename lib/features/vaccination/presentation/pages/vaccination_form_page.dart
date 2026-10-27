@@ -153,6 +153,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
         notes: _notes.text,
         vetVisitId: _status == VaccinationStatus.administered ? _visitId : null,
         nextDoseDate: _canPlanNextDose ? _nextDoseDate : null,
+        reminderSettings: widget.vaccination?.reminderSettings,
       ),
     );
   }

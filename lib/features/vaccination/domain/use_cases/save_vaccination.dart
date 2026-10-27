@@ -1,6 +1,7 @@
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 
 final class SaveVaccinationParams {
@@ -14,6 +15,7 @@ final class SaveVaccinationParams {
   final String? notes;
   final String? vetVisitId;
   final DateTime? nextDoseDate;
+  final VaccinationReminderSettings? reminderSettings;
 
   const SaveVaccinationParams({
     required this.petId,
@@ -26,6 +28,7 @@ final class SaveVaccinationParams {
     this.notes,
     this.vetVisitId,
     this.nextDoseDate,
+    this.reminderSettings,
   });
 }
 
@@ -45,6 +48,7 @@ class SaveVaccination {
       clinicName: params.clinicName,
       veterinarianName: params.veterinarianName,
       notes: params.notes,
+      reminderSettings: params.reminderSettings,
       vetVisitId: params.status == VaccinationStatus.administered
           ? params.vetVisitId
           : null,

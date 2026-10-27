@@ -7,6 +7,7 @@ import 'package:petlytics/features/vaccination/data/data_sources/vaccination_loc
 import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
 import 'package:petlytics/features/vaccination/data/repositories/vaccination_repository_impl.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination_suggestions.dart';
 
 class MockVaccinationLocalDataSource extends Mock
@@ -25,6 +26,9 @@ void main() {
     veterinarianName: 'Dr. Smith',
     notes: 'No reaction',
     vetVisitId: 'visit-1',
+    reminderSettings: VaccinationReminderSettings.custom(
+      VaccinationReminderSchedule(),
+    ),
   );
   final nextDose = Vaccination(
     id: 'next-dose',

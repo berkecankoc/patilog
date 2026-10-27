@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 
 void main() {
   final vaccination = Vaccination(
@@ -24,6 +25,7 @@ void main() {
     'veterinarian_name': 'Dr. Smith',
     'notes': 'No reaction',
     'vet_visit_id': 'visit-1',
+    'reminder_settings': null,
   };
 
   test('round-trips a complete administered record through storage', () {
@@ -89,5 +91,44 @@ void main() {
       () => VaccinationModel.fromJson({...json, 'status': 'unknown'}),
       throwsArgumentError,
     );
+  });
+
+  test(
+    'preserves inherited, Off and Custom settings through entity and SQL JSON',
+    () {
+      for (final settings in [
+        null,
+        const VaccinationReminderSettings.off(),
+        VaccinationReminderSettings.custom(
+          VaccinationReminderSchedule(daysBefore: [7, 0], minuteOfDay: 1080),
+        ),
+      ]) {
+        final entity = Vaccination(
+          id: vaccination.id,
+          petId: vaccination.petId,
+          vaccineName: vaccination.vaccineName,
+          status: vaccination.status,
+          date: vaccination.date,
+          reminderSettings: settings,
+        );
+        final model = VaccinationModel.fromEntity(entity);
+        final stored = model.toJson();
+        expect(
+          stored['reminder_settings'],
+          settings == null ? isNull : isA<String>(),
+        );
+        expect(VaccinationModel.fromJson(stored), model);
+        expect(VaccinationModel.fromJson(stored).toEntity(), entity);
+      }
+    },
+  );
+
+  test('malformed reminder settings do not silently become inherited', () {
+    for (final stored in [42, '', '{}', 'null', '{"mode":"custom"}']) {
+      expect(
+        () => VaccinationModel.fromJson({...json, 'reminder_settings': stored}),
+        throwsFormatException,
+      );
+    }
   });
 }

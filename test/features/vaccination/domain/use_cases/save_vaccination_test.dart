@@ -4,6 +4,7 @@ import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/services/id_generator.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
 
@@ -40,6 +41,7 @@ void main() {
     String? id,
     DateTime? nextDoseDate,
     VaccinationStatus status = VaccinationStatus.administered,
+    VaccinationReminderSettings? reminderSettings,
   }) => SaveVaccinationParams(
     petId: original.petId,
     vaccinationId: id,
@@ -51,6 +53,7 @@ void main() {
     notes: original.notes,
     vetVisitId: original.vetVisitId,
     nextDoseDate: nextDoseDate,
+    reminderSettings: reminderSettings,
   );
 
   setUp(() {
@@ -90,6 +93,68 @@ void main() {
     verify(() => repository.createVaccination(original)).called(1);
     verify(() => idGenerator.generate()).called(1);
   });
+
+  test(
+    'forwards Custom settings but leaves the next plan inheriting defaults',
+    () async {
+      final settings = VaccinationReminderSettings.custom(
+        VaccinationReminderSchedule(daysBefore: [7, 0], minuteOfDay: 600),
+      );
+      final custom = Vaccination(
+        id: original.id,
+        petId: original.petId,
+        vaccineName: original.vaccineName,
+        status: original.status,
+        date: original.date,
+        clinicName: original.clinicName,
+        veterinarianName: original.veterinarianName,
+        notes: original.notes,
+        vetVisitId: original.vetVisitId,
+        reminderSettings: settings,
+      );
+      when(
+        () => repository.createVaccination(custom, nextDose: next),
+      ).thenAnswer((_) async => const Success(null));
+      expect(
+        await save(params(nextDoseDate: nextDate, reminderSettings: settings)),
+        const Success<void>(null),
+      );
+      verify(
+        () => repository.createVaccination(custom, nextDose: next),
+      ).called(1);
+      verifyNoMoreInteractions(repository);
+    },
+  );
+
+  test(
+    'forwards Off on ordinary edits without a separate preference write',
+    () async {
+      final off = Vaccination(
+        id: original.id,
+        petId: original.petId,
+        vaccineName: original.vaccineName,
+        status: original.status,
+        date: original.date,
+        clinicName: original.clinicName,
+        veterinarianName: original.veterinarianName,
+        notes: original.notes,
+        vetVisitId: original.vetVisitId,
+        reminderSettings: const VaccinationReminderSettings.off(),
+      );
+      when(
+        () => repository.updateVaccination(off),
+      ).thenAnswer((_) async => const Success(null));
+      expect(
+        await save(
+          params(id: original.id, reminderSettings: off.reminderSettings),
+        ),
+        const Success<void>(null),
+      );
+      verify(() => repository.updateVaccination(off)).called(1);
+      verifyNoMoreInteractions(repository);
+      verifyZeroInteractions(idGenerator);
+    },
+  );
 
   test('an ordinary edit keeps the ID and creates no new plan', () async {
     when(

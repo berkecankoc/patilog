@@ -29,6 +29,7 @@ import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination_suggestions.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
@@ -988,6 +989,37 @@ void main() {
       );
     },
   );
+
+  for (final settings in [
+    const VaccinationReminderSettings.off(),
+    VaccinationReminderSettings.custom(VaccinationReminderSchedule()),
+  ]) {
+    testWidgets(
+      'editing a record preserves its existing reminder setting $settings',
+      (tester) async {
+        final existing = Vaccination(
+          id: administered.id,
+          petId: pet.id,
+          vaccineName: administered.vaccineName,
+          status: administered.status,
+          date: administered.date,
+          reminderSettings: settings,
+        );
+        records = [existing];
+        await pumpRouter(tester);
+        await open(tester, existing);
+        await tester.tap(find.byTooltip('Edit vaccination'));
+        await tester.pumpAndSettle();
+        await fill(tester, name, 'Corrected vaccine');
+        await submit(tester);
+        expect(records.single.vaccineName, 'Corrected vaccine');
+        expect(records.single.reminderSettings, settings);
+        verify(
+          () => repository.updateVaccination(any(), nextDose: null),
+        ).called(1);
+      },
+    );
+  }
 
   testWidgets('administration and independent next plan are created together', (
     tester,
