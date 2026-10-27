@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/database/database_tables.dart';
 import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/error/failure.dart';
@@ -14,6 +15,8 @@ import 'package:petlytics/features/medication/presentation/cubit/medication_cubi
 import 'package:petlytics/features/medication/presentation/cubit/medication_form_cubit.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_form_state.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
+import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
@@ -29,6 +32,9 @@ import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_c
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_state.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class MockPreferences extends Mock implements SharedPreferencesAsync {}
 
 void main() {
   late Directory directory;
@@ -48,6 +54,30 @@ void main() {
     if (getIt.isRegistered<Database>()) await getIt<Database>().close();
     await getIt.reset();
     await directory.delete(recursive: true);
+  });
+
+  test('settings repository reuses the registered preferences store', () async {
+    const key = 'settings.theme_preference';
+    final preferences = MockPreferences();
+    when(() => preferences.setString(key, 'dark')).thenAnswer((_) async {});
+    when(
+      () => preferences.getAll(allowList: {key}),
+    ).thenAnswer((_) async => {key: 'dark'});
+    await getIt.unregister<SharedPreferencesAsync>();
+    getIt.registerSingleton<SharedPreferencesAsync>(preferences);
+
+    final repository = getIt<SettingsRepository>();
+    expect(getIt<SettingsRepository>(), same(repository));
+    expect(
+      await repository.setThemePreference(ThemePreference.dark),
+      const Success<void>(null),
+    );
+    expect(
+      await repository.getThemePreference(),
+      const Success(ThemePreference.dark),
+    );
+    verify(() => preferences.setString(key, 'dark')).called(1);
+    verify(() => preferences.getAll(allowList: {key})).called(1);
   });
 
   test(

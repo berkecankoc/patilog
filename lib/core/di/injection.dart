@@ -20,6 +20,8 @@ import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:petlytics/features/settings/data/repositories/settings_repository_impl.dart';
+import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
 import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
 import 'package:petlytics/features/vaccination/data/repositories/vaccination_repository_impl.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
@@ -36,6 +38,7 @@ import 'package:petlytics/features/weight_history/data/repositories/weight_histo
 import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final getIt = GetIt.instance;
 
@@ -43,6 +46,14 @@ Future<void> setupDependencies() async {
   final db = await openAppDatabase();
 
   getIt.registerSingleton<Database>(db);
+
+  getIt.registerLazySingleton<SharedPreferencesAsync>(
+    () => SharedPreferencesAsync(),
+  );
+
+  getIt.registerLazySingleton<SettingsRepository>(
+    () => SettingsRepositoryImpl(getIt<SharedPreferencesAsync>()),
+  );
 
   getIt.registerLazySingleton<IdGenerator>(() => UuidGenerator());
 
