@@ -7,12 +7,17 @@ class AppErrorFeedback extends StatelessWidget {
   final String message;
   final String retryLabel;
   final VoidCallback? onRetry;
+  final EdgeInsets padding;
 
   const AppErrorFeedback({
     super.key,
     required this.message,
     this.retryLabel = 'Retry',
     this.onRetry,
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: AppSpacing.lg,
+      vertical: AppSpacing.xs,
+    ),
   });
 
   @override
@@ -23,10 +28,7 @@ class AppErrorFeedback extends StatelessWidget {
       child: SafeArea(
         top: false,
         bottom: false,
-        minimum: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.xs,
-        ),
+        minimum: padding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

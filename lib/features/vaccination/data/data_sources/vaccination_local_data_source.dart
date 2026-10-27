@@ -7,6 +7,7 @@ import 'package:petlytics/features/vaccination/domain/entities/vaccination_sugge
 import 'package:sqflite/sqflite.dart';
 
 abstract interface class VaccinationLocalDataSource {
+  Future<List<VaccinationModel>> getAllVaccinations();
   Future<List<VaccinationModel>> getVaccinations(
     String petId, {
     String? vetVisitId,
@@ -37,14 +38,24 @@ final class VaccinationLocalDataSourceImpl
   Future<List<VaccinationModel>> getVaccinations(
     String petId, {
     String? vetVisitId,
+  }) => _readVaccinations(petId: petId, vetVisitId: vetVisitId);
+
+  @override
+  Future<List<VaccinationModel>> getAllVaccinations() => _readVaccinations();
+
+  Future<List<VaccinationModel>> _readVaccinations({
+    String? petId,
+    String? vetVisitId,
   }) async {
     try {
+      final filters = [
+        if (petId != null) 'pet_id = ?',
+        if (vetVisitId != null) 'vet_visit_id = ?',
+      ];
       final rows = await db.query(
         DatabaseTables.vaccinations,
-        where: vetVisitId == null
-            ? 'pet_id = ?'
-            : 'pet_id = ? AND vet_visit_id = ?',
-        whereArgs: [petId, ?vetVisitId],
+        where: filters.isEmpty ? null : filters.join(' AND '),
+        whereArgs: [?petId, ?vetVisitId],
         orderBy: '''
           CASE WHEN status = 'planned' THEN 0 ELSE 1 END,
           CASE WHEN status = 'planned' THEN date END ASC,

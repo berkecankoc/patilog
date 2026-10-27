@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_visits_cubit.dart';
 import 'package:petlytics/core/database/app_database.dart';
 import 'package:petlytics/core/services/id_generator.dart';
@@ -127,6 +128,16 @@ Future<void> setupDependencies() async {
       getIt<CreatePet>(),
       getIt<UpdatePet>(),
       getIt<DeletePet>(),
+    ),
+  );
+
+  getIt.registerFactory<AllPetsCareCubit>(
+    () => AllPetsCareCubit(
+      getIt<PetRepository>(),
+      getIt<VetVisitRepository>(),
+      getIt<VaccinationRepository>(),
+      getIt<MedicationRepository>(),
+      getIt<CalculateMedicationDoses>(),
     ),
   );
 

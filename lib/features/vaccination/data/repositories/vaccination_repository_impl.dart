@@ -13,6 +13,16 @@ final class VaccinationRepositoryImpl implements VaccinationRepository {
   const VaccinationRepositoryImpl(this.localDataSource);
 
   @override
+  Future<Result<List<Vaccination>>> getAllVaccinations() async {
+    try {
+      final models = await localDataSource.getAllVaccinations();
+      return Success(models.map((model) => model.toEntity()).toList());
+    } on LocalDataSourceException {
+      return const Error(LocalDatabaseFailure('Failed to load vaccinations'));
+    }
+  }
+
+  @override
   Future<Result<List<Vaccination>>> getVaccinations(
     String petId, {
     String? vetVisitId,

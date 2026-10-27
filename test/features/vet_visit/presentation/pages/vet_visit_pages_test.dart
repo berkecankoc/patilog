@@ -4,6 +4,7 @@ import 'package:petlytics/features/medication/domain/use_cases/calculate_medicat
 import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
 
 import 'package:flutter/material.dart';
+import '../../../../helpers/all_pets_care_dependencies.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -152,6 +153,7 @@ void main() {
     when(
       () => pets.getPetById(any()),
     ).thenAnswer((_) async => const Success(pet));
+    registerAllPetsCare(pets);
     getIt.registerFactory<PetCubit>(
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );

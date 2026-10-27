@@ -92,6 +92,7 @@ void main() {
 
   test('returns empty records and suggestions before saving', () async {
     expect(await source.getVaccinations('pet-1'), isEmpty);
+    expect(await source.getAllVaccinations(), isEmpty);
     expect(
       await source.getSuggestions(),
       const VaccinationSuggestions(
@@ -804,8 +805,85 @@ void main() {
     },
   );
 
+  test(
+    'all-pet vaccinations retain planned/history and insertion order',
+    () async {
+      final later = vaccination(
+        id: 'later',
+        petId: 'pet-2',
+        status: VaccinationStatus.planned,
+        date: day(2),
+      );
+      final planned = vaccination(
+        id: 'planned',
+        status: VaccinationStatus.planned,
+        date: day(1),
+      );
+      final tied = vaccination(
+        id: 'tied',
+        petId: 'pet-2',
+        status: VaccinationStatus.planned,
+        date: day(1),
+      );
+      final recent = vaccination(id: 'recent', petId: 'pet-2', date: day(0));
+      final older = vaccination(id: 'older', date: day(-2));
+      for (final entry in [older, recent, later, planned, tied]) {
+        await source.createVaccination(entry);
+      }
+      expect(await source.getAllVaccinations(), [
+        tied,
+        planned,
+        later,
+        recent,
+        older,
+      ]);
+      final updated = vaccination(
+        id: 'planned',
+        status: VaccinationStatus.planned,
+        date: day(1),
+        notes: 'Updated',
+      );
+      await source.updateVaccination(updated);
+      expect(await source.getAllVaccinations(), [
+        tied,
+        updated,
+        later,
+        recent,
+        older,
+      ]);
+      expect(await source.getVaccinations('pet-1'), [updated, older]);
+      expect(await source.getVaccinations('pet-2'), [tied, later, recent]);
+    },
+  );
+
+  test(
+    'all-pet vaccinations include overdue plans and omit deleted records',
+    () async {
+      final overdue = vaccination(
+        id: 'overdue',
+        status: VaccinationStatus.planned,
+        date: day(-1),
+      );
+      // A once-valid plan becomes overdue as the calendar advances.
+      await db.insert(DatabaseTables.vaccinations, overdue.toJson());
+      await source.createVaccination(vaccination(id: 'other', petId: 'pet-2'));
+      expect((await source.getAllVaccinations()).map((v) => v.id), [
+        'overdue',
+        'other',
+      ]);
+      await source.deleteVaccination('pet-1', 'overdue');
+      await db.delete(
+        DatabaseTables.pets,
+        where: 'id = ?',
+        whereArgs: ['pet-2'],
+      );
+      expect(await source.getAllVaccinations(), isEmpty);
+    },
+  );
+
   for (final operation in [
     'list',
+    'all vaccinations',
     'read',
     'create',
     'update',
@@ -816,6 +894,7 @@ void main() {
       await db.execute('DROP TABLE ${DatabaseTables.vaccinations}');
       final result = switch (operation) {
         'list' => source.getVaccinations('pet-1'),
+        'all vaccinations' => source.getAllVaccinations(),
         'read' => source.getVaccinationById('pet-1', 'vaccination-1'),
         'create' => source.createVaccination(vaccination()),
         'update' => source.updateVaccination(vaccination()),

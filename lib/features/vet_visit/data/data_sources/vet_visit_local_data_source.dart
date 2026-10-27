@@ -7,6 +7,7 @@ import 'package:sqflite/sqflite.dart';
 
 abstract interface class VetVisitLocalDataSource {
   Future<List<VetVisitModel>> getVetVisits(String petId);
+  Future<List<VetVisitModel>> getAllVetVisits();
   Future<VetVisitModel> getVetVisitById(String petId, String visitId);
   Future<void> createVetVisit(VetVisitModel visit);
   Future<void> updateVetVisit(VetVisitModel visit);
@@ -20,12 +21,18 @@ final class VetVisitLocalDataSourceImpl implements VetVisitLocalDataSource {
   const VetVisitLocalDataSourceImpl(this.db);
 
   @override
-  Future<List<VetVisitModel>> getVetVisits(String petId) async {
+  Future<List<VetVisitModel>> getVetVisits(String petId) =>
+      _readVetVisits(petId: petId);
+
+  @override
+  Future<List<VetVisitModel>> getAllVetVisits() => _readVetVisits();
+
+  Future<List<VetVisitModel>> _readVetVisits({String? petId}) async {
     try {
       final rows = await db.query(
         DatabaseTables.vetVisits,
-        where: 'pet_id = ?',
-        whereArgs: [petId],
+        where: petId == null ? null : 'pet_id = ?',
+        whereArgs: petId == null ? null : [petId],
         orderBy: 'visited_on DESC, rowid DESC',
       );
       return rows.map(VetVisitModel.fromJson).toList();

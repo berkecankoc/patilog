@@ -14,7 +14,7 @@ import 'package:petlytics/features/medication/domain/entities/medication_dose_lo
 import 'package:petlytics/features/medication/presentation/pages/medication_list_page.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_care_page.dart';
-import 'package:petlytics/features/pet/presentation/pages/pet_list_page.dart';
+import 'package:petlytics/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
 import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import '../../../../helpers/pet_care_test_harness.dart';
@@ -178,7 +178,7 @@ void main() {
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(router.state.uri.path, AppRoutes.pets);
-      expect(find.byType(PetListPage), findsOneWidget);
+      expect(find.byType(AllPetsCarePage), findsOneWidget);
       expect(find.byType(PetCarePage), findsNothing);
       expect(tester.takeException(), isNull);
     },

@@ -1,6 +1,8 @@
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:petlytics/core/widgets/pet_care_tabs.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
@@ -148,6 +150,9 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                     children: [
                       if (refreshError != null)
                         AppErrorFeedback(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.xs,
+                          ),
                           message: refreshError,
                           retryLabel: 'Retry visit',
                           onRetry: () => context
@@ -186,6 +191,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                     ],
                   ),
           VetVisitError(:final message) => AppErrorFeedback(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             message: message,
             retryLabel: 'Retry visit',
             onRetry: () => context.read<MedicationVisitsCubit>().loadVisit(
@@ -538,9 +544,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
             appBar: AppBar(
               toolbarHeight: PetCareTitle.toolbarHeight(context),
               title: PetCareTitle(title: 'Medication', petName: widget.petName),
-              leading: busy
-                  ? const IconButton(onPressed: null, icon: BackButtonIcon())
-                  : null,
+              leading: careBackButton(context, busy: busy),
               actions: [
                 MyPetsButton(enabled: !busy),
                 if (loaded != null)

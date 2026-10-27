@@ -14,7 +14,14 @@ import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
 void _openAddPet(BuildContext context) => context.push(AppRoutes.addEditPet);
 
 class PetListPage extends StatefulWidget {
-  const PetListPage({super.key});
+  final List<Pet>? pets;
+  final ValueChanged<Pet>? onOpenPet;
+  const PetListPage({super.key}) : pets = null, onOpenPet = null;
+  const PetListPage.fromRecords({
+    super.key,
+    required List<Pet> this.pets,
+    required ValueChanged<Pet> this.onOpenPet,
+  });
 
   @override
   State<PetListPage> createState() => _PetListPageState();
@@ -28,6 +35,7 @@ class _PetListPageState extends State<PetListPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (widget.pets != null) return;
     final router = GoRouter.maybeOf(context);
     if (identical(router, _router)) return;
     _router?.routerDelegate.removeListener(_routeChanged);
@@ -68,6 +76,9 @@ class _PetListPageState extends State<PetListPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.pets != null) {
+      return _PetListView(pets: widget.pets!, onOpenPet: widget.onOpenPet!);
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('My pets')),
       body: BlocBuilder<PetCubit, PetState>(

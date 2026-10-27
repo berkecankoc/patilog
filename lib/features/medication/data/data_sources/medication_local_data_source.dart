@@ -12,6 +12,7 @@ import 'package:petlytics/features/medication/domain/utils/medication_calendar.d
 import 'package:sqflite/sqflite.dart';
 
 abstract interface class MedicationLocalDataSource {
+  Future<List<MedicationModel>> getAllMedications();
   Future<List<MedicationModel>> getMedications(
     String petId, {
     String? vetVisitId,
@@ -35,6 +36,10 @@ abstract interface class MedicationLocalDataSource {
   Future<List<MedicationDoseLogModel>> getDoseLogs(
     String petId, {
     String? medicationId,
+    required DateTime fromDate,
+    required DateTime toDate,
+  });
+  Future<List<MedicationDoseLogModel>> getAllDoseLogs({
     required DateTime fromDate,
     required DateTime toDate,
   });
@@ -76,6 +81,10 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
   );
 
   @override
+  Future<List<MedicationModel>> getAllMedications() =>
+      _transaction((txn) => _readMedications(txn, null));
+
+  @override
   Future<MedicationModel> getMedicationById(
     String petId,
     String medicationId,
@@ -91,28 +100,31 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
 
   Future<List<MedicationModel>> _readMedications(
     DatabaseExecutor txn,
-    String petId, {
+    String? petId, {
     String? medicationId,
     String? vetVisitId,
   }) async {
-    final where =
-        '''m.pet_id = ?
-      ${medicationId == null ? '' : 'AND m.id = ?'}
-      ${vetVisitId == null ? '' : '''AND EXISTS (
+    final filters = [
+      if (petId != null) 'm.pet_id = ?',
+      if (medicationId != null) 'm.id = ?',
+      if (vetVisitId != null)
+        '''EXISTS (
         SELECT 1 FROM ${DatabaseTables.medicationPeriods} linked
         JOIN ${DatabaseTables.vetVisits} v ON v.id = linked.vet_visit_id
         WHERE linked.medication_id = m.id AND v.id = ? AND v.pet_id = m.pet_id
-      )'''}''';
-    final args = [petId, ?medicationId, ?vetVisitId];
+      )''',
+    ];
+    final where = filters.isEmpty ? '' : 'WHERE ${filters.join(' AND ')}';
+    final args = [?petId, ?medicationId, ?vetVisitId];
     final medications = await txn.rawQuery('''
-      SELECT m.* FROM ${DatabaseTables.medications} m WHERE $where ORDER BY m.rowid DESC
+      SELECT m.* FROM ${DatabaseTables.medications} m $where ORDER BY m.rowid DESC
     ''', args);
     if (medications.isEmpty) return [];
     // Read all matching periods in one query, including unlinked successor plans.
     final rows = await txn.rawQuery('''
       SELECT p.* FROM ${DatabaseTables.medicationPeriods} p
       JOIN ${DatabaseTables.medications} m ON m.id = p.medication_id
-      WHERE $where ORDER BY p.start_date ASC
+      $where ORDER BY p.start_date ASC
     ''', args);
     final periods = <String, List<MedicationPeriodModel>>{};
     for (final row in rows) {
@@ -315,31 +327,59 @@ final class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
     String? medicationId,
     required DateTime fromDate,
     required DateTime toDate,
-  }) => _transaction((txn) async {
+  }) => _transaction(
+    (txn) => _readDoseLogs(
+      txn,
+      petId: petId,
+      medicationId: medicationId,
+      fromDate: fromDate,
+      toDate: toDate,
+    ),
+  );
+
+  @override
+  Future<List<MedicationDoseLogModel>> getAllDoseLogs({
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) => _transaction(
+    (txn) => _readDoseLogs(txn, fromDate: fromDate, toDate: toDate),
+  );
+
+  Future<List<MedicationDoseLogModel>> _readDoseLogs(
+    DatabaseExecutor txn, {
+    String? petId,
+    String? medicationId,
+    required DateTime fromDate,
+    required DateTime toDate,
+  }) async {
     if (calendarDayNumber(fromDate) > calendarDayNumber(toDate)) {
       throw const LocalDataSourceException();
     }
-    if (medicationId != null) {
+    if (petId != null && medicationId != null) {
       await _requireMedication(txn, petId, medicationId);
     }
+    final filters = [
+      if (petId != null) 'm.pet_id = ?',
+      if (medicationId != null) 'm.id = ?',
+      'l.scheduled_date BETWEEN ? AND ?',
+    ];
     final rows = await txn.rawQuery(
       '''
       SELECT l.* FROM ${DatabaseTables.medicationDoseLogs} l
       JOIN ${DatabaseTables.medicationPeriods} p ON p.id = l.period_id
       JOIN ${DatabaseTables.medications} m ON m.id = p.medication_id
-      WHERE m.pet_id = ? ${medicationId == null ? '' : 'AND m.id = ?'}
-        AND l.scheduled_date BETWEEN ? AND ?
+      WHERE ${filters.join(' AND ')}
       ORDER BY l.scheduled_date, l.scheduled_minute, l.period_id
     ''',
       [
-        petId,
+        ?petId,
         ?medicationId,
         calendarDateKey(fromDate),
         calendarDateKey(toDate),
       ],
     );
     return rows.map(MedicationDoseLogModel.fromJson).toList();
-  });
+  }
 
   @override
   Future<void> saveDoseLog(

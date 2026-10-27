@@ -46,6 +46,46 @@ void main() {
     repository = VaccinationRepositoryImpl(source);
   });
 
+  group('getAllVaccinations', () {
+    test(
+      'maps different pets and preserves planned/history source order',
+      () async {
+        final other = VaccinationModel(
+          id: 'other',
+          petId: 'pet-2',
+          vaccineName: 'Rabies',
+          status: VaccinationStatus.planned,
+          date: nextDose.date,
+        );
+        when(source.getAllVaccinations).thenAnswer((_) async => [other, model]);
+        expect(
+          await repository.getAllVaccinations(),
+          Success([other.toEntity(), vaccination]),
+        );
+        verify(source.getAllVaccinations).called(1);
+        verifyNever(() => source.getVaccinations(any()));
+      },
+    );
+    test('returns an empty list as success', () async {
+      when(source.getAllVaccinations).thenAnswer((_) async => []);
+      expect(
+        await repository.getAllVaccinations(),
+        const Success<List<Vaccination>>([]),
+      );
+    });
+    test('maps storage errors to a safe failure', () async {
+      when(
+        source.getAllVaccinations,
+      ).thenThrow(const LocalDataSourceException());
+      expect(
+        await repository.getAllVaccinations(),
+        const Error<List<Vaccination>>(
+          LocalDatabaseFailure('Failed to load vaccinations'),
+        ),
+      );
+    });
+  });
+
   group('getVaccinations', () {
     test('forwards visit scope, maps records and storage failures', () async {
       when(

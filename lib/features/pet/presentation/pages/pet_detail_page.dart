@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
@@ -36,7 +37,12 @@ class PetDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => BlocConsumer<PetCubit, PetState>(
     listener: (context, state) {
-      if (state is PetDeleted) context.pop(petId);
+      if (state is PetDeleted) {
+        CareRecordChanges.maybeOf(
+          context,
+        )?.changed(petId, PetCareTab.profile, petDeleted: true);
+        context.pop(petId);
+      }
     },
     builder: (context, state) {
       final loaded = state is PetLoaded ? state : null;

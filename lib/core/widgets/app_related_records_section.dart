@@ -48,6 +48,7 @@ class _AppRelatedRecordsSectionState extends State<AppRelatedRecordsSection> {
               widget.key,
             )),
             maintainState: true,
+            expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
             shape: const Border(),
             collapsedShape: const Border(),
             leading: Icon(widget.icon, size: 20),

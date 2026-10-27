@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../../../helpers/all_pets_care_dependencies.dart';
+import 'package:petlytics/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,7 +21,6 @@ import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_detail_page.dart';
-import 'package:petlytics/features/pet/presentation/pages/pet_list_page.dart';
 
 class MockRepository extends Mock implements PetRepository {}
 
@@ -61,6 +62,7 @@ void main() {
       deleted = true;
       return const Success(null);
     });
+    registerAllPetsCare(repository);
     getIt.registerFactory<PetCubit>(
       () => PetCubit(
         repository,
@@ -144,7 +146,7 @@ void main() {
     await confirmDialog(tester);
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
-    expect(find.byType(PetListPage), findsOneWidget);
+    expect(find.byType(AllPetsCarePage), findsOneWidget);
     expect(find.byType(PetDetailPage), findsNothing);
     expect(find.text(pet.name), findsNothing);
     expect(find.text(other.name), findsOneWidget);
@@ -163,7 +165,7 @@ void main() {
     await confirmDialog(tester);
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
-    expect(find.byType(PetListPage), findsOneWidget);
+    expect(find.byType(AllPetsCarePage), findsOneWidget);
     expect(find.text('No pets yet'), findsOneWidget);
     expect(find.text(pet.name), findsNothing);
     verify(() => repository.deletePet(pet.id)).called(1);
@@ -171,7 +173,7 @@ void main() {
   });
 
   testWidgets(
-    'known deletion preserves list scroll and later returns refresh',
+    'known deletion preserves scroll and unchanged returns reuse the directory',
     (tester) async {
       final many = [
         for (var index = 0; index < 30; index++)
@@ -218,7 +220,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
-      verify(repository.getPets).called(1);
+      verifyNever(repository.getPets);
       expect(tester.takeException(), isNull);
     },
   );
@@ -230,7 +232,7 @@ void main() {
     await confirmDialog(tester);
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
-    expect(find.byType(PetListPage), findsOneWidget);
+    expect(find.byType(AllPetsCarePage), findsOneWidget);
     expect(find.text(pet.name), findsNothing);
     expect(find.text(other.name), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -280,7 +282,7 @@ void main() {
     expect(find.text('Delete pet?'), findsOneWidget);
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
-    expect(find.byType(PetListPage), findsOneWidget);
+    expect(find.byType(AllPetsCarePage), findsOneWidget);
     verify(() => repository.deletePet(pet.id)).called(2);
     verify(() => repository.getPets()).called(1);
   });
@@ -328,7 +330,7 @@ void main() {
       deleted = true;
       pending.complete(const Success(null));
       await tester.pumpAndSettle();
-      expect(find.byType(PetListPage), findsOneWidget);
+      expect(find.byType(AllPetsCarePage), findsOneWidget);
       expect(find.text(pet.name), findsNothing);
       verify(() => repository.deletePet(pet.id)).called(1);
       expect(tester.takeException(), isNull);

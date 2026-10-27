@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/router/care_record_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter/services.dart';
@@ -485,6 +487,9 @@ class _PetFormPageState extends State<PetFormPage> {
   @override
   Widget build(BuildContext context) => BlocConsumer<PetCubit, PetState>(
     listener: (context, state) {
+      if (state is PetCreated) {
+        CareRecordChanges.maybeOf(context)?.changed(null, PetCareTab.profile);
+      }
       if (state case PetCreated() || PetUpdated()) {
         _leave(result: true);
       } else if (state case PetError(:final message)) {

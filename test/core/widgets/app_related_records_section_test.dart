@@ -3,6 +3,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/widgets/app_related_records_section.dart';
 
 void main() {
+  for (final direction in TextDirection.values) {
+    testWidgets(
+      'plain related content stretches to the logical start in $direction',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Directionality(
+              textDirection: direction,
+              child: Scaffold(
+                body: AppRelatedRecordsSection(
+                  title: 'Linked records',
+                  icon: Icons.link,
+                  onLoad: () {},
+                  child: const Text('Short content'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Linked records'));
+        await tester.pumpAndSettle();
+        final card = tester.getRect(find.byType(Card));
+        final content = tester.getRect(find.text('Short content'));
+        expect(content.left, closeTo(card.left + 16, 0.01));
+        expect(content.right, closeTo(card.right - 16, 0.01));
+      },
+    );
+  }
   testWidgets(
     'loaded or failed child scroll does not read the expansion boolean',
     (tester) async {

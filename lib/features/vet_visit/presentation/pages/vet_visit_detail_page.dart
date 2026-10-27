@@ -1,6 +1,7 @@
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/widgets/pet_care_tabs.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
 import 'package:petlytics/features/medication/presentation/widgets/visit_medications_section.dart';
@@ -129,15 +130,7 @@ class VetVisitDetailPage extends StatelessWidget {
             appBar: AppBar(
               toolbarHeight: PetCareTitle.toolbarHeight(context),
               title: PetCareTitle(title: 'Vet visit', petName: petName),
-              leading: deleting
-                  ? IconButton(
-                      tooltip: MaterialLocalizations.of(
-                        context,
-                      ).backButtonTooltip,
-                      onPressed: null,
-                      icon: const BackButtonIcon(),
-                    )
-                  : null,
+              leading: careBackButton(context, busy: deleting),
               bottom: busy
                   ? PreferredSize(
                       preferredSize: const Size.fromHeight(4),

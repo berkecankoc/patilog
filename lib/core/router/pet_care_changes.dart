@@ -1,13 +1,15 @@
 import 'package:flutter/widgets.dart';
+import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 
 /// Invalidations live for one pet flow, including its pushed forms/details.
 class PetCareChanges extends ChangeNotifier {
   final String petId;
+  final void Function(PetCareTab tab, String? deletedId)? onChanged;
   final _dirty = <PetCareTab>{};
   final _deleted = <PetCareTab, Set<String>>{};
 
-  PetCareChanges(this.petId);
+  PetCareChanges(this.petId, {this.onChanged});
 
   void changed(
     PetCareTab tab, {
@@ -31,6 +33,7 @@ class PetCareChanges extends ChangeNotifier {
       case PetCareTab.vaccinations || PetCareTab.medications:
         break;
     }
+    onChanged?.call(tab, deletedId);
     notifyListeners();
   }
 
@@ -69,7 +72,14 @@ class PetCareChangeScope extends StatefulWidget {
 }
 
 class _PetCareChangeScopeState extends State<PetCareChangeScope> {
-  late final _changes = PetCareChanges(widget.petId);
+  late final _changes = PetCareChanges(
+    widget.petId,
+    onChanged: (tab, deletedId) {
+      CareRecordChanges.maybeOf(
+        context,
+      )?.changed(widget.petId, tab, deletedId: deletedId);
+    },
+  );
   @override
   void dispose() {
     _changes.dispose();

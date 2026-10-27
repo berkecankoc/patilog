@@ -5,6 +5,8 @@ import 'package:petlytics/core/database/database_tables.dart';
 import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
+import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
 import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
 import 'package:petlytics/features/medication/domain/use_cases/create_medication.dart';
@@ -47,6 +49,36 @@ void main() {
     await getIt.reset();
     await directory.delete(recursive: true);
   });
+
+  test(
+    'global care factories keep independent state backed by shared repositories',
+    () async {
+      await getIt<Database>().insert(DatabaseTables.pets, {
+        'id': 'pet-1',
+        'name': 'Milo',
+        'species': 'cat',
+        'sex': 'male',
+        'reproductive_status': 'intact',
+      });
+      final visit = VetVisit(
+        id: 'visit-1',
+        petId: 'pet-1',
+        visitedOn: DateTime(2026, 10, 15),
+        reason: 'Checkup',
+      );
+      await getIt<VetVisitRepository>().createVetVisit(visit);
+      final first = getIt<AllPetsCareCubit>();
+      final second = getIt<AllPetsCareCubit>();
+      addTearDown(first.close);
+      addTearDown(second.close);
+      expect(identical(first, second), isFalse);
+      await first.activate(AllPetsCareSection.vetVisits);
+      expect(first.state.visits.records, [visit]);
+      expect(first.state.petsById['pet-1']!.name, 'Milo');
+      expect(second.state.pets.hasLoaded, isFalse);
+      expect(second.state.visits.hasLoaded, isFalse);
+    },
+  );
 
   test(
     'medication factories create independent route state backed by shared SQLite',

@@ -4,6 +4,7 @@ import 'package:petlytics/features/medication/domain/use_cases/calculate_medicat
 import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
 
 import 'package:flutter/material.dart';
+import '../../../../helpers/all_pets_care_dependencies.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../../../helpers/multi_step_form_helpers.dart';
@@ -224,6 +225,7 @@ void main() {
     final ids = MockIds();
     var id = 0;
     when(ids.generate).thenAnswer((_) => 'created-${++id}');
+    registerAllPetsCare(pets);
     getIt.registerFactory<PetCubit>(
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );
