@@ -12,23 +12,95 @@ import 'package:petlytics/features/medication/presentation/utils/medication_acti
 import 'package:petlytics/features/medication/presentation/utils/medication_display.dart';
 import 'package:petlytics/features/medication/presentation/utils/dose_time_input_formatter.dart';
 
+typedef DoseRecordState = ({
+  MedicationDose? dose,
+  bool known,
+  bool busy,
+  String? error,
+});
+
+/// The same editor works with pet-scoped and all-pets state; each caller keeps
+/// ownership checks and writes in its own Cubit.
+class MedicationDoseEditor {
+  final Stream<Object?> changes;
+  final DoseRecordState Function() read;
+  final DateTime Function() now;
+  final Future<void> Function(MedicationDoseLog) save;
+  final Future<void> Function(MedicationDoseLog) clear;
+  const MedicationDoseEditor({
+    required this.changes,
+    required this.read,
+    required this.now,
+    required this.save,
+    required this.clear,
+  });
+
+  factory MedicationDoseEditor.forCubit(
+    BuildContext context,
+    MedicationDose dose,
+  ) {
+    final cubit = context.read<MedicationCubit>();
+    return MedicationDoseEditor(
+      changes: cubit.stream,
+      now: cubit.now,
+      read: () {
+        final state = cubit.state;
+        if (state is! MedicationsLoaded) {
+          return (dose: null, known: false, busy: false, error: null);
+        }
+        return (
+          dose: state.doses.doses
+              .where(
+                (row) =>
+                    row.period.id == dose.period.id &&
+                    row.scheduledMinute == dose.scheduledMinute &&
+                    DateUtils.isSameDay(row.scheduledDate, dose.scheduledDate),
+              )
+              .firstOrNull,
+          known:
+              state.doses.hasLoaded &&
+              !state.doses.isLoading &&
+              state.doses.error == null &&
+              !state.isRefreshing,
+          busy: state.pendingAction != null,
+          error: state.actionError,
+        );
+      },
+      save: (log) => cubit.performAction(
+        SaveMedicationDoseAction(dose.medication.id, log),
+      ),
+      clear: (log) => performMedicationAction(
+        context,
+        cubit,
+        ClearMedicationDoseAction(dose.medication.id, log),
+      ),
+    );
+  }
+}
+
 class MedicationDoseTile extends StatelessWidget {
   final MedicationDose dose;
   final bool known;
   final bool loading;
   final bool busy;
+  final MedicationDoseEditor? editor;
+  final Widget? petIdentity;
+  final VoidCallback? onRecord;
   const MedicationDoseTile({
     super.key,
     required this.dose,
     required this.known,
     required this.loading,
     required this.busy,
+    this.editor,
+    this.petIdentity,
+    this.onRecord,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<MedicationCubit>();
-    final now = cubit.now();
+    final actions = editor ?? MedicationDoseEditor.forCubit(context, dose);
+    final now = actions.now();
     final future = DateUtils.dateOnly(
       dose.scheduledDate,
     ).isAfter(DateUtils.dateOnly(now));
@@ -39,7 +111,23 @@ class MedicationDoseTile extends StatelessWidget {
     ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600);
     final time = Text(formatDoseTime(dose.scheduledMinute), style: style);
     final name = Text(dose.medication.name, style: style);
-    void record() => showMedicationDoseSheet(context, dose);
+    void record() {
+      if (onRecord != null) {
+        onRecord!();
+      } else {
+        showMedicationDoseSheet(context, dose, editor: actions);
+      }
+    }
+
+    void save(MedicationDoseStatus status, {DateTime? givenAt}) => actions.save(
+      MedicationDoseLog(
+        periodId: dose.period.id,
+        scheduledDate: dose.scheduledDate,
+        scheduledMinute: dose.scheduledMinute,
+        status: status,
+        givenAt: givenAt,
+      ),
+    );
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -47,6 +135,10 @@ class MedicationDoseTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (petIdentity != null) ...[
+              petIdentity!,
+              const SizedBox(height: 12),
+            ],
             LayoutBuilder(
               builder: (context, constraints) {
                 if (MediaQuery.textScalerOf(context).scale(16) > 24 &&
@@ -106,17 +198,14 @@ class MedicationDoseTile extends StatelessWidget {
                           TextButton(
                             onPressed: busy
                                 ? null
-                                : () => cubit.saveDose(
-                                    dose,
-                                    MedicationDoseStatus.skipped,
-                                  ),
+                                : () => save(MedicationDoseStatus.skipped),
                             child: const Text('Skip'),
                           ),
                           FilledButton(
                             onPressed: busy
                                 ? null
                                 : () {
-                                    final instant = cubit.now();
+                                    final instant = actions.now();
                                     if (!DateUtils.isSameDay(
                                       dose.scheduledDate,
                                       instant,
@@ -124,8 +213,7 @@ class MedicationDoseTile extends StatelessWidget {
                                       record();
                                       return;
                                     }
-                                    cubit.saveDose(
-                                      dose,
+                                    save(
                                       MedicationDoseStatus.given,
                                       givenAt: instant,
                                     );
@@ -157,25 +245,33 @@ class MedicationDoseTile extends StatelessWidget {
 
 Future<void> showMedicationDoseSheet(
   BuildContext context,
-  MedicationDose dose,
-) async {
-  final cubit = context.read<MedicationCubit>();
+  MedicationDose dose, {
+  MedicationDoseEditor? editor,
+  Widget? petIdentity,
+}) async {
   await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     isDismissible: false,
     enableDrag: false,
-    builder: (_) => BlocProvider.value(
-      value: cubit,
-      child: _DoseSheet(dose: dose),
+    builder: (_) => _DoseSheet(
+      dose: dose,
+      editor: editor ?? MedicationDoseEditor.forCubit(context, dose),
+      petIdentity: petIdentity,
     ),
   );
 }
 
 class _DoseSheet extends StatefulWidget {
   final MedicationDose dose;
-  const _DoseSheet({required this.dose});
+  final MedicationDoseEditor editor;
+  final Widget? petIdentity;
+  const _DoseSheet({
+    required this.dose,
+    required this.editor,
+    this.petIdentity,
+  });
   @override
   State<_DoseSheet> createState() => _DoseSheetState();
 }
@@ -194,8 +290,7 @@ class _DoseSheetState extends State<_DoseSheet> {
   void initState() {
     super.initState();
     final log = widget.dose.log;
-    final time =
-        log?.givenAt?.toLocal() ?? context.read<MedicationCubit>().now();
+    final time = log?.givenAt?.toLocal() ?? widget.editor.now();
     _time = TextEditingController(
       text: formatDoseTime(time.hour * 60 + time.minute),
     );
@@ -209,11 +304,6 @@ class _DoseSheetState extends State<_DoseSheet> {
     _time.dispose();
     super.dispose();
   }
-
-  bool _sameDose(MedicationDose dose) =>
-      dose.period.id == widget.dose.period.id &&
-      DateUtils.isSameDay(dose.scheduledDate, widget.dose.scheduledDate) &&
-      dose.scheduledMinute == widget.dose.scheduledMinute;
 
   void _leave([bool? saved]) {
     if (_allowPop) return;
@@ -249,15 +339,11 @@ class _DoseSheetState extends State<_DoseSheet> {
         (!clear && !_form.currentState!.validate())) {
       return;
     }
-    final cubit = context.read<MedicationCubit>();
-    final state = cubit.state;
-    if (state is! MedicationsLoaded ||
-        state.pendingAction != null ||
-        state.doses.isLoading ||
-        !state.doses.hasLoaded) {
+    final state = widget.editor.read();
+    if (state.busy || !state.known) {
       return;
     }
-    final dose = state.doses.doses.where(_sameDose).firstOrNull;
+    final dose = state.dose;
     if (dose == null) return;
     setState(() {
       if (clear) {
@@ -287,27 +373,19 @@ class _DoseSheetState extends State<_DoseSheet> {
           );
     if (clear) {
       if (dose.log != null) {
-        await performMedicationAction(
-          context,
-          cubit,
-          ClearMedicationDoseAction(dose.medication.id, dose.log!),
-        );
+        await widget.editor.clear(dose.log!);
       }
     } else {
-      await cubit.performAction(
-        SaveMedicationDoseAction(dose.medication.id, log!),
-      );
+      await widget.editor.save(log!);
     }
     if (!mounted) return;
     setState(() {
       _working = false;
       _confirming = false;
     });
-    final current = cubit.state;
-    if (current is MedicationsLoaded &&
-        current.actionError == null &&
-        current.pendingAction == null) {
-      final result = current.doses.doses.where(_sameDose).firstOrNull;
+    final current = widget.editor.read();
+    if (current.error == null && !current.busy) {
+      final result = current.dose;
       if (result != null && (clear ? result.log == null : result.log == log)) {
         _leave(true);
       }
@@ -315,16 +393,14 @@ class _DoseSheetState extends State<_DoseSheet> {
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) => BlocBuilder<MedicationCubit, MedicationState>(
-    builder: (context, state) {
-      final current = state is MedicationsLoaded ? state : null;
-      final busy = _working || current?.pendingAction != null;
+  Widget build(BuildContext context) => StreamBuilder<Object?>(
+    stream: widget.editor.changes,
+    builder: (context, snapshot) {
+      final current = widget.editor.read();
+      final busy = _working || current.busy;
       final blocked = busy || _confirming;
-      final known =
-          current?.doses.hasLoaded == true && current?.doses.isLoading == false;
-      final currentDose = current?.doses.doses.where(_sameDose).firstOrNull;
+      final known = current.known;
+      final currentDose = current.dose;
       return PopScope<bool>(
         canPop: _allowPop,
         onPopInvokedWithResult: (didPop, _) {
@@ -371,6 +447,10 @@ class _DoseSheetState extends State<_DoseSheet> {
                           ],
                         ),
                         const SizedBox(height: 8),
+                        if (widget.petIdentity != null) ...[
+                          widget.petIdentity!,
+                          const SizedBox(height: 8),
+                        ],
                         Text(
                           '${widget.dose.medication.name} · ${formatDoseTime(widget.dose.scheduledMinute)} dose',
                         ),
@@ -425,21 +505,19 @@ class _DoseSheetState extends State<_DoseSheet> {
                                     day.day,
                                     minute ~/ 60,
                                     minute % 60,
-                                  ).isAfter(
-                                    context.read<MedicationCubit>().now(),
-                                  )
+                                  ).isAfter(widget.editor.now())
                                   ? 'Given time cannot be in the future.'
                                   : null;
                             },
                           ),
                         ],
-                        if (current?.actionError != null)
+                        if (current.error != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 16),
                             child: Semantics(
                               liveRegion: true,
                               child: Text(
-                                current!.actionError!,
+                                current.error!,
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.error,
                                 ),

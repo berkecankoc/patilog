@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:petlytics/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
+import '../../../../helpers/all_pets_care_dependencies.dart';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -496,6 +498,7 @@ void main() {
         currentPet = pet.copyWith(name: params.name);
         return const Success<void>(null);
       });
+      registerAllPetsCare(repository);
       getIt.registerFactory<PetCubit>(
         () => PetCubit(repository, MockCreatePet(), update, MockDeletePet()),
       );
@@ -532,7 +535,7 @@ void main() {
         await tester.tap(find.byType(BackButton));
       }
       await tester.pumpAndSettle();
-      expect(find.byType(PetListPage), findsOneWidget);
+      expect(find.byType(AllPetsCarePage), findsOneWidget);
       expect(find.text('Updated pet name'), findsOneWidget);
       expect(find.text(pet.name), findsNothing);
       verify(() => repository.getPets()).called(2);

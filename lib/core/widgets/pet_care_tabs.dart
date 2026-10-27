@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 
 class PetCareTabs extends InheritedWidget {
@@ -34,9 +35,7 @@ PreferredSizeWidget? petCareAppBar(
   return AppBar(
     title: title,
     toolbarHeight: toolbarHeight,
-    leading: busy
-        ? const IconButton(onPressed: null, icon: BackButtonIcon())
-        : null,
+    leading: careBackButton(context, busy: busy),
     actions: actions,
     bottom: progress != null
         ? PreferredSize(
@@ -46,3 +45,13 @@ PreferredSizeWidget? petCareAppBar(
         : null,
   );
 }
+
+Widget? careBackButton(BuildContext context, {bool busy = false}) => busy
+    ? IconButton(
+        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        onPressed: null,
+        icon: const BackButtonIcon(),
+      )
+    : GoRouter.maybeOf(context)?.canPop() == true
+    ? BackButton(onPressed: () => context.pop())
+    : null;

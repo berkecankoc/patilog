@@ -30,6 +30,8 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
   final _deletedVaccinations = <(String, String)>{};
   final _deletedMedications = <(String, String)>{};
 
+  DateTime now() => _now();
+
   List<T> _remaining<T>(List<T> records) => records
       .where(
         (record) => switch (record) {

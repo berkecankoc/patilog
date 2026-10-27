@@ -1,5 +1,8 @@
 abstract final class AppRoutes {
   static const pets = '/pets';
+  static const allVetVisits = '/vet-visits';
+  static const allVaccinations = '/vaccinations';
+  static const allMedications = '/medications';
   static String medications(String petId) => '${petDetail(petId)}/medications';
   static String addEditMedication(String petId) => '${medications(petId)}/form';
   static String medicationDetail(String petId, String medicationId) =>

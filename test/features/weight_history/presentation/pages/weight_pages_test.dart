@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../../helpers/all_pets_care_dependencies.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -79,6 +80,7 @@ void main() {
         pet.copyWith(weight: entries.isEmpty ? null : entries.first.weight),
       ),
     );
+    registerAllPetsCare(pets);
     getIt.registerFactory<PetCubit>(
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );

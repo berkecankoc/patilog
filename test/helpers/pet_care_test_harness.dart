@@ -2,6 +2,7 @@ import 'package:petlytics/features/weight_history/domain/entities/weight_entry.d
 import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'dart:async';
+import 'all_pets_care_dependencies.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -350,6 +351,40 @@ class PetCareTestHarness {
     getIt.registerFactory<VetVisitCubit>(() => VetVisitCubit(visits));
     getIt.registerFactory<VaccinationCubit>(
       () => VaccinationCubit(vaccinations),
+    );
+    when(visits.getAllVetVisits).thenAnswer((_) async => Success([visit]));
+    when(
+      vaccinations.getAllVaccinations,
+    ).thenAnswer((_) async => const Success([]));
+    when(
+      repository.getAllMedications,
+    ).thenAnswer((_) async => Success(medications));
+    when(
+      () => repository.getAllDoseLogs(
+        fromDate: any(named: 'fromDate'),
+        toDate: any(named: 'toDate'),
+      ),
+    ).thenAnswer(
+      (call) async => Success(
+        logs
+            .where(
+              (log) =>
+                  !DateUtils.dateOnly(
+                    log.scheduledDate,
+                  ).isBefore(call.namedArguments[#fromDate] as DateTime) &&
+                  !DateUtils.dateOnly(
+                    log.scheduledDate,
+                  ).isAfter(call.namedArguments[#toDate] as DateTime),
+            )
+            .toList(),
+      ),
+    );
+    registerAllPetsCare(
+      pets,
+      visits: visits,
+      vaccinations: vaccinations,
+      medications: repository,
+      now: () => clock,
     );
   }
 

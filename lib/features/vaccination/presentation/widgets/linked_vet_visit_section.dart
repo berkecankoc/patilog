@@ -38,6 +38,7 @@ class LinkedVetVisitSection extends StatelessWidget {
             children: [
               if (refreshError != null)
                 AppErrorFeedback(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   message: refreshError,
                   retryLabel: 'Retry visit',
                   onRetry: load,
@@ -57,6 +58,7 @@ class LinkedVetVisitSection extends StatelessWidget {
             ],
           ),
           VetVisitError(:final message) => AppErrorFeedback(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             message: message,
             retryLabel: 'Retry visit',
             onRetry: load,

@@ -142,7 +142,7 @@ class VetVisitListPage extends StatelessWidget {
                                         children: [
                                           ExcludeSemantics(
                                             child: Icon(
-                                              Icons.local_hospital_outlined,
+                                              Icons.event_note_outlined,
                                               size: 48,
                                               color: Theme.of(
                                                 context,

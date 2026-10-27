@@ -44,6 +44,9 @@ class VisitVaccinationsSection extends StatelessWidget {
               children: [
                 if (refreshError != null)
                   AppErrorFeedback(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xs,
+                    ),
                     message: refreshError,
                     retryLabel: 'Retry vaccinations',
                     onRetry: load,
@@ -92,6 +95,7 @@ class VisitVaccinationsSection extends StatelessWidget {
               ],
             ),
           VaccinationError(:final message) => AppErrorFeedback(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             message: message,
             retryLabel: 'Retry vaccinations',
             onRetry: load,

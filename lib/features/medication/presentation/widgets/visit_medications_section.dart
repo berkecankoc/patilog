@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/widgets/app_related_records_section.dart';
 import 'package:petlytics/core/widgets/app_related_clinical_details.dart';
@@ -40,13 +41,14 @@ class VisitMedicationsSection extends StatelessWidget {
             children: [
               if (refreshError != null)
                 AppErrorFeedback(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   message: refreshError,
                   retryLabel: 'Retry medications',
                   onRetry: load,
                 ),
               if (medications.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.all(16),
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
                   child: Text('No medications linked to this visit.'),
                 ),
               if (medications.isNotEmpty)
@@ -100,6 +102,7 @@ class VisitMedicationsSection extends StatelessWidget {
             ],
           ),
           MedicationError(:final message) => AppErrorFeedback(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             message: message,
             retryLabel: 'Retry medications',
             onRetry: load,
