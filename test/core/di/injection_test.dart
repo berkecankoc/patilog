@@ -6,6 +6,9 @@ import 'package:petlytics/core/database/database_tables.dart';
 import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/features/notification/data/data_sources/notification_local_data_source.dart';
+import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
+import 'package:petlytics/features/notification/domain/repositories/notification_repository.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
@@ -38,6 +41,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class MockPreferences extends Mock implements SharedPreferencesAsync {}
 
+class MockNotifications extends Mock implements NotificationLocalDataSource {}
+
 void main() {
   late Directory directory;
 
@@ -57,6 +62,42 @@ void main() {
     await getIt.reset();
     await directory.delete(recursive: true);
   });
+
+  test(
+    'notification repository reuses preferences without initializing the native adapter',
+    () async {
+      final preferences = MockPreferences();
+      final native = MockNotifications();
+      when(
+        () => preferences.getAll(allowList: {'notification.preferences'}),
+      ).thenAnswer((_) async => {});
+      await getIt.unregister<SharedPreferencesAsync>();
+      getIt.registerSingleton<SharedPreferencesAsync>(preferences);
+      await getIt.unregister<NotificationLocalDataSource>();
+      getIt.registerSingleton<NotificationLocalDataSource>(native);
+      final repository = getIt<NotificationRepository>();
+      expect(getIt<NotificationRepository>(), same(repository));
+      expect(
+        await repository.getPreferences(),
+        Success(NotificationPreferences()),
+      );
+      verify(
+        () => preferences.getAll(allowList: {'notification.preferences'}),
+      ).called(1);
+      verifyZeroInteractions(native);
+    },
+  );
+
+  test(
+    'native adapter is a singleton and closes its stream when unregistered',
+    () async {
+      final source = getIt<NotificationLocalDataSource>();
+      expect(getIt<NotificationLocalDataSource>(), same(source));
+      final closed = expectLater(source.openedNotifications, emitsDone);
+      await getIt.unregister<NotificationLocalDataSource>();
+      await closed;
+    },
+  );
 
   test('settings repository reuses the registered preferences store', () async {
     const key = 'settings.theme_preference';

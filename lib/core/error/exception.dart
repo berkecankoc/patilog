@@ -17,3 +17,7 @@ final class ImageStorageException extends AppException {
 final class PreferencesStorageException extends AppException {
   const PreferencesStorageException();
 }
+
+final class NotificationPlatformException extends AppException {
+  const NotificationPlatformException();
+}

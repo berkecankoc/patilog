@@ -1,4 +1,9 @@
 import 'package:get_it/get_it.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:petlytics/features/notification/data/data_sources/notification_local_data_source.dart';
+import 'package:petlytics/features/notification/data/data_sources/notification_preferences_local_data_source.dart';
+import 'package:petlytics/features/notification/data/repositories/notification_repository_impl.dart';
+import 'package:petlytics/features/notification/domain/repositories/notification_repository.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_visits_cubit.dart';
 import 'package:petlytics/core/database/app_database.dart';
@@ -54,6 +59,22 @@ Future<void> setupDependencies() async {
 
   getIt.registerLazySingleton<SettingsRepository>(
     () => SettingsRepositoryImpl(getIt<SharedPreferencesAsync>()),
+  );
+
+  getIt.registerLazySingleton<NotificationPreferencesLocalDataSource>(
+    () => NotificationPreferencesLocalDataSourceImpl(
+      getIt<SharedPreferencesAsync>(),
+    ),
+  );
+  getIt.registerLazySingleton<NotificationLocalDataSource>(
+    () => NotificationLocalDataSourceImpl(FlutterLocalNotificationsPlugin()),
+    dispose: (source) => source.dispose(),
+  );
+  getIt.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(
+      getIt<NotificationPreferencesLocalDataSource>(),
+      getIt<NotificationLocalDataSource>(),
+    ),
   );
 
   getIt.registerLazySingleton<IdGenerator>(() => UuidGenerator());
