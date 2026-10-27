@@ -17,6 +17,8 @@ import 'package:petlytics/features/medication/presentation/cubit/medication_form
 import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
 import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
+import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
+import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
@@ -79,6 +81,34 @@ void main() {
     verify(() => preferences.setString(key, 'dark')).called(1);
     verify(() => preferences.getAll(allowList: {key})).called(1);
   });
+
+  test(
+    'settings factory creates independent state backed by the repository',
+    () async {
+      const key = 'settings.theme_preference';
+      final preferences = MockPreferences();
+      when(
+        () => preferences.getAll(allowList: {key}),
+      ).thenAnswer((_) async => {key: 'dark'});
+      when(() => preferences.setString(key, 'light')).thenAnswer((_) async {});
+      await getIt.unregister<SharedPreferencesAsync>();
+      getIt.registerSingleton<SharedPreferencesAsync>(preferences);
+
+      final first = getIt<SettingsCubit>();
+      final second = getIt<SettingsCubit>();
+      addTearDown(first.close);
+      addTearDown(second.close);
+      expect(first, isNot(same(second)));
+      verifyZeroInteractions(preferences);
+      await first.load();
+      expect(first.state.themePreference, ThemePreference.dark);
+      await first.setThemePreference(ThemePreference.light);
+      expect(first.state.themePreference, ThemePreference.light);
+      expect(second.state, const SettingsState());
+      verify(() => preferences.getAll(allowList: {key})).called(1);
+      verify(() => preferences.setString(key, 'light')).called(1);
+    },
+  );
 
   test(
     'global care factories keep independent state backed by shared repositories',

@@ -22,6 +22,7 @@ import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
+import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
 import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
 import 'package:petlytics/features/vaccination/data/repositories/vaccination_repository_impl.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
@@ -131,6 +132,10 @@ Future<void> setupDependencies() async {
 
   getIt.registerLazySingleton<CalculateMedicationDoses>(
     () => const CalculateMedicationDoses(),
+  );
+
+  getIt.registerFactory<SettingsCubit>(
+    () => SettingsCubit(getIt<SettingsRepository>()),
   );
 
   getIt.registerFactory<PetCubit>(
