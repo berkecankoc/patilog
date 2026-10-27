@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 
 enum VaccinationStatus { planned, administered }
 
@@ -18,6 +19,9 @@ final class Vaccination extends Equatable {
   /// Optional visit belonging to the same pet; only for administered records.
   final String? vetVisitId;
 
+  /// Null uses app defaults; a nonnull value is Custom or Off.
+  final VaccinationReminderSettings? reminderSettings;
+
   const Vaccination({
     required this.id,
     required this.petId,
@@ -28,6 +32,7 @@ final class Vaccination extends Equatable {
     this.veterinarianName,
     this.notes,
     this.vetVisitId,
+    this.reminderSettings,
   });
 
   @override
@@ -41,5 +46,6 @@ final class Vaccination extends Equatable {
     veterinarianName,
     notes,
     vetVisitId,
+    reminderSettings,
   ];
 }
