@@ -6,6 +6,14 @@ import 'package:petlytics/core/database/database_tables.dart';
 import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/core/router/care_record_changes.dart';
+import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:petlytics/features/medication/domain/entities/medication.dart';
+import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
+import 'package:petlytics/features/pet/domain/entities/pet.dart';
+import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
+import '../../helpers/notification_test_harness.dart'
+    show NotificationTestHarness;
 import 'package:petlytics/features/notification/data/data_sources/notification_local_data_source.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
 import 'package:petlytics/features/notification/domain/repositories/notification_repository.dart';
@@ -96,6 +104,78 @@ void main() {
       final closed = expectLater(source.openedNotifications, emitsDone);
       await getIt.unregister<NotificationLocalDataSource>();
       await closed;
+    },
+  );
+
+  test(
+    'global successful dose writes publish once and remain successful when reminder sync fails',
+    () async {
+      final fake = NotificationTestHarness();
+      fake.preferences = NotificationPreferences(
+        medicationRemindersEnabled: true,
+      );
+      await getIt.unregister<NotificationRepository>();
+      getIt.registerSingleton<NotificationRepository>(fake.repository);
+      const pet = Pet(
+        id: 'pet-notification',
+        name: 'Milo',
+        species: PetSpecies.cat,
+        sex: PetSex.male,
+        reproductiveStatus: ReproductiveStatus.intact,
+      );
+      await getIt<PetRepository>().createPet(pet);
+      final current = DateTime.now();
+      final today = DateTime(current.year, current.month, current.day);
+      await getIt<MedicationRepository>().createMedication(
+        Medication(
+          id: 'med-notification',
+          petId: pet.id,
+          name: 'Medicine',
+          periods: [
+            MedicationPeriod(
+              id: 'period-notification',
+              medicationId: 'med-notification',
+              startDate: today,
+              intervalDays: 1,
+              doseTimes: [0],
+            ),
+          ],
+        ),
+      );
+      final coordinator = getIt<NotificationCubit>();
+      final global = getIt<AllPetsCareCubit>();
+      final changes = getIt<CareRecordChanges>();
+      Future<void>? syncing;
+      var signals = 0;
+      void changed() {
+        signals++;
+        syncing = coordinator.refresh();
+      }
+
+      changes.addListener(changed);
+      addTearDown(() async {
+        changes.removeListener(changed);
+        await global.close();
+        await coordinator.close();
+        await fake.dispose();
+      });
+      await coordinator.initialize();
+      await global.activate(AllPetsCareSection.medications);
+      fake.failSync = true;
+      await global.saveDose(
+        global.state.doses.records.single,
+        MedicationDoseStatus.given,
+      );
+      await syncing;
+      expect(signals, 1);
+      expect(changes.last!.globalListIsCurrent, isTrue);
+      expect(global.state.actionError, isNull);
+      expect(global.state.mutationRevision, 1);
+      expect(
+        await getIt<Database>().query(DatabaseTables.medicationDoseLogs),
+        hasLength(1),
+      );
+      expect(coordinator.state.issue!.message, 'Sync failed');
     },
   );
 

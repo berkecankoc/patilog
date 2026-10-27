@@ -4,19 +4,28 @@ import 'package:petlytics/core/router/pet_care_tab.dart';
 /// Successful writes can invalidate the retained global lists without loading
 /// them when the app was opened directly on a pet-specific route.
 class CareRecordChanges extends ChangeNotifier {
-  ({String? petId, PetCareTab tab, String? deletedId, bool petDeleted})? last;
+  ({
+    String? petId,
+    PetCareTab tab,
+    String? deletedId,
+    bool petDeleted,
+    bool globalListIsCurrent,
+  })?
+  last;
 
   void changed(
     String? petId,
     PetCareTab tab, {
     String? deletedId,
     bool petDeleted = false,
+    bool globalListIsCurrent = false,
   }) {
     last = (
       petId: petId,
       tab: tab,
       deletedId: deletedId,
       petDeleted: petDeleted,
+      globalListIsCurrent: globalListIsCurrent,
     );
     notifyListeners();
   }
@@ -28,22 +37,29 @@ class CareRecordChanges extends ChangeNotifier {
 
 class CareRecordChangeScope extends StatefulWidget {
   final Widget child;
-  const CareRecordChangeScope({super.key, required this.child});
+  final CareRecordChanges? changes;
+  const CareRecordChangeScope({super.key, required this.child, this.changes});
   @override
   State<CareRecordChangeScope> createState() => _CareRecordChangeScopeState();
 }
 
 class _CareRecordChangeScopeState extends State<CareRecordChangeScope> {
-  final _changes = CareRecordChanges();
+  CareRecordChanges? _owned;
   @override
   void dispose() {
-    _changes.dispose();
+    _owned?.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) =>
-      _CareRecordChangesProvider(notifier: _changes, child: widget.child);
+  Widget build(BuildContext context) {
+    final inherited = CareRecordChanges.maybeOf(context);
+    if (widget.changes == null && inherited != null) return widget.child;
+    return _CareRecordChangesProvider(
+      notifier: widget.changes ?? (_owned ??= CareRecordChanges()),
+      child: widget.child,
+    );
+  }
 }
 
 class _CareRecordChangesProvider extends InheritedNotifier<CareRecordChanges> {

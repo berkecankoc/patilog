@@ -66,6 +66,25 @@ void main() {
   });
 
   testWidgets(
+    'theme changes preserve the app notification runtime and do not request permissions',
+    (tester) async {
+      await app.pump(tester);
+      await tester.tap(
+        find.widgetWithText(RadioListTile<ThemePreference>, 'Dark'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(RadioListTile<ThemePreference>, 'Light'),
+      );
+      await tester.pumpAndSettle();
+      verify(app.notifications.repository.initialize).called(1);
+      verifyNever(app.notifications.repository.requestNotificationPermission);
+      verifyNever(app.notifications.repository.requestExactAlarmPermission);
+      expect(appRouter.state.uri.path, AppRoutes.settings);
+    },
+  );
+
+  testWidgets(
     'failed change keeps the previous theme and retries the same choice',
     (tester) async {
       app.stored = ThemePreference.light;

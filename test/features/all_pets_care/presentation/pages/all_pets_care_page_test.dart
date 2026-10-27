@@ -209,6 +209,23 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'own successful global mutations do not invalidate the retained source list',
+    (tester) async {
+      await app.pump(tester, location: AppRoutes.allVetVisits);
+      final element = tester.element(find.byType(AllPetsCarePage));
+      CareRecordChanges.maybeOf(element)!.changed(
+        'pet',
+        PetCareTab.vetVisits,
+        deletedId: 'visit-a',
+        globalListIsCurrent: true,
+      );
+      await tester.pumpAndSettle();
+      verify(app.visits.getAllVetVisits).called(1);
+      verify(app.pets.getPets).called(1);
+    },
+  );
+
   testWidgets('pet filters survive switching roots without querying again', (
     tester,
   ) async {

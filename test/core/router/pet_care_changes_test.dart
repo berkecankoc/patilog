@@ -2,8 +2,36 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
+import 'package:petlytics/core/router/care_record_changes.dart';
 
 void main() {
+  testWidgets('nested route scopes reuse the app-owned mutation notifier', (
+    tester,
+  ) async {
+    final changes = CareRecordChanges();
+    addTearDown(changes.dispose);
+    late BuildContext flow;
+    await tester.pumpWidget(
+      CareRecordChangeScope(
+        changes: changes,
+        child: CareRecordChangeScope(
+          child: Builder(
+            builder: (context) {
+              flow = context;
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(CareRecordChanges.maybeOf(flow), same(changes));
+    await tester.pumpWidget(const SizedBox());
+    var calls = 0;
+    changes.addListener(() => calls++);
+    changes.changed('pet', PetCareTab.medications);
+    expect(calls, 1);
+  });
+
   testWidgets(
     'notifications for another pet cannot invalidate the current flow',
     (tester) async {

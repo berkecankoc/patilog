@@ -127,6 +127,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     if (!_started) return;
     final change = _changes?.last;
     if (change == null) return;
+    if (change.globalListIsCurrent) return;
     if (change.petDeleted && change.petId != null) {
       _cubit.removeDeletedPet(change.petId!);
     } else {

@@ -21,6 +21,7 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
   final MedicationRepository _medications;
   final CalculateMedicationDoses _calculate;
   final DateTime Function() _now;
+  final void Function(AllPetsCareAction)? onMutation;
   final _requests = <AllPetsCareSection, int>{};
   final _dirty = <AllPetsCareSection>{};
   int _doseRequest = 0;
@@ -57,6 +58,7 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
     this._medications,
     this._calculate, {
     DateTime Function()? now,
+    this.onMutation,
   }) : _now = now ?? DateTime.now,
        super(AllPetsCareState(currentTime: (now ?? DateTime.now)()));
 
@@ -468,6 +470,7 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
             mutationRevision: state.mutationRevision + 1,
           ),
         );
+        onMutation?.call(action);
         if (action is DeleteGlobalVetVisit) {
           invalidate(AllPetsCareSection.vaccinations);
           invalidate(AllPetsCareSection.medications);
