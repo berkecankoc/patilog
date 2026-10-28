@@ -1,9 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/medication/presentation/utils/dose_time_input_formatter.dart';
+import 'package:petlytics/core/utils/time_input_formatter.dart';
 
 void main() {
-  const formatter = DoseTimeInputFormatter();
+  const formatter = TimeInputFormatter();
   TextEditingValue value(String text, [int? cursor]) => TextEditingValue(
     text: text,
     selection: TextSelection.collapsed(offset: cursor ?? text.length),

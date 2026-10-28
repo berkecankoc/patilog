@@ -23,3 +23,7 @@ final class ImageStorageFailure extends Failure {
 final class PreferencesStorageFailure extends Failure {
   const PreferencesStorageFailure(super.message);
 }
+
+final class NotificationFailure extends Failure {
+  const NotificationFailure(super.message);
+}

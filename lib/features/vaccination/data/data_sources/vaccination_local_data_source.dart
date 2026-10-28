@@ -64,6 +64,8 @@ final class VaccinationLocalDataSourceImpl
         ''',
       );
       return rows.map(VaccinationModel.fromJson).toList();
+    } on FormatException {
+      throw const LocalDataSourceException();
     } on DatabaseException {
       throw const LocalDataSourceException();
     }
@@ -83,6 +85,8 @@ final class VaccinationLocalDataSourceImpl
       );
       if (rows.isEmpty) throw const LocalDataNotFoundException();
       return VaccinationModel.fromJson(rows.single);
+    } on FormatException {
+      throw const LocalDataSourceException();
     } on DatabaseException {
       throw const LocalDataSourceException();
     }
@@ -105,6 +109,8 @@ final class VaccinationLocalDataSourceImpl
           await txn.insert(DatabaseTables.vaccinations, nextDose.toJson());
         }
       });
+    } on FormatException {
+      throw const LocalDataSourceException();
     } on DatabaseException {
       throw const LocalDataSourceException();
     }
@@ -143,6 +149,8 @@ final class VaccinationLocalDataSourceImpl
           await txn.insert(DatabaseTables.vaccinations, nextDose.toJson());
         }
       });
+    } on FormatException {
+      throw const LocalDataSourceException();
     } on DatabaseException {
       throw const LocalDataSourceException();
     }

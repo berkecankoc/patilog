@@ -31,11 +31,13 @@ class MedicationDetailPage extends StatefulWidget {
   final String petId;
   final String medicationId;
   final String? petName;
+  final DateTime? initialDoseDate;
   const MedicationDetailPage({
     super.key,
     required this.petId,
     required this.medicationId,
     this.petName,
+    this.initialDoseDate,
   });
   @override
   State<MedicationDetailPage> createState() => _MedicationDetailPageState();
@@ -43,7 +45,9 @@ class MedicationDetailPage extends StatefulWidget {
 
 class _MedicationDetailPageState extends State<MedicationDetailPage> {
   final _scroll = ScrollController();
+  final _calendarKey = GlobalKey();
   bool _showCalendar = false;
+  bool _openedInitialCalendar = false;
   @override
   void dispose() {
     _scroll.dispose();
@@ -470,6 +474,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
         if (_showCalendar && state.calendar != null) ...[
           const SizedBox(height: 12),
           Card(
+            key: _calendarKey,
             margin: EdgeInsets.zero,
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -535,6 +540,25 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
         }
       },
       builder: (context, state) {
+        if (!_openedInitialCalendar &&
+            widget.initialDoseDate != null &&
+            state is MedicationsLoaded) {
+          _openedInitialCalendar = true;
+          _showCalendar = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (!mounted) return;
+            final cubit = context.read<MedicationCubit>();
+            await cubit.loadCalendar(widget.initialDoseDate!);
+            if (!mounted) return;
+            cubit.selectCalendarDay(widget.initialDoseDate!);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final target = _calendarKey.currentContext;
+              if (mounted && target != null) {
+                Scrollable.ensureVisible(target, alignment: 0.05);
+              }
+            });
+          });
+        }
         final loaded = state is MedicationsLoaded ? state : null;
         final busy = loaded?.pendingAction != null;
         return PopScope<String>(

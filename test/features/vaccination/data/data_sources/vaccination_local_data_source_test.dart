@@ -103,6 +103,32 @@ void main() {
     );
   });
 
+  test('a failed next-dose insert rolls back clinical details', () async {
+    final original = vaccination(status: VaccinationStatus.planned);
+    final next = nextDose();
+    await source.createVaccination(original);
+    await source.createVaccination(next);
+    await expectLater(
+      source.updateVaccination(
+        vaccination(notes: 'Do not keep'),
+        nextDose: next,
+      ),
+      throwsA(isA<LocalDataSourceException>()),
+    );
+    expect(await source.getVaccinations('pet-1'), [original, next]);
+  });
+
+  test('unused per-record metadata cannot prevent clinical reads', () async {
+    final original = vaccination();
+    await source.createVaccination(original);
+    await db.update(DatabaseTables.vaccinations, {
+      'reminder_settings': '{"mode":"custom"}',
+    });
+    expect(await source.getAllVaccinations(), [original]);
+    expect(await source.getVaccinations('pet-1'), [original]);
+    expect(await source.getVaccinationById('pet-1', original.id), original);
+  });
+
   for (final updating in [false, true]) {
     test(
       'linked ${updating ? 'update' : 'create'} rejects a different calendar day',

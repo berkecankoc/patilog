@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' show join;
 
 const _databaseName = 'petlytics.db';
-const _databaseVersion = 4;
+const _databaseVersion = 5;
 
 Future<Database> openAppDatabase() async {
   final dbPath = await getDatabasesPath();
@@ -48,6 +48,13 @@ Future<Database> openAppDatabase() async {
       if (oldVersion < 2) await _createVetVisitsTable(db);
       if (oldVersion < 3) await _createVaccinationsTable(db);
       if (oldVersion < 4) await _createMedicationTables(db);
+      // Older schemas create the current vaccination table above.
+      if (oldVersion >= 3 && oldVersion < 5) {
+        await db.execute('''
+          ALTER TABLE ${DatabaseTables.vaccinations}
+          ADD COLUMN reminder_settings TEXT
+        ''');
+      }
     },
   );
 }
@@ -87,6 +94,7 @@ Future<void> _createVaccinationsTable(Database db) async {
       veterinarian_name TEXT,
       notes TEXT,
       vet_visit_id TEXT REFERENCES ${DatabaseTables.vetVisits}(id) ON DELETE SET NULL,
+      reminder_settings TEXT,
       CHECK (status = 'administered' OR vet_visit_id IS NULL)
     )
   ''');

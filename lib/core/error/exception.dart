@@ -13,3 +13,11 @@ final class LocalDataNotFoundException extends AppException {
 final class ImageStorageException extends AppException {
   const ImageStorageException();
 }
+
+final class PreferencesStorageException extends AppException {
+  const PreferencesStorageException();
+}
+
+final class NotificationPlatformException extends AppException {
+  const NotificationPlatformException();
+}

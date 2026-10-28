@@ -90,4 +90,22 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  test('clinical models ignore unused per-record reminder metadata', () {
+    for (final stored in [null, '{"mode":"off"}', '{"mode":"custom"}']) {
+      expect(
+        VaccinationModel.fromJson({
+          ...json,
+          'reminder_settings': stored,
+        }).toEntity(),
+        vaccination,
+      );
+    }
+    expect(
+      VaccinationModel.fromEntity(
+        vaccination,
+      ).toJson().containsKey('reminder_settings'),
+      isFalse,
+    );
+  });
 }

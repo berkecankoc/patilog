@@ -1,4 +1,16 @@
 import 'package:get_it/get_it.dart';
+import 'package:petlytics/core/router/care_record_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
+import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
+import 'package:petlytics/features/notification/domain/use_cases/load_notification_data.dart';
+import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
+import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
+import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:petlytics/features/notification/data/data_sources/notification_local_data_source.dart';
+import 'package:petlytics/features/notification/data/data_sources/notification_preferences_local_data_source.dart';
+import 'package:petlytics/features/notification/data/repositories/notification_repository_impl.dart';
+import 'package:petlytics/features/notification/domain/repositories/notification_repository.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_visits_cubit.dart';
 import 'package:petlytics/core/database/app_database.dart';
@@ -47,6 +59,10 @@ Future<void> setupDependencies() async {
   final db = await openAppDatabase();
 
   getIt.registerSingleton<Database>(db);
+  getIt.registerLazySingleton<CareRecordChanges>(
+    CareRecordChanges.new,
+    dispose: (changes) => changes.dispose(),
+  );
 
   getIt.registerLazySingleton<SharedPreferencesAsync>(
     () => SharedPreferencesAsync(),
@@ -54,6 +70,22 @@ Future<void> setupDependencies() async {
 
   getIt.registerLazySingleton<SettingsRepository>(
     () => SettingsRepositoryImpl(getIt<SharedPreferencesAsync>()),
+  );
+
+  getIt.registerLazySingleton<NotificationPreferencesLocalDataSource>(
+    () => NotificationPreferencesLocalDataSourceImpl(
+      getIt<SharedPreferencesAsync>(),
+    ),
+  );
+  getIt.registerLazySingleton<NotificationLocalDataSource>(
+    () => NotificationLocalDataSourceImpl(FlutterLocalNotificationsPlugin()),
+    dispose: (source) => source.dispose(),
+  );
+  getIt.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(
+      getIt<NotificationPreferencesLocalDataSource>(),
+      getIt<NotificationLocalDataSource>(),
+    ),
   );
 
   getIt.registerLazySingleton<IdGenerator>(() => UuidGenerator());
@@ -137,6 +169,30 @@ Future<void> setupDependencies() async {
   getIt.registerFactory<SettingsCubit>(
     () => SettingsCubit(getIt<SettingsRepository>()),
   );
+  getIt.registerLazySingleton<LoadNotificationData>(
+    () => LoadNotificationData(
+      getIt<PetRepository>(),
+      getIt<MedicationRepository>(),
+      getIt<VaccinationRepository>(),
+    ),
+  );
+  getIt.registerLazySingleton<PlanNotificationReminders>(
+    () => const PlanNotificationReminders(),
+  );
+  getIt.registerLazySingleton<ResolveNotificationTarget>(
+    () => ResolveNotificationTarget(
+      getIt<PetRepository>(),
+      getIt<MedicationRepository>(),
+      getIt<VaccinationRepository>(),
+    ),
+  );
+  getIt.registerFactory<NotificationCubit>(
+    () => NotificationCubit(
+      getIt<NotificationRepository>(),
+      getIt<LoadNotificationData>(),
+      getIt<PlanNotificationReminders>(),
+    ),
+  );
 
   getIt.registerFactory<PetCubit>(
     () => PetCubit(
@@ -154,6 +210,25 @@ Future<void> setupDependencies() async {
       getIt<VaccinationRepository>(),
       getIt<MedicationRepository>(),
       getIt<CalculateMedicationDoses>(),
+      onMutation: (action) {
+        final (tab, deletedId) = switch (action) {
+          DeleteGlobalVetVisit(:final visitId) => (
+            PetCareTab.vetVisits,
+            visitId,
+          ),
+          DeleteGlobalVaccination(:final vaccinationId) => (
+            PetCareTab.vaccinations,
+            vaccinationId,
+          ),
+          GlobalDoseAction() => (PetCareTab.medications, null),
+        };
+        getIt<CareRecordChanges>().changed(
+          action.petId,
+          tab,
+          deletedId: deletedId,
+          globalListIsCurrent: true,
+        );
+      },
     ),
   );
 

@@ -29,13 +29,19 @@ void main() {
     'fresh installation creates care tables and enables foreign keys',
     () async {
       db = await openAppDatabase();
-      expect(await db!.getVersion(), 4);
+      expect(await db!.getVersion(), 5);
       expect(await db!.query(DatabaseTables.weightEntries), isEmpty);
       expect(await db!.query('vet_visits'), isEmpty);
       expect(await db!.query(DatabaseTables.vaccinations), isEmpty);
       expect(await db!.query(DatabaseTables.medications), isEmpty);
       expect(await db!.query(DatabaseTables.medicationPeriods), isEmpty);
       expect(await db!.query(DatabaseTables.medicationDoseLogs), isEmpty);
+      final reminderColumn = (await db!.rawQuery(
+        'PRAGMA table_info(vaccinations)',
+      )).singleWhere((column) => column['name'] == 'reminder_settings');
+      expect(reminderColumn['type'], 'TEXT');
+      expect(reminderColumn['notnull'], 0);
+      expect(reminderColumn['dflt_value'], isNull);
       expect(
         (await db!.rawQuery('PRAGMA foreign_keys')).single['foreign_keys'],
         1,
@@ -65,7 +71,7 @@ void main() {
     },
   );
 
-  for (final legacyVersion in [1, 2, 3]) {
+  for (final legacyVersion in [1, 2, 3, 4]) {
     test(
       'version $legacyVersion upgrade preserves existing care data across reopen',
       () async {
@@ -133,6 +139,52 @@ void main() {
                   )
                 ''');
               }
+              if (legacyVersion >= 4) {
+                await db.execute('''
+                  CREATE TABLE medications (
+                    id TEXT PRIMARY KEY,
+                    pet_id TEXT NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL CHECK (length(trim(name)) > 0)
+                  )
+                ''');
+                await db.execute('''
+                  CREATE TABLE medication_periods (
+                    id TEXT PRIMARY KEY,
+                    medication_id TEXT NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+                    start_date TEXT NOT NULL,
+                    end_date TEXT,
+                    interval_days INTEGER NOT NULL CHECK (typeof(interval_days) = 'integer' AND interval_days > 0),
+                    dose_times TEXT NOT NULL,
+                    dosage_instructions TEXT,
+                    vet_visit_id TEXT REFERENCES vet_visits(id) ON DELETE SET NULL,
+                    clinic_name TEXT,
+                    veterinarian_name TEXT,
+                    notes TEXT,
+                    UNIQUE (medication_id, start_date),
+                    CHECK (end_date IS NULL OR end_date >= start_date)
+                  )
+                ''');
+                await db.execute('''
+                  CREATE TABLE medication_dose_logs (
+                    period_id TEXT NOT NULL REFERENCES medication_periods(id) ON DELETE CASCADE,
+                    scheduled_date TEXT NOT NULL,
+                    scheduled_minute INTEGER NOT NULL CHECK (
+                      typeof(scheduled_minute) = 'integer' AND scheduled_minute BETWEEN 0 AND 1439
+                    ),
+                    status TEXT NOT NULL CHECK (status IN ('given', 'skipped')),
+                    given_at TEXT,
+                    PRIMARY KEY (period_id, scheduled_date, scheduled_minute),
+                    CHECK ((status = 'given' AND given_at IS NOT NULL) OR
+                           (status = 'skipped' AND given_at IS NULL))
+                  )
+                ''');
+                await db.execute(
+                  'CREATE INDEX medications_pet ON medications(pet_id)',
+                );
+                await db.execute(
+                  'CREATE INDEX medication_periods_visit ON medication_periods(vet_visit_id)',
+                );
+              }
             },
           ),
         );
@@ -182,19 +234,62 @@ void main() {
         if (legacyVersion >= 3) {
           await legacy.insert('vaccinations', vaccination);
         }
+        final medication = {
+          'id': 'medication-1',
+          'pet_id': 'pet-1',
+          'name': 'Medicine',
+        };
+        final period = {
+          'id': 'period-1',
+          'medication_id': 'medication-1',
+          'start_date': '2026-10-15',
+          'end_date': null,
+          'interval_days': 1,
+          'dose_times': '[540]',
+          'dosage_instructions': 'Half a tablet',
+          'vet_visit_id': 'visit-1',
+          'clinic_name': 'Clinic',
+          'veterinarian_name': 'Dr. Smith',
+          'notes': 'Keep the schedule',
+        };
+        final dose = {
+          'period_id': 'period-1',
+          'scheduled_date': '2026-10-15',
+          'scheduled_minute': 540,
+          'status': 'given',
+          'given_at': '2026-10-15T06:00:00.000Z',
+        };
+        if (legacyVersion >= 4) {
+          await legacy.insert(DatabaseTables.medications, medication);
+          await legacy.insert(DatabaseTables.medicationPeriods, period);
+          await legacy.insert(DatabaseTables.medicationDoseLogs, dose);
+        }
         await legacy.close();
 
         db = await openAppDatabase();
-        expect(await db!.getVersion(), 4);
+        expect(await db!.getVersion(), 5);
         expect(await db!.query('pets'), [pet]);
         expect(await db!.query('weight_entries'), [weight]);
         expect(
           await db!.query(DatabaseTables.vaccinations),
-          legacyVersion >= 3 ? [vaccination] : isEmpty,
+          legacyVersion >= 3
+              ? [
+                  {...vaccination, 'reminder_settings': null},
+                ]
+              : isEmpty,
         );
-        expect(await db!.query(DatabaseTables.medications), isEmpty);
-        expect(await db!.query(DatabaseTables.medicationPeriods), isEmpty);
-        expect(await db!.query(DatabaseTables.medicationDoseLogs), isEmpty);
+        expect(
+          await db!.query(DatabaseTables.medications),
+          legacyVersion >= 4 ? [medication] : isEmpty,
+        );
+        expect(
+          await db!.query(DatabaseTables.medicationPeriods),
+          legacyVersion >= 4 ? [period] : isEmpty,
+        );
+        expect(
+          await db!.query(DatabaseTables.medicationDoseLogs),
+          legacyVersion >= 4 ? [dose] : isEmpty,
+        );
         if (legacyVersion == 1) {
           expect(await db!.query('vet_visits'), isEmpty);
           await db!.insert('vet_visits', visit);
@@ -210,7 +305,14 @@ void main() {
         expect(await db!.query('pets'), [pet]);
         expect(await db!.query('weight_entries'), [weight]);
         expect(await db!.query('vet_visits'), [visit]);
-        expect(await db!.query(DatabaseTables.vaccinations), [vaccination]);
+        expect(await db!.query(DatabaseTables.vaccinations), [
+          {...vaccination, 'reminder_settings': null},
+        ]);
+        if (legacyVersion >= 4) {
+          expect(await db!.query(DatabaseTables.medications), [medication]);
+          expect(await db!.query(DatabaseTables.medicationPeriods), [period]);
+          expect(await db!.query(DatabaseTables.medicationDoseLogs), [dose]);
+        }
         expect(
           (await db!.query(DatabaseTables.vaccinations)).single['vet_visit_id'],
           'visit-1',
@@ -219,6 +321,9 @@ void main() {
         expect(await db!.query('vet_visits'), isEmpty);
         expect(await db!.query('weight_entries'), isEmpty);
         expect(await db!.query(DatabaseTables.vaccinations), isEmpty);
+        expect(await db!.query(DatabaseTables.medications), isEmpty);
+        expect(await db!.query(DatabaseTables.medicationPeriods), isEmpty);
+        expect(await db!.query(DatabaseTables.medicationDoseLogs), isEmpty);
       },
     );
   }

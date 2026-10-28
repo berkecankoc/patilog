@@ -6,6 +6,9 @@ import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/core/router/care_record_changes.dart';
+import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
 import 'package:petlytics/core/router/app_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
@@ -17,6 +20,7 @@ import 'package:petlytics/features/medication/domain/entities/medication_dose_lo
 
 import 'multi_step_form_helpers.dart';
 import 'pet_care_test_harness.dart';
+import 'notification_test_harness.dart' show NotificationTestHarness;
 
 class MockSettingsRepository extends Mock implements SettingsRepository {}
 
@@ -24,6 +28,7 @@ class MockImageStorage extends Mock implements ImageStorage {}
 
 class SettingsTestHarness {
   final care = PetCareTestHarness();
+  final notifications = NotificationTestHarness();
   final repository = MockSettingsRepository();
   ThemePreference stored = ThemePreference.system;
   bool failLoad = false;
@@ -51,6 +56,18 @@ class SettingsTestHarness {
 
   void register() {
     care.register();
+    getIt.registerLazySingleton<CareRecordChanges>(
+      CareRecordChanges.new,
+      dispose: (changes) => changes.dispose(),
+    );
+    getIt.registerFactory<NotificationCubit>(notifications.createCubit);
+    getIt.registerLazySingleton<ResolveNotificationTarget>(
+      () => ResolveNotificationTarget(
+        care.pets,
+        care.repository,
+        care.vaccinations,
+      ),
+    );
     getIt.registerSingleton<ImageStorage>(MockImageStorage());
     when(repository.getThemePreference).thenAnswer((_) async {
       if (pendingLoad case final pending?) return pending.future;
@@ -93,6 +110,7 @@ class SettingsTestHarness {
     addTearDown(() async {
       await tester.pumpWidget(const SizedBox.shrink());
       await getIt.reset();
+      await notifications.dispose();
     });
     await cubit.load();
     appRouter.go(location);

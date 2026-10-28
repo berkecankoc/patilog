@@ -88,6 +88,27 @@ class SettingsPage extends StatelessWidget {
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       children: [
                         const AppSectionHeading(
+                          title: 'Notifications',
+                          icon: Icons.notifications_outlined,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Card(
+                          margin: EdgeInsets.zero,
+                          child: ListTile(
+                            title: const Text('Reminders'),
+                            subtitle: const Text(
+                              'Medication doses and planned vaccinations',
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: state.isBusy
+                                ? null
+                                : () => context.push(
+                                    AppRoutes.notificationSettings,
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        const AppSectionHeading(
                           title: 'Appearance',
                           icon: Icons.palette_outlined,
                         ),
