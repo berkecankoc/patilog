@@ -158,6 +158,15 @@ class VaccinationDetailPage extends StatelessWidget {
               vaccination.notes ?? 'Not provided',
               style: theme.textTheme.bodyLarge,
             ),
+            if (vaccination.status == VaccinationStatus.planned) ...[
+              const Divider(height: AppSpacing.xl),
+              const AppSectionHeading(
+                title: 'Reminders',
+                icon: Icons.notifications_outlined,
+              ),
+              VerticalGap.md,
+              const Text('Reminders are managed in Settings → Notifications.'),
+            ],
           ],
         ),
       ),

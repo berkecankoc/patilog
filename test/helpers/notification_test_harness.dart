@@ -19,7 +19,6 @@ import 'package:petlytics/features/notification/presentation/cubit/notification_
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 
 class MockNotificationRepository extends Mock
@@ -114,14 +113,12 @@ class NotificationTestHarness {
     String petId = 'pet1',
     DateTime? date,
     VaccinationStatus status = VaccinationStatus.planned,
-    VaccinationReminderSettings? settings,
   }) => Vaccination(
     id: id,
     petId: petId,
     vaccineName: 'Vaccine $id',
     status: status,
     date: date ?? DateTime(2030, 1, 4),
-    reminderSettings: settings,
   );
 
   NotificationTestHarness() {

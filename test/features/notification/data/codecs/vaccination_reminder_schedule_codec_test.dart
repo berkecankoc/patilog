@@ -1,31 +1,48 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/vaccination/data/codecs/vaccination_reminder_codec.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
+import 'package:petlytics/features/notification/data/codecs/vaccination_reminder_schedule_codec.dart';
+import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 void main() {
-  test('round-trips Custom and Off without conflating them', () {
-    for (final settings in [
-      const VaccinationReminderSettings.off(),
-      VaccinationReminderSettings.custom(VaccinationReminderSchedule()),
-      VaccinationReminderSettings.custom(
-        VaccinationReminderSchedule(daysBefore: [0], minuteOfDay: 0),
-      ),
-      VaccinationReminderSettings.custom(
-        VaccinationReminderSchedule(daysBefore: [10, 1], minuteOfDay: 1439),
-      ),
+  test('round-trips the shared schedule', () {
+    for (final schedule in [
+      VaccinationReminderSchedule(),
+      VaccinationReminderSchedule(daysBefore: [0], minuteOfDay: 0),
+      VaccinationReminderSchedule(daysBefore: [7, 1], minuteOfDay: 1439),
     ]) {
       expect(
-        VaccinationReminderCodec.settingsFromJson(
-          VaccinationReminderCodec.settingsToJson(settings),
+        VaccinationReminderScheduleCodec.fromJson(
+          VaccinationReminderScheduleCodec.toJson(schedule),
         ),
-        settings,
+        schedule,
+      );
+    }
+  });
+
+  test('rejects more than three days and days outside the preset choices', () {
+    for (final days in [
+      [0, 1, 3, 7],
+      [2],
+      [30],
+    ]) {
+      expect(
+        () => VaccinationReminderScheduleCodec.toJson(
+          VaccinationReminderSchedule(daysBefore: days),
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => VaccinationReminderScheduleCodec.fromJson({
+          'days_before': days,
+          'minute_of_day': 540,
+        }),
+        throwsFormatException,
       );
     }
   });
 
   test('normalizes order without changing input or accepting duplicates', () {
     final days = [0, 7, 1];
-    final decoded = VaccinationReminderCodec.scheduleFromJson({
+    final decoded = VaccinationReminderScheduleCodec.fromJson({
       'days_before': days,
       'minute_of_day': 540,
     });
@@ -85,33 +102,11 @@ void main() {
   for (final (index, invalid) in invalidSchedules.indexed) {
     test('rejects malformed schedule $index rather than defaulting', () {
       expect(
-        () => VaccinationReminderCodec.scheduleFromJson(invalid),
-        throwsFormatException,
-      );
-      expect(
-        () => VaccinationReminderCodec.settingsFromJson({
-          'mode': 'custom',
-          'schedule': invalid,
-        }),
+        () => VaccinationReminderScheduleCodec.fromJson(invalid),
         throwsFormatException,
       );
     });
   }
-
-  test('rejects missing or unknown modes', () {
-    for (final invalid in [
-      null,
-      [],
-      {},
-      {'mode': 'default'},
-      {'mode': 'custom'},
-    ]) {
-      expect(
-        () => VaccinationReminderCodec.settingsFromJson(invalid),
-        throwsFormatException,
-      );
-    }
-  });
 
   test('rejects invalid domain schedules before encoding', () {
     for (final schedule in [
@@ -122,13 +117,7 @@ void main() {
       VaccinationReminderSchedule(minuteOfDay: 1440),
     ]) {
       expect(
-        () => VaccinationReminderCodec.scheduleToJson(schedule),
-        throwsFormatException,
-      );
-      expect(
-        () => VaccinationReminderCodec.settingsToJson(
-          VaccinationReminderSettings.custom(schedule),
-        ),
+        () => VaccinationReminderScheduleCodec.toJson(schedule),
         throwsFormatException,
       );
     }

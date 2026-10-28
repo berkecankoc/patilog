@@ -157,6 +157,32 @@ void main() {
   );
 
   test(
+    'a settings draft can save while automatic synchronization is already awaiting a read',
+    () async {
+      h.preferences = NotificationPreferences(medicationRemindersEnabled: true);
+      await cubit.initialize();
+      final gate = Completer<Result<NotificationPermissionStatus>>();
+      var reads = 0;
+      when(h.repository.getPermissionStatus).thenAnswer(
+        (_) => reads++ == 0 ? gate.future : Future.value(Success(h.permission)),
+      );
+      final refreshing = cubit.refresh();
+      await Future<void>.delayed(Duration.zero);
+      expect(cubit.state.isBusy, isTrue);
+      final changed = NotificationPreferences(
+        medicationRemindersEnabled: true,
+        vaccinationRemindersEnabled: true,
+      );
+      final saving = cubit.setPreferences(changed);
+      gate.complete(Success(h.permission));
+      await refreshing;
+      await saving;
+      expect(cubit.state.preferences, changed);
+      verify(() => h.repository.savePreferences(changed)).called(1);
+    },
+  );
+
+  test(
     'a deletion during a denied-permission startup still clears the blocked queue',
     () async {
       h.preferences = NotificationPreferences(medicationRemindersEnabled: true);

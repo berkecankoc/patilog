@@ -10,7 +10,7 @@ import 'package:petlytics/features/medication/presentation/cubit/medication_cubi
 import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
 import 'package:petlytics/features/medication/presentation/utils/medication_actions.dart';
 import 'package:petlytics/features/medication/presentation/utils/medication_display.dart';
-import 'package:petlytics/features/medication/presentation/utils/dose_time_input_formatter.dart';
+import 'package:petlytics/core/utils/time_input_formatter.dart';
 
 typedef DoseRecordState = ({
   MedicationDose? dose,
@@ -488,7 +488,7 @@ class _DoseSheetState extends State<_DoseSheet> {
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) =>
                                 FocusScope.of(context).unfocus(),
-                            inputFormatters: const [DoseTimeInputFormatter()],
+                            inputFormatters: const [TimeInputFormatter()],
                             decoration: const InputDecoration(
                               labelText: 'Given at',
                               hintText: 'HH:mm · 24-hour',

@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:petlytics/features/notification/presentation/widgets/notification_runtime.dart';
+import 'package:petlytics/features/notification/presentation/widgets/notification_navigation.dart';
+import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
 import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/router/app_router.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
@@ -54,7 +56,13 @@ class MyApp extends StatelessWidget {
                   ThemePreference.dark => ThemeMode.dark,
                 },
                 routerConfig: appRouter,
-                builder: (_, child) => AppKeyboard(child: child!),
+                builder: (_, child) => NotificationNavigation(
+                  router: appRouter,
+                  observers: appNavigationObservers,
+                  routeChanges: appNavigationChanges,
+                  resolve: getIt<ResolveNotificationTarget>(),
+                  child: AppKeyboard(child: child!),
+                ),
               ),
             ),
           ),

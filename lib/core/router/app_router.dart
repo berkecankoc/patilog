@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:petlytics/core/router/app_navigation_observer.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
@@ -39,6 +40,8 @@ import 'package:petlytics/features/weight_history/presentation/pages/weight_entr
 import 'package:petlytics/features/weight_history/presentation/pages/weight_history_page.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
 import 'package:petlytics/features/settings/presentation/pages/settings_page.dart';
+import 'package:petlytics/features/notification/presentation/pages/notification_settings_page.dart';
+import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
 
 Widget _petCarePage({
   required String petId,
@@ -128,20 +131,42 @@ Page<String> _careRootPage(GoRouterState state, PetCareTab tab) {
   );
 }
 
+final appNavigationChanges = ValueNotifier(0);
+void _navigationChanged() => appNavigationChanges.value++;
+final _rootObserver = AppNavigationObserver(_navigationChanged);
+final _allPetsObserver = AppNavigationObserver(_navigationChanged);
+final _petCareObserver = AppNavigationObserver(_navigationChanged);
+final appNavigationObservers = [
+  _rootObserver,
+  _allPetsObserver,
+  _petCareObserver,
+];
+
 final appRouter = GoRouter(
+  observers: [_rootObserver],
   initialLocation: AppRoutes.pets,
   routes: [
-    GoRoute(
-      path: AppRoutes.settings,
-      builder: (_, _) => const SettingsPage(),
-      onExit: (context, _) => !context.read<SettingsCubit>().state.isBusy,
-    ),
     ShellRoute(
+      observers: [_allPetsObserver],
       builder: (_, state, child) => BlocProvider<AllPetsCareCubit>(
         create: (_) => getIt<AllPetsCareCubit>(),
         child: CareRecordChangeScope(child: child),
       ),
       routes: [
+        // Settings shares the care shell so reminder pushes cannot duplicate it.
+        GoRoute(
+          path: AppRoutes.settings,
+          builder: (_, _) => const SettingsPage(),
+          onExit: (context, _) => !context.read<SettingsCubit>().state.isBusy,
+          routes: [
+            GoRoute(
+              path: 'notifications',
+              builder: (_, _) => const NotificationSettingsPage(),
+              onExit: (context, _) =>
+                  !context.read<NotificationCubit>().state.isSaving,
+            ),
+          ],
+        ),
         GoRoute(
           path: AppRoutes.allVetVisits,
           pageBuilder: (_, _) => _allPetsPage(AllPetsCareSection.vetVisits),
@@ -169,6 +194,7 @@ final appRouter = GoRouter(
             ),
 
             ShellRoute(
+              observers: [_petCareObserver],
               builder: (context, state, child) {
                 final petId = state.pathParameters['petId']!;
                 return BlocProvider<PetCubit>(
@@ -247,9 +273,16 @@ final appRouter = GoRouter(
                         final petId = state.pathParameters['petId']!;
                         final medicationId =
                             state.pathParameters['medicationId']!;
+                        final extra = state.extra;
+                        final validExtra =
+                            extra is MedicationDetailExtra &&
+                                (extra.petId != petId ||
+                                    extra.medicationId != medicationId)
+                            ? null
+                            : extra;
                         return _petCarePage(
                           petId: petId,
-                          extra: state.extra,
+                          extra: validExtra,
                           builder: (petName) => MultiBlocProvider(
                             key: ValueKey((petId, medicationId)),
                             providers: [
@@ -266,6 +299,10 @@ final appRouter = GoRouter(
                               petId: petId,
                               medicationId: medicationId,
                               petName: petName,
+                              initialDoseDate:
+                                  validExtra is MedicationDetailExtra
+                                  ? validExtra.doseDate
+                                  : null,
                             ),
                           ),
                         );

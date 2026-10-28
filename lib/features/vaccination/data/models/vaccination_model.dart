@@ -1,9 +1,5 @@
-import 'dart:convert';
-
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/vaccination/data/codecs/vaccination_reminder_codec.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 
 final class VaccinationModel extends Equatable {
   final String id;
@@ -15,7 +11,6 @@ final class VaccinationModel extends Equatable {
   final String? veterinarianName;
   final String? notes;
   final String? vetVisitId;
-  final VaccinationReminderSettings? reminderSettings;
 
   const VaccinationModel({
     required this.id,
@@ -27,7 +22,6 @@ final class VaccinationModel extends Equatable {
     this.veterinarianName,
     this.notes,
     this.vetVisitId,
-    this.reminderSettings,
   });
 
   factory VaccinationModel.fromJson(Map<String, dynamic> json) =>
@@ -41,15 +35,6 @@ final class VaccinationModel extends Equatable {
         veterinarianName: json['veterinarian_name'] as String?,
         notes: json['notes'] as String?,
         vetVisitId: json['vet_visit_id'] as String?,
-        reminderSettings: switch (json['reminder_settings']) {
-          null => null,
-          String value => VaccinationReminderCodec.settingsFromJson(
-            jsonDecode(value),
-          ),
-          _ => throw const FormatException(
-            'Invalid vaccination reminder settings',
-          ),
-        },
       );
 
   factory VaccinationModel.fromEntity(Vaccination vaccination) =>
@@ -63,7 +48,6 @@ final class VaccinationModel extends Equatable {
         veterinarianName: vaccination.veterinarianName,
         notes: vaccination.notes,
         vetVisitId: vaccination.vetVisitId,
-        reminderSettings: vaccination.reminderSettings,
       );
 
   Map<String, dynamic> toJson() => {
@@ -80,11 +64,6 @@ final class VaccinationModel extends Equatable {
     'veterinarian_name': _optionalText(veterinarianName),
     'notes': _optionalText(notes),
     'vet_visit_id': vetVisitId,
-    'reminder_settings': reminderSettings == null
-        ? null
-        : jsonEncode(
-            VaccinationReminderCodec.settingsToJson(reminderSettings!),
-          ),
   };
 
   Vaccination toEntity() => Vaccination(
@@ -97,7 +76,6 @@ final class VaccinationModel extends Equatable {
     veterinarianName: veterinarianName,
     notes: notes,
     vetVisitId: vetVisitId,
-    reminderSettings: reminderSettings,
   );
 
   static String? _optionalText(String? value) {
@@ -116,6 +94,5 @@ final class VaccinationModel extends Equatable {
     veterinarianName,
     notes,
     vetVisitId,
-    reminderSettings,
   ];
 }

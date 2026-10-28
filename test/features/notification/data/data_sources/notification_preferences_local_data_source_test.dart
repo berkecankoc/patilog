@@ -7,7 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/error/exception.dart';
 import 'package:petlytics/features/notification/data/data_sources/notification_preferences_local_data_source.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
+import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MockPreferences extends Mock implements SharedPreferencesAsync {}
@@ -21,7 +21,7 @@ void main() {
     medicationRemindersEnabled: true,
     vaccinationRemindersEnabled: true,
     vaccinationSchedule: VaccinationReminderSchedule(
-      daysBefore: [7, 2, 0],
+      daysBefore: [7, 3, 0],
       minuteOfDay: 18 * 60 + 30,
     ),
   );
@@ -165,6 +165,8 @@ void main() {
       VaccinationReminderSchedule(daysBefore: []),
       VaccinationReminderSchedule(daysBefore: [-1]),
       VaccinationReminderSchedule(daysBefore: [1, 1]),
+      VaccinationReminderSchedule(daysBefore: [0, 1, 3, 7]),
+      VaccinationReminderSchedule(daysBefore: [2]),
       VaccinationReminderSchedule(minuteOfDay: 1440),
     ]) {
       await expectLater(

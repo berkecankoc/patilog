@@ -7,7 +7,6 @@ import 'package:petlytics/core/error/exception.dart';
 import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
 import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination_suggestions.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -31,7 +30,6 @@ void main() {
     String? veterinarianName,
     String? notes,
     String? vetVisitId,
-    VaccinationReminderSettings? reminderSettings,
   }) => VaccinationModel(
     id: id,
     petId: petId,
@@ -44,7 +42,6 @@ void main() {
     veterinarianName: veterinarianName,
     notes: notes,
     vetVisitId: vetVisitId,
-    reminderSettings: reminderSettings,
   );
 
   VaccinationModel nextDose() => vaccination(
@@ -106,144 +103,31 @@ void main() {
     );
   });
 
-  test(
-    'persists and clears per-record settings without affecting peers or order',
-    () async {
-      final custom = VaccinationReminderSettings.custom(
-        VaccinationReminderSchedule(daysBefore: [5, 0], minuteOfDay: 600),
-      );
-      final original = vaccination(reminderSettings: custom);
-      final tied = vaccination(
-        id: 'tied',
-        reminderSettings: const VaccinationReminderSettings.off(),
-      );
-      final other = vaccination(
-        id: 'other',
-        petId: 'pet-2',
-        reminderSettings: custom,
-      );
-      for (final record in [original, tied, other]) {
-        await source.createVaccination(record);
-      }
-      await db.close();
-      db = await openAppDatabase();
-      source = VaccinationLocalDataSourceImpl(db);
-      expect(await source.getVaccinations('pet-1'), [tied, original]);
-      expect(await source.getVaccinations('pet-2'), [other]);
-      final off = vaccination(
-        reminderSettings: const VaccinationReminderSettings.off(),
-      );
-      await source.updateVaccination(off);
-      expect(await source.getVaccinations('pet-1'), [tied, off]);
-      await source.updateVaccination(vaccination());
-      expect(await source.getVaccinations('pet-1'), [tied, vaccination()]);
-      expect(await source.getVaccinations('pet-2'), [other]);
-      expect(
-        (await db.query(
-          DatabaseTables.vaccinations,
-          where: 'id = ?',
-          whereArgs: ['vaccination-1'],
-        )).single['reminder_settings'],
-        isNull,
-      );
-    },
-  );
-
-  test('invalid reminder schedules reject the complete atomic write', () async {
-    for (final schedule in [
-      VaccinationReminderSchedule(daysBefore: []),
-      VaccinationReminderSchedule(daysBefore: [-1]),
-      VaccinationReminderSchedule(daysBefore: [1, 1]),
-      VaccinationReminderSchedule(minuteOfDay: -1),
-      VaccinationReminderSchedule(minuteOfDay: 1440),
-    ]) {
-      await expectLater(
-        source.createVaccination(
-          vaccination(
-            reminderSettings: VaccinationReminderSettings.custom(schedule),
-          ),
-        ),
-        throwsA(isA<LocalDataSourceException>()),
-      );
-    }
-    expect(await source.getVaccinations('pet-1'), isEmpty);
-    final original = vaccination(
-      status: VaccinationStatus.planned,
-      reminderSettings: const VaccinationReminderSettings.off(),
-    );
+  test('a failed next-dose insert rolls back clinical details', () async {
+    final original = vaccination(status: VaccinationStatus.planned);
+    final next = nextDose();
     await source.createVaccination(original);
-    final invalidNext = vaccination(
-      id: 'next',
-      status: VaccinationStatus.planned,
-      date: day(2),
-      reminderSettings: VaccinationReminderSettings.custom(
-        VaccinationReminderSchedule(daysBefore: [1, 1]),
-      ),
-    );
-    await expectLater(
-      source.updateVaccination(vaccination(), nextDose: invalidNext),
-      throwsA(isA<LocalDataSourceException>()),
-    );
-    expect(await source.getVaccinations('pet-1'), [original]);
+    await source.createVaccination(next);
     await expectLater(
       source.updateVaccination(
-        vaccination(
-          notes: 'Do not keep',
-          reminderSettings: invalidNext.reminderSettings,
-        ),
+        vaccination(notes: 'Do not keep'),
+        nextDose: next,
       ),
       throwsA(isA<LocalDataSourceException>()),
     );
-    expect(await source.getVaccinations('pet-1'), [original]);
-    await expectLater(
-      source.createVaccination(vaccination(id: 'new'), nextDose: invalidNext),
-      throwsA(isA<LocalDataSourceException>()),
-    );
-    expect(await source.getVaccinations('pet-1'), [original]);
+    expect(await source.getVaccinations('pet-1'), [original, next]);
   });
 
-  test(
-    'a failed next-dose insert rolls back record details and reminder settings',
-    () async {
-      final original = vaccination(
-        status: VaccinationStatus.planned,
-        reminderSettings: const VaccinationReminderSettings.off(),
-      );
-      final next = nextDose();
-      await source.createVaccination(original);
-      await source.createVaccination(next);
-      await expectLater(
-        source.updateVaccination(
-          vaccination(
-            notes: 'Do not keep',
-            reminderSettings: VaccinationReminderSettings.custom(
-              VaccinationReminderSchedule(),
-            ),
-          ),
-          nextDose: next,
-        ),
-        throwsA(isA<LocalDataSourceException>()),
-      );
-      expect(await source.getVaccinations('pet-1'), [original, next]);
-    },
-  );
-
-  test(
-    'invalid stored settings produce a source error for scoped and global reads',
-    () async {
-      await source.createVaccination(vaccination());
-      await db.update(DatabaseTables.vaccinations, {
-        'reminder_settings': '{"mode":"custom"}',
-      });
-      for (final read in <Future<Object> Function()>[
-        () => source.getAllVaccinations(),
-        () => source.getVaccinations('pet-1'),
-        () => source.getVaccinationById('pet-1', 'vaccination-1'),
-      ]) {
-        await expectLater(read(), throwsA(isA<LocalDataSourceException>()));
-      }
-    },
-  );
+  test('unused per-record metadata cannot prevent clinical reads', () async {
+    final original = vaccination();
+    await source.createVaccination(original);
+    await db.update(DatabaseTables.vaccinations, {
+      'reminder_settings': '{"mode":"custom"}',
+    });
+    expect(await source.getAllVaccinations(), [original]);
+    expect(await source.getVaccinations('pet-1'), [original]);
+    expect(await source.getVaccinationById('pet-1', original.id), original);
+  });
 
   for (final updating in [false, true]) {
     test(

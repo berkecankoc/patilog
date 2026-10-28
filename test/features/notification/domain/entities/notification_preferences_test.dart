@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
+import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 void main() {
   test(

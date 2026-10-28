@@ -82,7 +82,10 @@ final class NotificationLocalDataSourceImpl
         if (target != null && !_opened.isClosed) _opened.add(target);
       },
     );
-    if (initialized != true) throw const NotificationPlatformException();
+    // iOS returns false when permission requests are disabled, even after setup.
+    if (initialized == null || (_android && !initialized)) {
+      throw const NotificationPlatformException();
+    }
     final launch = await plugin.getNotificationAppLaunchDetails();
     _launchTarget = launch?.didNotificationLaunchApp == true
         ? NotificationTargetCodec.decode(launch?.notificationResponse?.payload)

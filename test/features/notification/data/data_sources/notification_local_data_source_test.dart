@@ -130,6 +130,14 @@ void main() {
 
   test('initializes once with all iOS permission prompts disabled', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    when(
+      () => plugin.initialize(
+        settings: any(named: 'settings'),
+        onDidReceiveNotificationResponse: any(
+          named: 'onDidReceiveNotificationResponse',
+        ),
+      ),
+    ).thenAnswer((_) async => false);
     expect(await source.initialize(), isNull);
     expect(await source.initialize(), isNull);
     final settings =
@@ -207,6 +215,75 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(received, [dose.target]);
       await subscription.cancel();
+    },
+  );
+
+  for (final (platform, result) in [
+    (TargetPlatform.android, false),
+    (TargetPlatform.android, null),
+    (TargetPlatform.iOS, null),
+  ]) {
+    test(
+      'rejects $platform initialization result $result without reading launch data',
+      () async {
+        debugDefaultTargetPlatformOverride = platform;
+        when(
+          () => plugin.initialize(
+            settings: any(named: 'settings'),
+            onDidReceiveNotificationResponse: any(
+              named: 'onDidReceiveNotificationResponse',
+            ),
+          ),
+        ).thenAnswer((_) async => result);
+        await expectLater(
+          source.initialize(),
+          throwsA(isA<NotificationPlatformException>()),
+        );
+        verifyNever(plugin.getNotificationAppLaunchDetails);
+      },
+    );
+  }
+
+  test(
+    'real iOS Dart plugin accepts a false method-channel result without prompting',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      IOSFlutterLocalNotificationsPlugin.registerWith();
+      const channel = MethodChannel(
+        'dexterous.com/flutter/local_notifications',
+      );
+      final calls = <MethodCall>[];
+      final native = NotificationLocalDataSourceImpl(
+        FlutterLocalNotificationsPlugin(),
+      );
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return switch (call.method) {
+              'initialize' => false,
+              'getNotificationAppLaunchDetails' => {
+                'notificationLaunchedApp': false,
+              },
+              _ => throw PlatformException(code: 'unexpected_call'),
+            };
+          });
+      try {
+        expect(await native.initialize(), isNull);
+        expect(await native.initialize(), isNull);
+        expect(calls.map((call) => call.method), [
+          'initialize',
+          'getNotificationAppLaunchDetails',
+        ]);
+        final arguments = calls.first.arguments as Map;
+        expect(arguments['requestAlertPermission'], isFalse);
+        expect(arguments['requestSoundPermission'], isFalse);
+        expect(arguments['requestBadgePermission'], isFalse);
+      } finally {
+        await native.dispose();
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+        AndroidFlutterLocalNotificationsPlugin.registerWith();
+      }
     },
   );
 

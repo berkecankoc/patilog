@@ -153,7 +153,6 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
         notes: _notes.text,
         vetVisitId: _status == VaccinationStatus.administered ? _visitId : null,
         nextDoseDate: _canPlanNextDose ? _nextDoseDate : null,
-        reminderSettings: widget.vaccination?.reminderSettings,
       ),
     );
   }
@@ -513,7 +512,9 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
                   clearable: true,
                   errorText: field.errorText,
                   onChanged: (date) {
-                    setState(() => _nextDoseDate = date);
+                    setState(() {
+                      _nextDoseDate = date;
+                    });
                     field.didChange(date);
                   },
                 ),
@@ -522,6 +523,14 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
           ),
         ),
       ],
+      VerticalGap.md,
+      Text(
+        'Reminders are managed in Settings → Notifications.',
+        key: const Key('vaccination-reminder-guidance'),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
     ],
   );
 

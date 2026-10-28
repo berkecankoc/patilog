@@ -7,7 +7,7 @@ import 'package:petlytics/features/notification/domain/entities/notification_pre
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
 import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
+import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 import '../../../../helpers/notification_test_harness.dart';
 
 void main() {
@@ -69,6 +69,48 @@ void main() {
       expect(plan.hasMore, isFalse);
     },
   );
+
+  test('new nearer reminders displace the farthest items in a full queue', () {
+    h.medicines.add(h.medication(times: [780]));
+    final preferences = NotificationPreferences(
+      medicationRemindersEnabled: true,
+      vaccinationRemindersEnabled: true,
+      vaccinationSchedule: VaccinationReminderSchedule(
+        daysBefore: [0],
+        minuteOfDay: 720,
+      ),
+    );
+    final before = planner(h.data, preferences, h.clock);
+    h.medicines.add(
+      h.medication(
+        id: 'last-created',
+        petId: 'pet2',
+        times: [660],
+        end: h.clock,
+      ),
+    );
+    h.vaccines.add(h.vaccination(date: h.clock));
+    final after = planner(h.data, preferences, h.clock);
+    expect(after.reminders, hasLength(64));
+    expect(
+      (after.reminders.first.target as MedicationDoseNotificationTarget)
+          .medicationId,
+      'last-created',
+    );
+    expect(after.reminders[1].target, isA<VaccinationNotificationTarget>());
+    expect(after.reminders.skip(2), orderedEquals(before.reminders.take(62)));
+    expect(after.reminders, isNot(contains(before.reminders.last)));
+  });
+
+  test('equal-time reminders keep a stable order regardless of read order', () {
+    h.medicines.addAll([
+      h.medication(id: 'a', times: [660], end: h.clock),
+      h.medication(id: 'b', petId: 'pet2', times: [660], end: h.clock),
+    ]);
+    final before = planner(h.data, both, h.clock);
+    h.medicines.setAll(0, h.medicines.reversed.toList());
+    expect(planner(h.data, both, h.clock), before);
+  });
 
   test(
     'later periods supersede the old plan permanently, with inclusive ends',
@@ -138,77 +180,72 @@ void main() {
     },
   );
 
-  test('supports inherited, Custom and Off vaccination schedules', () {
+  test('applies the shared schedule to every planned vaccination', () {
     h.vaccines.addAll([
       h.vaccination(),
-      h.vaccination(
-        id: 'custom',
-        settings: VaccinationReminderSettings.custom(
-          VaccinationReminderSchedule(daysBefore: [2, 0], minuteOfDay: 720),
-        ),
-      ),
-      h.vaccination(
-        id: 'off',
-        settings: const VaccinationReminderSettings.off(),
-      ),
+      h.vaccination(id: 'other', petId: 'pet2'),
       h.vaccination(id: 'given', status: VaccinationStatus.administered),
       h.vaccination(id: 'overdue', date: DateTime(2029, 12, 31)),
     ]);
-    final plan = planner(h.data, both, h.clock);
+    final plan = planner(
+      h.data,
+      NotificationPreferences(
+        vaccinationRemindersEnabled: true,
+        vaccinationSchedule: VaccinationReminderSchedule(
+          daysBefore: [3, 0],
+          minuteOfDay: 720,
+        ),
+      ),
+      h.clock,
+    );
     expect(plan.reminders, hasLength(4));
     expect(
       plan.reminders
           .map((r) => (r.target as VaccinationNotificationTarget).vaccinationId)
           .toSet(),
-      {'vax1', 'custom'},
+      {'vax1', 'other'},
     );
-    expect(plan.reminders.first.scheduledDate, DateTime(2030, 1, 2));
+    expect(plan.reminders.first.scheduledDate, DateTime(2030, 1, 1));
     expect(plan.reminders.first.scheduledMinute, 720);
     expect(plan.reminders.last.body, 'Vaccination planned for 2030-01-04.');
   });
 
-  test(
-    'global Off overrides per-record Custom and preserves medication independence',
-    () {
-      h.medicines.add(h.medication());
-      h.vaccines.add(
-        h.vaccination(
-          settings: VaccinationReminderSettings.custom(
-            VaccinationReminderSchedule(),
-          ),
-        ),
-      );
-      expect(
-        planner(h.data, NotificationPreferences(), h.clock).reminders,
-        isEmpty,
-      );
-      final medOnly = planner(
-        h.data,
-        NotificationPreferences(medicationRemindersEnabled: true),
-        h.clock,
-      );
-      expect(
-        medOnly.reminders.every(
-          (r) => r.target is MedicationDoseNotificationTarget,
-        ),
-        isTrue,
-      );
-    },
-  );
+  test('category switches are independent and both default Off', () {
+    h.medicines.add(h.medication());
+    h.vaccines.add(h.vaccination());
+    expect(
+      planner(h.data, NotificationPreferences(), h.clock).reminders,
+      isEmpty,
+    );
+    final medOnly = planner(
+      h.data,
+      NotificationPreferences(medicationRemindersEnabled: true),
+      h.clock,
+    );
+    expect(
+      medOnly.reminders.every(
+        (r) => r.target is MedicationDoseNotificationTarget,
+      ),
+      isTrue,
+    );
+  });
 
   test(
     'uses calendar components across year boundaries without shifting UTC dates',
     () {
       h.clock = DateTime(2029, 12, 28);
-      h.vaccines.add(
-        h.vaccination(
-          date: DateTime.utc(2030, 1, 1, 23),
-          settings: VaccinationReminderSettings.custom(
-            VaccinationReminderSchedule(daysBefore: [3], minuteOfDay: 540),
+      h.vaccines.add(h.vaccination(date: DateTime.utc(2030, 1, 1, 23)));
+      final plan = planner(
+        h.data,
+        NotificationPreferences(
+          vaccinationRemindersEnabled: true,
+          vaccinationSchedule: VaccinationReminderSchedule(
+            daysBefore: [3],
+            minuteOfDay: 540,
           ),
         ),
+        h.clock,
       );
-      final plan = planner(h.data, both, h.clock);
       expect(plan.reminders.single.scheduledDate, DateTime(2029, 12, 29));
       expect(plan.reminders.single.scheduledMinute, 540);
     },

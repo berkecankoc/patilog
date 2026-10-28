@@ -100,9 +100,7 @@ final class PlanNotificationReminders {
             vaccination.status != VaccinationStatus.planned) {
           continue;
         }
-        final settings = vaccination.reminderSettings;
-        if (settings != null && !settings.isEnabled) continue;
-        final schedule = settings?.schedule ?? preferences.vaccinationSchedule;
+        final schedule = preferences.vaccinationSchedule;
         for (final offset in schedule.daysBefore) {
           final day = calendarDayNumber(vaccination.date) - offset;
           if (day < calendarDayNumber(now) || day > lastDay) continue;

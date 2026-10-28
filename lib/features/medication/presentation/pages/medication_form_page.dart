@@ -16,7 +16,7 @@ import 'package:petlytics/features/medication/domain/utils/medication_calendar.d
 import 'package:petlytics/features/medication/presentation/cubit/medication_form_cubit.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_form_state.dart';
 import 'package:petlytics/features/medication/presentation/utils/medication_display.dart';
-import 'package:petlytics/features/medication/presentation/utils/dose_time_input_formatter.dart';
+import 'package:petlytics/core/utils/time_input_formatter.dart';
 
 class MedicationFormPage extends StatefulWidget {
   final String petId;
@@ -405,7 +405,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
-                inputFormatters: const [DoseTimeInputFormatter()],
+                inputFormatters: const [TimeInputFormatter()],
                 decoration: const InputDecoration(
                   labelText: 'Dose time',
                   hintText: 'HH:mm',

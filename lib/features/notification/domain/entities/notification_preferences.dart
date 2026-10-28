@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
+import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 final class NotificationPreferences extends Equatable {
   final bool medicationRemindersEnabled;

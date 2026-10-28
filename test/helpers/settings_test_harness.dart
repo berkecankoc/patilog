@@ -8,6 +8,7 @@ import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
 import 'package:petlytics/core/router/app_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
@@ -60,6 +61,13 @@ class SettingsTestHarness {
       dispose: (changes) => changes.dispose(),
     );
     getIt.registerFactory<NotificationCubit>(notifications.createCubit);
+    getIt.registerLazySingleton<ResolveNotificationTarget>(
+      () => ResolveNotificationTarget(
+        care.pets,
+        care.repository,
+        care.vaccinations,
+      ),
+    );
     getIt.registerSingleton<ImageStorage>(MockImageStorage());
     when(repository.getThemePreference).thenAnswer((_) async {
       if (pendingLoad case final pending?) return pending.future;

@@ -204,7 +204,7 @@ final class NotificationCubit extends Cubit<NotificationState> {
 
   Future<void> setPreferences(NotificationPreferences value) {
     final previous = state.preferences;
-    if (_stopped || state.isBusy || previous == null || previous == value) {
+    if (_stopped || state.isSaving || previous == null || previous == value) {
       return Future.value();
     }
     emit(state.copyWith(isBusy: true, isSaving: true, clearSaveError: true));
@@ -311,6 +311,10 @@ final class NotificationCubit extends Cubit<NotificationState> {
 
   void acknowledgeTarget() {
     if (!_stopped) emit(state.copyWith(clearPendingTarget: true));
+  }
+
+  void requestOpen(NotificationTarget target) {
+    if (!_stopped) emit(state.copyWith(pendingTarget: target));
   }
 
   Future<void> refreshForClockChange() {

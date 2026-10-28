@@ -422,6 +422,52 @@ void main() {
     expect(pending.map((item) => item.id).toSet(), hasLength(64));
   });
 
+  test(
+    'replacing a full queue cancels the displaced item before adding and keeps other IDs',
+    () async {
+      final original = List.generate(64, (i) => vaccine(id: '$i'));
+      await repository.synchronizeReminders(original);
+      final retainedIds = {for (final item in pending) item.payload: item.id};
+      final displacedId = pending.last.id;
+      final replacement = [
+        vaccine(id: 'nearer', minute: 540),
+        ...original.take(63),
+      ];
+      when(
+        () => notifications.scheduleReminder(
+          any(),
+          any(),
+          exact: any(named: 'exact'),
+        ),
+      ).thenAnswer((call) async {
+        final id = call.positionalArguments[0] as int;
+        final reminder = call.positionalArguments[1] as NotificationReminder;
+        pending.removeWhere((item) => item.id == id);
+        pending.add(request(id, reminder));
+        expect(pending.length, lessThanOrEqualTo(64));
+      });
+      expect(
+        await repository.synchronizeReminders(replacement),
+        const Success<void>(null),
+      );
+      verify(() => notifications.cancelReminder(displacedId)).called(1);
+      expect(pending, hasLength(64));
+      expect(
+        pending.map((item) => item.payload),
+        unorderedEquals(
+          replacement.map(
+            (item) => NotificationTargetCodec.encode(item.target),
+          ),
+        ),
+      );
+      for (final item in pending.where(
+        (item) => retainedIds.containsKey(item.payload),
+      )) {
+        expect(item.id, retainedIds[item.payload]);
+      }
+    },
+  );
+
   for (final type in ['pet', 'medication', 'vaccination']) {
     test(
       'cancels $type by known owner/record IDs without preferences or clinical reads',

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
+import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 void main() {
   test('defaults are 3/1/0 calendar days before at 09:00', () {
@@ -30,21 +30,6 @@ void main() {
     expect(
       VaccinationReminderSchedule(minuteOfDay: 600),
       isNot(VaccinationReminderSchedule()),
-    );
-  });
-
-  test('Off and Custom are distinct settings', () {
-    const off = VaccinationReminderSettings.off();
-    final custom = VaccinationReminderSettings.custom(
-      VaccinationReminderSchedule(),
-    );
-    expect(off.isEnabled, isFalse);
-    expect(off.schedule, isNull);
-    expect(custom.isEnabled, isTrue);
-    expect(custom, isNot(off));
-    expect(
-      custom,
-      VaccinationReminderSettings.custom(VaccinationReminderSchedule()),
     );
   });
 }

@@ -1,8 +1,11 @@
 import 'package:equatable/equatable.dart';
 
 final class VaccinationReminderSchedule extends Equatable {
+  static const availableDaysBefore = [0, 1, 3, 7];
+  static const maxReminderDays = 3;
+
   /// Calendar days before vaccination, descending; zero means the same day.
-  /// Writes require nonempty, unique, nonnegative offsets.
+  /// Writes require 1–3 unique offsets from [availableDaysBefore].
   final List<int> daysBefore;
 
   /// Local minutes since midnight, in 0–1439.
@@ -17,19 +20,4 @@ final class VaccinationReminderSchedule extends Equatable {
 
   @override
   List<Object?> get props => [daysBefore, minuteOfDay];
-}
-
-final class VaccinationReminderSettings extends Equatable {
-  final VaccinationReminderSchedule? schedule;
-
-  const VaccinationReminderSettings.custom(
-    VaccinationReminderSchedule this.schedule,
-  );
-
-  const VaccinationReminderSettings.off() : schedule = null;
-
-  bool get isEnabled => schedule != null;
-
-  @override
-  List<Object?> get props => [schedule];
 }

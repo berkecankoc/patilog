@@ -3,6 +3,7 @@ import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
 import 'package:petlytics/features/notification/domain/use_cases/load_notification_data.dart';
+import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
 import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -177,6 +178,13 @@ Future<void> setupDependencies() async {
   );
   getIt.registerLazySingleton<PlanNotificationReminders>(
     () => const PlanNotificationReminders(),
+  );
+  getIt.registerLazySingleton<ResolveNotificationTarget>(
+    () => ResolveNotificationTarget(
+      getIt<PetRepository>(),
+      getIt<MedicationRepository>(),
+      getIt<VaccinationRepository>(),
+    ),
   );
   getIt.registerFactory<NotificationCubit>(
     () => NotificationCubit(

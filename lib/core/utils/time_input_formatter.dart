@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
-class DoseTimeInputFormatter extends TextInputFormatter {
-  const DoseTimeInputFormatter();
+class TimeInputFormatter extends TextInputFormatter {
+  const TimeInputFormatter();
 
   @override
   TextEditingValue formatEditUpdate(

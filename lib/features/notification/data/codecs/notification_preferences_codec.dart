@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/vaccination/data/codecs/vaccination_reminder_codec.dart';
+import 'package:petlytics/features/notification/data/codecs/vaccination_reminder_schedule_codec.dart';
 
 abstract final class NotificationPreferencesCodec {
   static String encode(NotificationPreferences preferences) => jsonEncode({
     'medication_reminders_enabled': preferences.medicationRemindersEnabled,
     'vaccination_reminders_enabled': preferences.vaccinationRemindersEnabled,
-    'vaccination_schedule': VaccinationReminderCodec.scheduleToJson(
+    'vaccination_schedule': VaccinationReminderScheduleCodec.toJson(
       preferences.vaccinationSchedule,
     ),
   });
@@ -21,7 +21,7 @@ abstract final class NotificationPreferencesCodec {
       return NotificationPreferences(
         medicationRemindersEnabled: medications,
         vaccinationRemindersEnabled: vaccinations,
-        vaccinationSchedule: VaccinationReminderCodec.scheduleFromJson(
+        vaccinationSchedule: VaccinationReminderScheduleCodec.fromJson(
           schedule,
         ),
       );

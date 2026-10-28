@@ -23,6 +23,17 @@ final class MedicationFormExtra extends PetCareRouteExtra {
   });
 }
 
+final class MedicationDetailExtra extends PetCareRouteExtra {
+  final String medicationId;
+  final DateTime doseDate;
+  const MedicationDetailExtra({
+    required super.petId,
+    super.petName,
+    required this.medicationId,
+    required this.doseDate,
+  });
+}
+
 final class WeightEntryFormExtra extends PetCareRouteExtra {
   final WeightEntry? entry;
 

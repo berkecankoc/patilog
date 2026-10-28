@@ -29,7 +29,6 @@ import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_reminder_settings.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination_suggestions.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
@@ -990,36 +989,39 @@ void main() {
     },
   );
 
-  for (final settings in [
-    const VaccinationReminderSettings.off(),
-    VaccinationReminderSettings.custom(VaccinationReminderSchedule()),
-  ]) {
-    testWidgets(
-      'editing a record preserves its existing reminder setting $settings',
-      (tester) async {
-        final existing = Vaccination(
-          id: administered.id,
-          petId: pet.id,
-          vaccineName: administered.vaccineName,
-          status: administered.status,
-          date: administered.date,
-          reminderSettings: settings,
-        );
-        records = [existing];
-        await pumpRouter(tester);
-        await open(tester, existing);
-        await tester.tap(find.byTooltip('Edit vaccination'));
-        await tester.pumpAndSettle();
-        await fill(tester, name, 'Corrected vaccine');
-        await submit(tester);
-        expect(records.single.vaccineName, 'Corrected vaccine');
-        expect(records.single.reminderSettings, settings);
-        verify(
-          () => repository.updateVaccination(any(), nextDose: null),
-        ).called(1);
-      },
-    );
-  }
+  testWidgets(
+    'planned records show settings guidance without per-record controls',
+    (tester) async {
+      records = [planned];
+      await pumpRouter(tester);
+      await open(tester, planned);
+      await tester.ensureVisible(
+        find.text('Reminders are managed in Settings → Notifications.'),
+      );
+      expect(
+        find.text('Reminders are managed in Settings → Notifications.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byTooltip('Edit vaccination'));
+      await tester.pumpAndSettle();
+      await fill(tester, notes, 'Care notes');
+      await tester.ensureVisible(
+        find.byKey(const Key('vaccination-reminder-guidance')),
+      );
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key('vaccination-reminder-guidance')))
+            .dy,
+        greaterThan(tester.getBottomLeft(notes).dy),
+      );
+      expect(find.text('Custom'), findsNothing);
+      expect(find.text('Reminder preference'), findsNothing);
+      expect(find.byKey(const Key('reminder-time')), findsNothing);
+      await fill(tester, name, 'Corrected vaccine');
+      await submit(tester);
+      expect(records.single.vaccineName, 'Corrected vaccine');
+    },
+  );
 
   testWidgets('administration and independent next plan are created together', (
     tester,
@@ -1031,6 +1033,18 @@ void main() {
     await fill(tester, notes, 'Keep on the administration only');
     final nextDate = DateTime(DateTime.now().year + 1, 1, 2);
     await pickDate(tester, 'Next dose date (optional)', nextDate);
+    final guidance = find.byKey(const Key('vaccination-reminder-guidance'));
+    await tester.ensureVisible(guidance);
+    expect(
+      find.text('Reminders are managed in Settings → Notifications.'),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(guidance).dy,
+      greaterThan(
+        tester.getBottomLeft(find.byKey(const Key('vaccination-next-date'))).dy,
+      ),
+    );
     await submit(tester);
     final created = records
         .where((v) => v.vaccineName == 'New vaccine')
