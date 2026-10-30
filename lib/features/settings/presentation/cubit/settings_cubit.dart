@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
 import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
@@ -17,31 +20,44 @@ final class SettingsCubit extends Cubit<SettingsState> {
         clearLoadError: true,
         clearSaveError: true,
         clearFailedThemePreference: true,
+        clearFailedLanguagePreference: true,
       ),
     );
-    final result = await repository.getThemePreference();
+    final (theme, language) = await (
+      repository.getThemePreference(),
+      repository.getLanguagePreference(),
+    ).wait;
     if (isClosed) return;
-
-    switch (result) {
-      case Success<ThemePreference>():
-        emit(SettingsState(themePreference: result.data, hasLoaded: true));
-      case Error<ThemePreference>():
-        emit(
-          state.copyWith(isLoading: false, loadError: result.failure.message),
-        );
-    }
+    emit(
+      state.copyWith(
+        isLoading: false,
+        themePreference: theme is Success<ThemePreference> ? theme.data : null,
+        languagePreference: language is Success<LanguagePreference>
+            ? language.data
+            : null,
+        hasLoadedTheme:
+            state.hasLoadedTheme || theme is Success<ThemePreference>,
+        hasLoadedLanguage:
+            state.hasLoadedLanguage || language is Success<LanguagePreference>,
+        loadError: theme is Error<ThemePreference>
+            ? theme.failure.message
+            : language is Error<LanguagePreference>
+            ? language.failure.message
+            : null,
+      ),
+    );
   }
 
   Future<void> setThemePreference(ThemePreference preference) async {
     if (isClosed || state.isBusy) return;
     // After a failed read, System is only a fallback, not a confirmed choice.
-    if (state.hasLoaded && preference == state.themePreference) return;
+    if (state.hasLoadedTheme && preference == state.themePreference) return;
     emit(
       state.copyWith(
         isSaving: true,
-        clearLoadError: true,
         clearSaveError: true,
         clearFailedThemePreference: true,
+        clearFailedLanguagePreference: true,
       ),
     );
     final result = await repository.setThemePreference(preference);
@@ -49,7 +65,14 @@ final class SettingsCubit extends Cubit<SettingsState> {
 
     switch (result) {
       case Success<void>():
-        emit(SettingsState(themePreference: preference, hasLoaded: true));
+        emit(
+          state.copyWith(
+            themePreference: preference,
+            hasLoadedTheme: true,
+            isSaving: false,
+            clearLoadError: state.hasLoadedLanguage,
+          ),
+        );
       case Error<void>():
         emit(
           state.copyWith(
@@ -63,6 +86,47 @@ final class SettingsCubit extends Cubit<SettingsState> {
 
   Future<void> retrySave() async {
     final preference = state.failedThemePreference;
-    if (preference != null) await setThemePreference(preference);
+    final language = state.failedLanguagePreference;
+    if (preference != null) {
+      await setThemePreference(preference);
+    } else if (language != null) {
+      await setLanguagePreference(language);
+    }
+  }
+
+  Future<void> setLanguagePreference(LanguagePreference preference) async {
+    if (isClosed || state.isBusy) return;
+    if (state.hasLoadedLanguage && preference == state.languagePreference) {
+      return;
+    }
+    emit(
+      state.copyWith(
+        isSaving: true,
+        clearSaveError: true,
+        clearFailedThemePreference: true,
+        clearFailedLanguagePreference: true,
+      ),
+    );
+    final result = await repository.setLanguagePreference(preference);
+    if (isClosed) return;
+    switch (result) {
+      case Success<void>():
+        emit(
+          state.copyWith(
+            languagePreference: preference,
+            hasLoadedLanguage: true,
+            isSaving: false,
+            clearLoadError: state.hasLoadedTheme,
+          ),
+        );
+      case Error<void>():
+        emit(
+          state.copyWith(
+            isSaving: false,
+            saveError: result.failure.message,
+            failedLanguagePreference: preference,
+          ),
+        );
+    }
   }
 }
