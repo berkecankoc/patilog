@@ -85,7 +85,7 @@ void main() {
       await tester.tap(find.text('Devam et'));
       await tester.pumpAndSettle();
       expect(find.text('Ad girin'), findsOneWidget);
-      expect(find.text('Adım 1/2 · Evcil hayvan'), findsOneWidget);
+      expect(find.text('Adım 1/2 · Dostunuz'), findsOneWidget);
       await app.cubit.setLanguagePreference(LanguagePreference.english);
       await tester.pumpAndSettle();
       expect(find.text('Name is required'), findsOneWidget);
@@ -117,7 +117,7 @@ void main() {
   for (final (failure, message) in <(Failure, String)>[
     (
       const LocalDatabaseFailure('Private database diagnostic'),
-      'Hayvan eklenemedi',
+      'Dost eklenemedi',
     ),
     (
       const ImageStorageFailure('Private image diagnostic'),
@@ -180,10 +180,13 @@ void main() {
     'an open deletion confirmation changes language without changing the pet',
     (tester) async {
       await app.pump(tester, location: AppRoutes.petDetail(pet.id));
-      await tester.tap(find.byTooltip('Hayvanı sil'));
+      await tester.tap(find.byTooltip('Profili sil'));
       await tester.pumpAndSettle();
-      expect(find.text('Hayvan silinsin mi?'), findsOneWidget);
-      expect(find.textContaining('${pet.name} adlı hayvanın'), findsOneWidget);
+      expect(find.text('Profil silinsin mi?'), findsOneWidget);
+      expect(
+        find.textContaining('${pet.name} adlı dostunuzun'),
+        findsOneWidget,
+      );
       expect(find.text('Vazgeç').hitTestable(), findsOneWidget);
       await app.cubit.setLanguagePreference(LanguagePreference.english);
       await tester.pumpAndSettle();
@@ -205,7 +208,7 @@ void main() {
             const Error(NotFoundFailure('Internal missing record detail')),
       );
       await app.pump(tester, location: AppRoutes.petDetail(pet.id));
-      expect(find.text('Hayvan bulunamadı'), findsOneWidget);
+      expect(find.text('Dost bulunamadı'), findsOneWidget);
       expect(find.text('Bir sorun oluştu'), findsOneWidget);
       expect(find.text('Tekrar dene').hitTestable(), findsOneWidget);
       expect(find.text('Internal missing record detail'), findsNothing);

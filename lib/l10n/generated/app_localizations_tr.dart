@@ -153,7 +153,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get veterinarian => 'Veteriner hekim';
 
   @override
-  String get petProfile => 'Hayvan profili';
+  String get petProfile => 'Dost profili';
 
   @override
   String get profileDetails => 'Profil bilgileri';
@@ -162,14 +162,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get editProfile => 'Profili düzenle';
 
   @override
-  String get deletePet => 'Hayvanı sil';
+  String get deletePet => 'Profili sil';
 
   @override
-  String get deletePetTitle => 'Hayvan silinsin mi?';
+  String get deletePetTitle => 'Profil silinsin mi?';
 
   @override
   String deletePetMessage(String name) {
-    return '$name adlı hayvanın profili, fotoğrafı, kilo geçmişi, veteriner ziyaretleri, aşıları, ilaçları ve doz kayıtları silinecek. Bu işlem geri alınamaz.';
+    return '$name adlı dostunuzun profili, fotoğrafı, kilo geçmişi, veteriner ziyaretleri, aşıları, ilaçları ve doz kayıtları silinecek. Bu işlem geri alınamaz.';
   }
 
   @override
@@ -182,25 +182,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get retryProfile => 'Profili tekrar yükle';
 
   @override
-  String get petNotFound => 'Hayvan bulunamadı';
+  String get petNotFound => 'Dost bulunamadı';
 
   @override
-  String get petLoadFailed => 'Hayvan bilgileri yüklenemedi';
+  String get petLoadFailed => 'Dost bilgileri yüklenemedi';
 
   @override
-  String get petsLoadFailed => 'Hayvanlar yüklenemedi';
+  String get petsLoadFailed => 'Dostlarınız yüklenemedi';
 
   @override
-  String get petCreateFailed => 'Hayvan eklenemedi';
+  String get petCreateFailed => 'Dost eklenemedi';
 
   @override
-  String get petUpdateFailed => 'Hayvan bilgileri güncellenemedi';
+  String get petUpdateFailed => 'Dost bilgileri güncellenemedi';
 
   @override
-  String get petDeleteFailed => 'Hayvan silinemedi';
+  String get petDeleteFailed => 'Profil silinemedi';
 
   @override
-  String get petRefreshFailed => 'Hayvan bilgileri yenilenemedi';
+  String get petRefreshFailed => 'Dost bilgileri yenilenemedi';
 
   @override
   String get photoSaveFailed => 'Fotoğraf kaydedilemedi';
@@ -209,16 +209,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get addPet => 'Dost ekle';
 
   @override
-  String get editPet => 'Hayvanı düzenle';
+  String get editPet => 'Profili düzenle';
 
   @override
-  String get petStep => 'Evcil hayvan';
+  String get petStep => 'Dostunuz';
 
   @override
   String get review => 'Gözden geçir';
 
   @override
-  String get reviewPet => 'Hayvan bilgilerini gözden geçir';
+  String get reviewPet => 'Dost bilgilerini gözden geçir';
 
   @override
   String get basicDetails => 'Temel bilgiler';
@@ -286,10 +286,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sağlık ve kimlik bilgileri (isteğe bağlı)';
 
   @override
-  String get addPetPhoto => 'Hayvan fotoğrafı ekle';
+  String get addPetPhoto => 'Dost fotoğrafı ekle';
 
   @override
-  String get changePetPhoto => 'Hayvan fotoğrafını değiştir';
+  String get changePetPhoto => 'Dost fotoğrafını değiştir';
 
   @override
   String get addPhoto => 'Fotoğraf ekle';
@@ -348,15 +348,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get reproductiveSterilized => 'Kısırlaştırılmış';
 
   @override
-  String get noPetsYet => 'Henüz hayvan yok';
+  String get noPetsYet => 'Henüz dost eklenmedi';
 
   @override
   String get petsEmptyDescription =>
-      'Sağlık ve bakım takibine başlamak için ilk hayvanınızı ekleyin.';
+      'Sağlık ve bakım takibine başlamak için ilk dostunuzu ekleyin.';
 
   @override
   String get choosePetOverview =>
-      'Profilini ve bakım kayıtlarını görmek için bir hayvan seçin.';
+      'Profilini ve bakım kayıtlarını görmek için bir dost seçin.';
 
   @override
   String get addVisit => 'Ziyaret ekle';
@@ -368,7 +368,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get addMedication => 'İlaç ekle';
 
   @override
-  String get choosePet => 'Hayvan seçin';
+  String get choosePet => 'Dost seçin';
 
   @override
   String get close => 'Kapat';
@@ -993,7 +993,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get updatingCareRecords => 'Bakım kayıtları güncelleniyor';
 
   @override
-  String get petUnavailable => 'Hayvan bilgisine ulaşılamıyor';
+  String get petUnavailable => 'Dost bilgilerine ulaşılamıyor';
 
   @override
   String get deletingRecord => 'Kayıt siliniyor';
