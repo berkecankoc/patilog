@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/l10n/app_number_formats.dart';
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/core/widgets/app_multi_step_form.dart';
@@ -37,6 +40,7 @@ class _PetImageField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
     Widget photoField(Widget? photo) {
       return Column(
         mainAxisSize: MainAxisSize.min,
@@ -48,7 +52,9 @@ class _PetImageField extends StatelessWidget {
               shape: const CircleBorder(),
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Semantics(
-                label: photo == null ? 'Add pet photo' : 'Change pet photo',
+                label: photo == null
+                    ? strings.addPetPhoto
+                    : strings.changePetPhoto,
                 button: true,
                 child: InkWell(
                   onTap: onTap,
@@ -70,7 +76,7 @@ class _PetImageField extends StatelessWidget {
             TextButton(
               onPressed: onTap,
               style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-              child: const Text('Add photo'),
+              child: Text(strings.addPhoto),
             )
           else
             Row(
@@ -82,8 +88,8 @@ class _PetImageField extends StatelessWidget {
                     style: TextButton.styleFrom(
                       minimumSize: const Size(48, 48),
                     ),
-                    child: const Text(
-                      'Change photo',
+                    child: Text(
+                      strings.changePhoto,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -93,7 +99,7 @@ class _PetImageField extends StatelessWidget {
                   child: IconButton(
                     onPressed: onRemove,
                     icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Remove photo',
+                    tooltip: strings.removePhoto,
                   ),
                 ),
               ],
@@ -135,16 +141,17 @@ class _PetFormPageState extends State<PetFormPage> {
 
   DateTime? _birthDate;
   String? _pickedImagePath;
-  String? _saveError;
+  Failure? _saveError;
   bool _allowPop = false;
   bool _confirmingDiscard = false;
+  AppLocalizations get _strings => AppLocalizations.of(context);
+  String? _initialWeightText;
 
   bool get _hasChanges {
     final pet = widget.pet;
     return _nameController.text != (pet?.name ?? '') ||
         _breedController.text != (pet?.breed ?? '') ||
-        _weightController.text !=
-            (pet?.weight == null ? '' : formatWeight(pet!.weight!)) ||
+        _weightController.text != _initialWeightText ||
         _microchipIdController.text != (pet?.microchipId ?? '') ||
         _species != (pet?.species ?? PetSpecies.dog) ||
         _sex != (pet?.sex ?? PetSex.male) ||
@@ -170,12 +177,20 @@ class _PetFormPageState extends State<PetFormPage> {
       if (pet.birthDate != null) {
         _birthDate = pet.birthDate;
       }
-      if (pet.weight != null) {
-        _weightController.text = formatWeight(pet.weight!);
-      }
       _microchipIdController.text = pet.microchipId ?? '';
       _pickedImagePath = pet.imagePath;
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialWeightText != null) return;
+    final weight = widget.pet?.weight;
+    _initialWeightText = weight == null
+        ? ''
+        : localizedWeight(weight, Localizations.localeOf(context));
+    _weightController.text = _initialWeightText!;
   }
 
   @override
@@ -262,14 +277,17 @@ class _PetFormPageState extends State<PetFormPage> {
     } on PlatformException catch (error) {
       if (!mounted) return;
       final message = error.code == 'photo_access_denied'
-          ? 'Photo access was denied. Allow access in Settings and try again.'
-          : 'Could not select a photo. Please try again.';
+          ? _strings.photoAccessDenied
+          : _strings.photoSelectFailed;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
             content: Text(message),
-            action: SnackBarAction(label: 'Retry', onPressed: _pickImage),
+            action: SnackBarAction(
+              label: _strings.retry,
+              onPressed: _pickImage,
+            ),
           ),
         );
     }
@@ -298,11 +316,11 @@ class _PetFormPageState extends State<PetFormPage> {
     _confirmingDiscard = true;
     final discard = await showDialog<bool>(
       context: context,
-      builder: (_) => const AppConfirmationDialog(
-        title: 'Discard changes?',
-        message: 'Your changes have not been saved. Leave without saving?',
-        cancelLabel: 'Keep editing',
-        confirmLabel: 'Discard changes',
+      builder: (context) => AppConfirmationDialog(
+        title: AppLocalizations.of(context).discardChangesTitle,
+        message: AppLocalizations.of(context).discardChangesMessage,
+        cancelLabel: AppLocalizations.of(context).keepEditing,
+        confirmLabel: AppLocalizations.of(context).discardChanges,
       ),
     );
     _confirmingDiscard = false;
@@ -326,18 +344,21 @@ class _PetFormPageState extends State<PetFormPage> {
       ),
 
       VerticalGap.lg,
-      const AppSectionHeading(title: 'Basic details', icon: Icons.info_outline),
+      AppSectionHeading(title: _strings.basicDetails, icon: Icons.info_outline),
       VerticalGap.md,
 
       TextFormField(
         controller: _nameController,
-        decoration: const InputDecoration(labelText: 'Name'),
+        decoration: InputDecoration(
+          labelText: _strings.petName,
+          errorMaxLines: 3,
+        ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return 'Name is required';
+            return _strings.petNameRequired;
           }
           if (value.trim().characters.length > _nameMaxLength) {
-            return 'Keep name within $_nameMaxLength characters';
+            return _strings.petNameTooLong(_nameMaxLength);
           }
 
           return null;
@@ -355,7 +376,7 @@ class _PetFormPageState extends State<PetFormPage> {
             items: PetSpecies.values.map((species) {
               return DropdownMenuItem(
                 value: species,
-                child: Text(species.label),
+                child: Text(species.label(_strings)),
               );
             }).toList(),
             onChanged: (value) {
@@ -365,7 +386,7 @@ class _PetFormPageState extends State<PetFormPage> {
                 _species = value;
               });
             },
-            decoration: const InputDecoration(labelText: 'Species'),
+            decoration: InputDecoration(labelText: _strings.species),
           ),
 
           VerticalGap.md,
@@ -375,7 +396,10 @@ class _PetFormPageState extends State<PetFormPage> {
             borderRadius: BorderRadius.circular(16),
             initialValue: _sex,
             items: PetSex.values.map((sex) {
-              return DropdownMenuItem(value: sex, child: Text(sex.label));
+              return DropdownMenuItem(
+                value: sex,
+                child: Text(sex.label(_strings)),
+              );
             }).toList(),
             onChanged: (value) {
               if (value == null) return;
@@ -384,7 +408,7 @@ class _PetFormPageState extends State<PetFormPage> {
                 _sex = value;
               });
             },
-            decoration: const InputDecoration(labelText: 'Sex'),
+            decoration: InputDecoration(labelText: _strings.sex),
           ),
         ],
       ),
@@ -393,7 +417,7 @@ class _PetFormPageState extends State<PetFormPage> {
 
       TextFormField(
         controller: _breedController,
-        decoration: const InputDecoration(labelText: 'Breed (optional)'),
+        decoration: InputDecoration(labelText: _strings.breedOptional),
       ),
 
       VerticalGap.md,
@@ -408,7 +432,10 @@ class _PetFormPageState extends State<PetFormPage> {
         borderRadius: BorderRadius.circular(16),
         initialValue: _reproductiveStatus,
         items: ReproductiveStatus.values.map((status) {
-          return DropdownMenuItem(value: status, child: Text(status.label));
+          return DropdownMenuItem(
+            value: status,
+            child: Text(status.label(_strings)),
+          );
         }).toList(),
         onChanged: (value) {
           if (value == null) return;
@@ -417,7 +444,7 @@ class _PetFormPageState extends State<PetFormPage> {
             _reproductiveStatus = value;
           });
         },
-        decoration: const InputDecoration(labelText: 'Reproductive Status'),
+        decoration: InputDecoration(labelText: _strings.reproductiveStatus),
       ),
 
       VerticalGap.md,
@@ -425,7 +452,7 @@ class _PetFormPageState extends State<PetFormPage> {
       Column(
         children: [
           AppDateField(
-            labelText: 'Birth date (optional)',
+            labelText: _strings.birthDateOptional,
             value: _birthDate,
             firstDate: DateTime(1980),
             lastDate: DateTime.now(),
@@ -440,8 +467,8 @@ class _PetFormPageState extends State<PetFormPage> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
-            decoration: const InputDecoration(
-              labelText: 'Weight (optional)',
+            decoration: InputDecoration(
+              labelText: _strings.weightOptional,
               suffixText: 'kg',
               errorMaxLines: 5,
             ),
@@ -453,15 +480,15 @@ class _PetFormPageState extends State<PetFormPage> {
               final weight = parseWeight(value);
 
               if (weight == null || !weight.isFinite) {
-                return 'Enter a valid weight';
+                return _strings.weightInvalid;
               }
 
               if (weight <= 0) {
-                return 'Weight must be greater than 0';
+                return _strings.weightPositive;
               }
 
               if (!hasValidWeightPrecision(value)) {
-                return 'Use up to 3 decimal places';
+                return _strings.weightPrecision(3);
               }
 
               return null;
@@ -472,14 +499,14 @@ class _PetFormPageState extends State<PetFormPage> {
 
       VerticalGap.md,
 
-      const AppSectionHeading(
-        title: 'Identification',
+      AppSectionHeading(
+        title: _strings.identification,
         icon: Icons.badge_outlined,
       ),
       VerticalGap.md,
       TextFormField(
         controller: _microchipIdController,
-        decoration: const InputDecoration(labelText: 'Microchip ID (optional)'),
+        decoration: InputDecoration(labelText: _strings.microchipIdOptional),
       ),
     ],
   );
@@ -492,12 +519,12 @@ class _PetFormPageState extends State<PetFormPage> {
       }
       if (state case PetCreated() || PetUpdated()) {
         _leave(result: true);
-      } else if (state case PetError(:final message)) {
-        setState(() => _saveError = message);
+      } else if (state case PetError(:final failure)) {
+        setState(() => _saveError = failure);
       }
     },
     builder: (context, state) => AppMultiStepForm(
-      title: Text(widget.pet == null ? 'Add pet' : 'Edit pet'),
+      title: Text(widget.pet == null ? _strings.addPet : _strings.editPet),
       editing: widget.pet != null,
       isSaving: () {
         final current = context.read<PetCubit>().state;
@@ -507,36 +534,59 @@ class _PetFormPageState extends State<PetFormPage> {
       },
       allowPop: _allowPop,
       canSubmit: widget.pet == null || _hasChanges,
-      submitLabel: widget.pet == null ? 'Add pet' : 'Save changes',
-      saveError: _saveError,
+      submitLabel: widget.pet == null ? _strings.addPet : _strings.saveChanges,
+      saveError: switch (_saveError) {
+        null => null,
+        ImageStorageFailure() => _strings.photoSaveFailed,
+        NotFoundFailure() => _strings.petNotFound,
+        _ =>
+          widget.pet == null
+              ? _strings.petCreateFailed
+              : _strings.petUpdateFailed,
+      },
       onSubmit: _submit,
       onExit: _requestExit,
       onChanged: () => setState(() {}),
       steps: [
-        AppFormStep(title: 'Pet', builder: (_, _) => _basicDetails()),
         AppFormStep(
-          title: 'Review',
+          title: _strings.petStep,
+          builder: (_, _) => _basicDetails(),
+        ),
+        AppFormStep(
+          title: _strings.review,
           builder: (context, edit) => Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Review pet', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                _strings.reviewPet,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               VerticalGap.md,
               AppFormReviewSection(
-                title: 'Basic details',
+                title: _strings.basicDetails,
                 icon: Icons.info_outline,
                 onEdit: () => edit(0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppDetailField(label: 'Name', value: _nameController.text),
+                    AppDetailField(
+                      label: _strings.petName,
+                      value: _nameController.text,
+                    ),
                     VerticalGap.md,
-                    AppDetailField(label: 'Species', value: _species.label),
+                    AppDetailField(
+                      label: _strings.species,
+                      value: _species.label(_strings),
+                    ),
                     VerticalGap.md,
-                    AppDetailField(label: 'Sex', value: _sex.label),
+                    AppDetailField(
+                      label: _strings.sex,
+                      value: _sex.label(_strings),
+                    ),
                     if (_breedController.text.trim().isNotEmpty) ...[
                       VerticalGap.md,
                       AppDetailField(
-                        label: 'Breed',
+                        label: _strings.breed,
                         value: _breedController.text,
                       ),
                     ],
@@ -545,7 +595,7 @@ class _PetFormPageState extends State<PetFormPage> {
               ),
               VerticalGap.md,
               AppFormOptionalSection(
-                title: 'Health & identification (optional)',
+                title: _strings.healthIdentificationOptional,
                 icon: Icons.health_and_safety_outlined,
                 initiallyExpanded: widget.pet != null,
                 child: _healthDetails(),

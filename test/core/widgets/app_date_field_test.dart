@@ -1,9 +1,74 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:petlytics/core/l10n/app_locale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 
 void main() {
+  testWidgets(
+    'locale changes refresh an open date picker and field without changing the day',
+    (tester) async {
+      final locale = ValueNotifier(turkishLocale);
+      final value = ValueNotifier<DateTime?>(DateTime(2026, 4, 5));
+      addTearDown(locale.dispose);
+      addTearDown(value.dispose);
+      var changes = 0;
+      await tester.pumpWidget(
+        ValueListenableBuilder<Locale>(
+          valueListenable: locale,
+          builder: (context, selectedLocale, _) => MaterialApp(
+            locale: selectedLocale,
+            supportedLocales: appSupportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: Scaffold(
+              body: ValueListenableBuilder<DateTime?>(
+                valueListenable: value,
+                builder: (context, date, _) => AppDateField(
+                  labelText: AppLocalizations.of(context).birthDateOptional,
+                  value: date,
+                  clearable: true,
+                  firstDate: DateTime(1980),
+                  lastDate: DateTime(2030),
+                  onChanged: (date) {
+                    changes++;
+                    value.value = date;
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('5 Nis 2026'), findsOneWidget);
+      expect(
+        find.byTooltip('Doğum tarihi (isteğe bağlı): tarihi temizle'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(find.text('Nisan 2026'), findsOneWidget);
+      locale.value = englishLocale;
+      await tester.pumpAndSettle();
+      expect(find.text('April 2026'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Apr 5, 2026'), findsOneWidget);
+      expect(value.value, DateTime(2026, 4, 5));
+      expect(changes, 0);
+      await tester.tap(find.byTooltip('Birth date (optional): clear date'));
+      await tester.pumpAndSettle();
+      expect(value.value, isNull);
+      expect(changes, 1);
+      expect(
+        find.byTooltip('Birth date (optional): choose date'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'read-only date stays legible and cannot open or clear until unlocked',
     (tester) async {
@@ -12,6 +77,7 @@ void main() {
       DateTime? selected = DateTime(2020, 1, 2);
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Scaffold(
             body: ValueListenableBuilder<bool>(
               valueListenable: locked,
@@ -36,7 +102,7 @@ void main() {
       expect(selected, DateTime(2020, 1, 2));
       locked.value = false;
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Clear date'));
+      await tester.tap(find.byTooltip('Date: clear date'));
       await tester.pumpAndSettle();
       expect(selected, isNull);
     },
@@ -47,6 +113,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Scaffold(
             body: AppDateField(
               labelText: 'Next dose',
@@ -58,7 +125,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.byTooltip('Choose next dose'));
+      await tester.tap(find.byTooltip('Next dose: choose date'));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -78,6 +145,7 @@ void main() {
       DateTime? selected = DateTime(2030, 1, 2);
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Scaffold(
             body: AppDateField(
               labelText: 'Date',
@@ -89,7 +157,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.byTooltip('Choose date'));
+      await tester.tap(find.byTooltip('Date: choose date'));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -111,6 +179,7 @@ void main() {
     addTearDown(value.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: AppTheme.light,
         home: Scaffold(
           body: ValueListenableBuilder<DateTime?>(
@@ -136,11 +205,11 @@ void main() {
     final value = ValueNotifier<DateTime?>(DateTime(2022, 7, 11));
     await pumpField(tester, value);
     expect(find.text('Jul 11, 2022'), findsOneWidget);
-    await tester.tap(find.byTooltip('Clear birth date'));
+    await tester.tap(find.byTooltip('Birth date: clear date'));
     await tester.pumpAndSettle();
     expect(value.value, isNull);
     expect(find.text('Jul 11, 2022'), findsNothing);
-    expect(find.byTooltip('Choose birth date'), findsOneWidget);
+    expect(find.byTooltip('Birth date: choose date'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -149,7 +218,7 @@ void main() {
   ) async {
     final value = ValueNotifier<DateTime?>(null);
     await pumpField(tester, value);
-    await tester.tap(find.byTooltip('Choose birth date'));
+    await tester.tap(find.byTooltip('Birth date: choose date'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('12').last);
     await tester.tap(find.text('OK'));

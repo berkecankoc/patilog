@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'dart:async';
 import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
 import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
@@ -284,6 +285,7 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(
       MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
         routerConfig: router,
         builder: (context, child) => MediaQuery(
@@ -377,7 +379,7 @@ void main() {
             const Error(LocalDatabaseFailure('Could not load linked visit')),
       );
       await expandRelated(tester, 'Linked vet visit');
-      expect(find.text('Could not load linked visit'), findsOneWidget);
+      expect(find.text('Failed to load vet visit'), findsOneWidget);
       expect(find.text('Rabies'), findsOneWidget);
       when(
         () => visitRepository.getVetVisitById(pet.id, visit.id),
@@ -477,7 +479,7 @@ void main() {
         location: AppRoutes.vetVisitDetail(pet.id, visit.id),
       );
       await expandRelated(tester, 'Linked vaccinations');
-      expect(find.text('Linked vaccines failed'), findsOneWidget);
+      expect(find.text('Failed to load vaccinations'), findsOneWidget);
       expect(find.text('Checkup'), findsOneWidget);
       when(
         () => repository.getVaccinations(pet.id, vetVisitId: visit.id),
@@ -548,9 +550,11 @@ void main() {
     expect(find.byTooltip('My pets'), findsNothing);
     await revealFormField(
       tester,
-      find.byTooltip('Choose visit date', skipOffstage: false),
+      find.byTooltip('Visit date: choose date', skipOffstage: false),
     );
-    await tester.tap(find.byTooltip('Choose visit date', skipOffstage: false));
+    await tester.tap(
+      find.byTooltip('Visit date: choose date', skipOffstage: false),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('3').last);
     await tester.tap(find.text('OK'));
@@ -662,10 +666,7 @@ void main() {
     String label,
     DateTime date,
   ) async {
-    final choose = find.byTooltip(
-      'Choose ${label.toLowerCase()}',
-      skipOffstage: false,
-    );
+    final choose = find.byTooltip('$label: choose date', skipOffstage: false);
     await revealFormField(tester, choose);
     await tester.tap(choose);
     await tester.pumpAndSettle();
@@ -785,7 +786,10 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(DatePickerDialog), findsNothing);
         expect(
-          find.byTooltip('Choose administration date', skipOffstage: false),
+          find.byTooltip(
+            'Administration date: choose date',
+            skipOffstage: false,
+          ),
           findsNothing,
         );
         await select('Follow-up visit');
@@ -796,10 +800,16 @@ void main() {
         expect(find.text('Date from linked vet visit'), findsNothing);
         await revealFormField(
           tester,
-          find.byTooltip('Choose administration date', skipOffstage: false),
+          find.byTooltip(
+            'Administration date: choose date',
+            skipOffstage: false,
+          ),
         );
         await tester.tap(
-          find.byTooltip('Choose administration date', skipOffstage: false),
+          find.byTooltip(
+            'Administration date: choose date',
+            skipOffstage: false,
+          ),
         );
         await tester.pumpAndSettle();
         expect(
@@ -1093,7 +1103,7 @@ void main() {
           nextDose: any(named: 'nextDose'),
         ),
       );
-      await tester.tap(find.byTooltip('Clear next dose date (optional)'));
+      await tester.tap(find.byTooltip('Next dose date (optional): clear date'));
       await tester.pumpAndSettle();
       await submit(tester);
       expect(
@@ -1137,7 +1147,7 @@ void main() {
         ),
       );
       await tester.tap(
-        find.byTooltip('Choose planned date', skipOffstage: false),
+        find.byTooltip('Planned date: choose date', skipOffstage: false),
       );
       await tester.pumpAndSettle();
       final picker = tester.widget<DatePickerDialog>(
@@ -1442,7 +1452,7 @@ void main() {
       await revealFormField(tester, find.text('Retry visits'));
       expect(
         tester.getTopLeft(find.text('Retry visits')).dx,
-        tester.getTopLeft(find.text('Visits failed')).dx,
+        tester.getTopLeft(find.text('Failed to load vet visits')).dx,
       );
       await tester.tap(find.text('Retry visits'));
       await tester.pumpAndSettle();
@@ -1450,7 +1460,7 @@ void main() {
       await revealFormField(tester, find.text('Retry suggestions'));
       expect(
         tester.getTopLeft(find.text('Retry suggestions')).dx,
-        tester.getTopLeft(find.text('Suggestions failed')).dx,
+        tester.getTopLeft(find.text('Failed to load suggestions')).dx,
       );
       await tester.tap(find.text('Retry suggestions'));
       await tester.pumpAndSettle();
@@ -1537,7 +1547,10 @@ void main() {
       expect(find.text('Discard changes?'), findsNothing);
       pending.complete(const Error(LocalDatabaseFailure('Save failed')));
       await tester.pumpAndSettle();
-      expect(find.text('Save failed').hitTestable(), findsOneWidget);
+      expect(
+        find.text('Failed to create vaccination').hitTestable(),
+        findsOneWidget,
+      );
       expect(find.text('Retry save'), findsNothing);
       expect(
         find.widgetWithText(ElevatedButton, 'Add vaccination').hitTestable(),
@@ -1781,7 +1794,7 @@ void main() {
     await tester.pumpAndSettle();
     router.go(AppRoutes.vaccinations(pet.id));
     await tester.pumpAndSettle();
-    expect(find.text('List failed'), findsOneWidget);
+    expect(find.text('Failed to load vaccinations'), findsOneWidget);
     when(
       () => repository.getVaccinations(pet.id),
     ).thenAnswer((_) async => Success(records));
@@ -2164,7 +2177,10 @@ void main() {
           expect(tester.widget<ElevatedButton>(action).onPressed, isNull);
           deletion.complete(const Error(LocalDatabaseFailure('Delete failed')));
           await tester.pumpAndSettle();
-          expect(find.text('Delete failed').hitTestable(), findsOneWidget);
+          expect(
+            find.text('Failed to delete vaccination').hitTestable(),
+            findsOneWidget,
+          );
           expect(find.text('Retry deletion').hitTestable(), findsOneWidget);
           if (size.width < size.height) {
             expect(action.hitTestable(), findsOneWidget);
@@ -2224,7 +2240,10 @@ void main() {
           await revealFormField(tester, find.text('Delete').last);
           await tester.tap(find.text('Delete').last);
           await tester.pumpAndSettle();
-          expect(find.text('Delete failed').hitTestable(), findsOneWidget);
+          expect(
+            find.text('Failed to delete vaccination').hitTestable(),
+            findsOneWidget,
+          );
           expect(find.text('Retry deletion').hitTestable(), findsOneWidget);
           clearInteractions(repository);
           await tester.tap(find.text('Retry deletion'));

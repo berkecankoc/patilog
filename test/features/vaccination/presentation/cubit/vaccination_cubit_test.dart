@@ -53,7 +53,7 @@ void main() {
     act: (cubit) => cubit.loadVaccination(vaccination.petId, vaccination.id),
     expect: () => [
       VaccinationLoaded(vaccination, isRefreshing: true),
-      const VaccinationError('Vaccination not found'),
+      const VaccinationError(NotFoundFailure('Vaccination not found')),
     ],
   );
 
@@ -154,7 +154,7 @@ void main() {
     act: (cubit) => cubit.loadVaccinations(vaccination.petId),
     expect: () => [
       const VaccinationLoading(),
-      const VaccinationError('Load failed'),
+      const VaccinationError(LocalDatabaseFailure('Load failed')),
     ],
   );
 
@@ -195,11 +195,11 @@ void main() {
     (Success(vaccination), VaccinationLoaded(vaccination)),
     (
       const Error(NotFoundFailure('Vaccination not found')),
-      const VaccinationError('Vaccination not found'),
+      const VaccinationError(NotFoundFailure('Vaccination not found')),
     ),
     (
       const Error(LocalDatabaseFailure('Load failed')),
-      const VaccinationError('Load failed'),
+      const VaccinationError(LocalDatabaseFailure('Load failed')),
     ),
   ]) {
     blocTest<VaccinationCubit, VaccinationState>(
@@ -320,7 +320,10 @@ void main() {
         (_) async => const Error(LocalDatabaseFailure('Load failed')),
       );
       await cubit.loadVaccinations(vaccination.petId);
-      expect(cubit.state, const VaccinationError('Load failed'));
+      expect(
+        cubit.state,
+        const VaccinationError(LocalDatabaseFailure('Load failed')),
+      );
     },
   );
 

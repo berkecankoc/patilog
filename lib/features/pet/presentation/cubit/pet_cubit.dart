@@ -27,7 +27,7 @@ final class PetCubit extends Cubit<PetState> {
       case Success<List<Pet>>():
         emit(PetsLoaded(result.data));
       case Error<List<Pet>>():
-        emit(PetError(result.failure.message));
+        emit(PetError(result.failure));
     }
   }
 
@@ -42,7 +42,7 @@ final class PetCubit extends Cubit<PetState> {
       case Success<Pet>():
         emit(PetLoaded(result.data));
       case Error<Pet>():
-        emit(PetError(result.failure.message));
+        emit(PetError(result.failure));
     }
   }
 
@@ -56,7 +56,7 @@ final class PetCubit extends Cubit<PetState> {
       case Success<void>():
         emit(const PetCreated());
       case Error<void>():
-        emit(PetError(result.failure.message));
+        emit(PetError(result.failure));
     }
   }
 
@@ -82,7 +82,7 @@ final class PetCubit extends Cubit<PetState> {
       case Success<Pet>():
         emit(PetLoaded(result.data));
       case Error<Pet>():
-        emit(PetLoaded(current.pet, refreshError: result.failure.message));
+        emit(PetLoaded(current.pet, refreshError: result.failure));
     }
   }
 
@@ -96,7 +96,7 @@ final class PetCubit extends Cubit<PetState> {
       case Success<void>():
         emit(const PetUpdated());
       case Error<void>():
-        emit(PetError(result.failure.message));
+        emit(PetError(result.failure));
     }
   }
 
@@ -112,7 +112,7 @@ final class PetCubit extends Cubit<PetState> {
       case Success<void>():
         emit(const PetDeleted());
       case Error<void>():
-        emit(PetLoaded(pet, deleteError: result.failure.message));
+        emit(PetLoaded(pet, deleteError: result.failure));
     }
   }
 

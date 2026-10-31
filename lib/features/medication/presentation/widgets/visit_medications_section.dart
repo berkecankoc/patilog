@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,7 +33,7 @@ class VisitMedicationsSection extends StatelessWidget {
     );
     return AppRelatedRecordsSection(
       key: ValueKey(('visit-medications', petId, visitId)),
-      title: 'Linked medications',
+      title: AppLocalizations.of(context).linkedMedications,
       icon: Icons.medication_outlined,
       onLoad: load,
       child: BlocBuilder<MedicationCubit, MedicationState>(
@@ -42,14 +44,14 @@ class VisitMedicationsSection extends StatelessWidget {
               if (refreshError != null)
                 AppErrorFeedback(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  message: refreshError,
-                  retryLabel: 'Retry medications',
+                  message: AppLocalizations.of(context).medicationsLoadFailed,
+                  retryLabel: AppLocalizations.of(context).retryMedications,
                   onRetry: load,
                 ),
               if (medications.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  child: Text('No medications linked to this visit.'),
+                  child: Text(AppLocalizations.of(context).noLinkedMedications),
                 ),
               if (medications.isNotEmpty)
                 ConstrainedBox(
@@ -67,7 +69,9 @@ class VisitMedicationsSection extends StatelessWidget {
                       return AppRelatedRecordTile(
                         title: medication.name,
                         icon: Icons.medication_outlined,
-                        openLabel: 'Open medication: ${medication.name}',
+                        openLabel: AppLocalizations.of(
+                          context,
+                        ).openMedication(medication.name),
                         onOpen: onOpen == null
                             ? null
                             : () => onOpen!(medication),
@@ -85,7 +89,12 @@ class VisitMedicationsSection extends StatelessWidget {
                                   period,
                                 ),
                               ),
-                              Text(medicationSchedule(period)),
+                              Text(
+                                medicationSchedule(
+                                  AppLocalizations.of(context),
+                                  period,
+                                ),
+                              ),
                               AppRelatedClinicalDetails(
                                 clinicName: period.clinicName,
                                 veterinarianName: period.veterinarianName,
@@ -101,10 +110,12 @@ class VisitMedicationsSection extends StatelessWidget {
                 ),
             ],
           ),
-          MedicationError(:final message) => AppErrorFeedback(
+          MedicationError(:final failure) => AppErrorFeedback(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-            message: message,
-            retryLabel: 'Retry medications',
+            message: failure is NotFoundFailure
+                ? AppLocalizations.of(context).medicationNotFound
+                : AppLocalizations.of(context).medicationsLoadFailed,
+            retryLabel: AppLocalizations.of(context).retryMedications,
             onRetry: load,
           ),
           _ => const Padding(

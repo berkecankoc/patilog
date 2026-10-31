@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 
 sealed class PetState extends Equatable {
@@ -22,9 +23,9 @@ final class PetLoading extends PetState {
 final class PetLoaded extends PetState {
   final Pet pet;
   final bool isDeleting;
-  final String? deleteError;
+  final Failure? deleteError;
   final bool isRefreshing;
-  final String? refreshError;
+  final Failure? refreshError;
 
   const PetLoaded(
     this.pet, {
@@ -75,10 +76,10 @@ final class PetDeleted extends PetState {
 }
 
 final class PetError extends PetState {
-  final String message;
+  final Failure failure;
 
-  const PetError(this.message);
+  const PetError(this.failure);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [failure];
 }

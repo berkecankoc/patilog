@@ -52,7 +52,7 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
       case Error<List<Vaccination>>():
         emit(
           previous == null
-              ? VaccinationError(result.failure.message)
+              ? VaccinationError(result.failure)
               : VaccinationsLoaded(
                   petId,
                   previous.vaccinations,
@@ -87,7 +87,7 @@ final class VaccinationCubit extends Cubit<VaccinationState> {
       case Error<Vaccination>():
         emit(
           previous == null || result.failure is NotFoundFailure
-              ? VaccinationError(result.failure.message)
+              ? VaccinationError(result.failure)
               : VaccinationLoaded(
                   previous.vaccination,
                   refreshError: result.failure.message,

@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -114,6 +115,7 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(
       MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
         routerConfig: router,
         builder: (context, child) => MediaQuery(
@@ -762,7 +764,7 @@ void main() {
     );
     await save(tester);
 
-    expect(find.text('Could not save. Please retry.'), findsOneWidget);
+    expect(find.text('Failed to update measurement'), findsOneWidget);
     expect(find.text('4.7 kg'), findsOneWidget);
     final formContext = tester.element(find.byType(WeightEntryFormPage));
     expect(
@@ -796,7 +798,7 @@ void main() {
     await tester.pumpAndSettle();
     await tapFormControl(
       tester,
-      find.byTooltip('Choose measurement date', skipOffstage: false),
+      find.byTooltip('Measurement date: choose date', skipOffstage: false),
     );
     await tester.pumpAndSettle();
     expect(find.byType(DatePickerDialog), findsOneWidget);
@@ -825,7 +827,7 @@ void main() {
     await tester.pumpAndSettle();
     await tapFormControl(
       tester,
-      find.byTooltip('Choose measurement date', skipOffstage: false),
+      find.byTooltip('Measurement date: choose date', skipOffstage: false),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('OK'));
@@ -924,7 +926,7 @@ void main() {
           : pending.future;
     });
     await pumpRouter(tester);
-    expect(find.text('Could not load measurements'), findsOneWidget);
+    expect(find.text('Failed to load weight history'), findsOneWidget);
     expect(
       tester
           .widget<FloatingActionButton>(find.byType(FloatingActionButton))
@@ -990,7 +992,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
-      expect(find.text('Could not delete measurement'), findsOneWidget);
+      expect(find.text('Failed to delete measurement'), findsOneWidget);
       expect(find.text('4.5 kg'), findsNWidgets(2));
       await tester.tap(find.text('Retry deletion'));
       await tester.pumpAndSettle();
@@ -1157,7 +1159,7 @@ void main() {
     await tester.pumpAndSettle();
     await tapFormControl(
       tester,
-      find.byTooltip('Choose measurement date', skipOffstage: false),
+      find.byTooltip('Measurement date: choose date', skipOffstage: false),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('11').last);

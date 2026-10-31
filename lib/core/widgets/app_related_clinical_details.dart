@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 
@@ -30,11 +31,17 @@ class AppRelatedClinicalDetails extends StatelessWidget {
     children: [
       if (_differs(clinicName, parentClinicName)) ...[
         VerticalGap.sm,
-        AppDetailField(label: 'Clinic', value: clinicName),
+        AppDetailField(
+          label: AppLocalizations.of(context).clinic,
+          value: clinicName,
+        ),
       ],
       if (_differs(veterinarianName, parentVeterinarianName)) ...[
         VerticalGap.sm,
-        AppDetailField(label: 'Veterinarian', value: veterinarianName),
+        AppDetailField(
+          label: AppLocalizations.of(context).veterinarian,
+          value: veterinarianName,
+        ),
       ],
     ],
   );

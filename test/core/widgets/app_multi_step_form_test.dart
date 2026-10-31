@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
@@ -44,6 +45,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
         home: StatefulBuilder(
           builder: (context, setState) {

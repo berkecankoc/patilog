@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
@@ -17,7 +18,7 @@ class CarePetIdentity extends StatelessWidget {
       const SizedBox(width: AppSpacing.sm),
       Expanded(
         child: Text(
-          pet?.name ?? 'Pet unavailable',
+          pet?.name ?? AppLocalizations.of(context).petUnavailable,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.labelLarge,
@@ -66,11 +67,13 @@ class CareRecordCard extends StatelessWidget {
                   SizedBox.square(
                     dimension: 48,
                     child: deleting
-                        ? const Padding(
+                        ? Padding(
                             padding: EdgeInsets.all(12),
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              semanticsLabel: 'Deleting record',
+                              semanticsLabel: AppLocalizations.of(
+                                context,
+                              ).deletingRecord,
                             ),
                           )
                         : IconButton(

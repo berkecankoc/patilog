@@ -169,9 +169,16 @@ void main() {
       final cubit = tester.element(name).read<PetCubit>();
       await app.cubit.setLanguagePreference(LanguagePreference.turkish);
       await tester.pumpAndSettle();
-      expect(tester.widget<TextFormField>(name).controller!.text, 'İnci');
-      expect(tester.element(name).read<PetCubit>(), same(cubit));
-      expect(Localizations.localeOf(tester.element(name)), turkishLocale);
+      final translatedName = find.widgetWithText(TextFormField, 'Ad');
+      expect(
+        tester.widget<TextFormField>(translatedName).controller!.text,
+        'İnci',
+      );
+      expect(tester.element(translatedName).read<PetCubit>(), same(cubit));
+      expect(
+        Localizations.localeOf(tester.element(translatedName)),
+        turkishLocale,
+      );
       expect(appRouter.state.uri.path, AppRoutes.addEditPet);
     },
   );

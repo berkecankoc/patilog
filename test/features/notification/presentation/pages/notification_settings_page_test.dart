@@ -64,7 +64,7 @@ void main() {
       (_) async => const Error(PreferencesStorageFailure('Preferences failed')),
     );
     await open(tester);
-    expect(find.text('Preferences failed'), findsOneWidget);
+    expect(find.text('Failed to initialize reminders'), findsOneWidget);
     expect(
       tester.widget<SwitchListTile>(toggle('Medication reminders')).onChanged,
       isNull,
@@ -78,7 +78,7 @@ void main() {
       tester.widget<SwitchListTile>(toggle('Medication reminders')).onChanged,
       isNotNull,
     );
-    expect(find.text('Preferences failed'), findsNothing);
+    expect(find.text('Failed to initialize reminders'), findsNothing);
     verifyNever(() => app.notifications.repository.savePreferences(any()));
   });
 
@@ -168,7 +168,7 @@ void main() {
       app.notifications.failSave = true;
       await tester.tap(find.text('Save changes'));
       await tester.pumpAndSettle();
-      expect(find.text('Save failed'), findsOneWidget);
+      expect(find.text('Failed to save reminder settings'), findsOneWidget);
       expect(
         app.notifications.preferences.vaccinationSchedule,
         VaccinationReminderSchedule(),

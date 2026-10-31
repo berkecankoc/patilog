@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
@@ -100,11 +102,20 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
   Widget _clinical(MedicationPeriod period) {
     final fields = [
       if (period.clinicName != null)
-        AppDetailField(label: 'Clinic', value: period.clinicName),
+        AppDetailField(
+          label: AppLocalizations.of(context).clinic,
+          value: period.clinicName,
+        ),
       if (period.veterinarianName != null)
-        AppDetailField(label: 'Veterinarian', value: period.veterinarianName),
+        AppDetailField(
+          label: AppLocalizations.of(context).veterinarian,
+          value: period.veterinarianName,
+        ),
       if (period.notes != null)
-        AppDetailField(label: 'Notes', value: period.notes),
+        AppDetailField(
+          label: AppLocalizations.of(context).notes,
+          value: period.notes,
+        ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -138,7 +149,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
     final visitId = period.vetVisitId!;
     return AppRelatedRecordsSection(
       key: ValueKey(('medication-visit', period.id, visitId)),
-      title: 'Linked vet visit',
+      title: AppLocalizations.of(context).linkedVetVisit,
       icon: Icons.link_outlined,
       onLoad: () => context.read<MedicationVisitsCubit>().loadVisit(
         widget.petId,
@@ -148,7 +159,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
         builder: (context, visits) => switch (visits[visitId]) {
           VetVisitLoaded(:final visit, :final refreshError) =>
             visit.id != visitId
-                ? const Text('Open this section again to refresh the visit.')
+                ? Text(AppLocalizations.of(context).reopenVisitSection)
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -157,8 +168,8 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                           padding: const EdgeInsets.symmetric(
                             vertical: AppSpacing.xs,
                           ),
-                          message: refreshError,
-                          retryLabel: 'Retry visit',
+                          message: AppLocalizations.of(context).visitLoadFailed,
+                          retryLabel: AppLocalizations.of(context).retryVisit,
                           onRetry: () => context
                               .read<MedicationVisitsCubit>()
                               .loadVisit(widget.petId, visitId),
@@ -166,7 +177,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                       AppRelatedRecordTile(
                         title: visit.reason,
                         icon: Icons.event_note_outlined,
-                        openLabel: 'Open vet visit',
+                        openLabel: AppLocalizations.of(context).openVetVisit,
                         onOpen: busy ? null : () => _openVisit(visitId),
                         details: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -194,10 +205,12 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                       ),
                     ],
                   ),
-          VetVisitError(:final message) => AppErrorFeedback(
+          VetVisitError(:final failure) => AppErrorFeedback(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-            message: message,
-            retryLabel: 'Retry visit',
+            message: failure is NotFoundFailure
+                ? AppLocalizations.of(context).visitNotFound
+                : AppLocalizations.of(context).visitLoadFailed,
+            retryLabel: AppLocalizations.of(context).retryVisit,
             onRetry: () => context.read<MedicationVisitsCubit>().loadVisit(
               widget.petId,
               visitId,
@@ -216,7 +229,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text(
-        medicationSchedule(period),
+        medicationSchedule(AppLocalizations.of(context), period),
         style: Theme.of(
           context,
         ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -250,22 +263,27 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
         expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
         leading: const Icon(Icons.subdirectory_arrow_right, size: 20),
         title: Text(
-          'From ${dates.formatShortDate(period.startDate)}: ${medicationSchedule(period)}',
+          AppLocalizations.of(context).scheduleChangeSummary(
+            dates.formatShortDate(period.startDate),
+            medicationSchedule(AppLocalizations.of(context), period),
+          ),
         ),
         children: [
           if (period.dosageInstructions != null) ...[
             AppDetailField(
-              label: 'Dosage instructions',
+              label: AppLocalizations.of(context).dosageInstructions,
               value: period.dosageInstructions,
             ),
             const SizedBox(height: 16),
           ],
           Text(
             end == null
-                ? 'No end date'
+                ? AppLocalizations.of(context).noEndDate
                 : DateUtils.isSameDay(period.startDate, end)
-                ? 'One day'
-                : 'Until ${dates.formatShortDate(end)}',
+                ? AppLocalizations.of(context).oneDay
+                : AppLocalizations.of(
+                    context,
+                  ).untilDate(dates.formatShortDate(end)),
           ),
           if (period.clinicName != null ||
               period.veterinarianName != null ||
@@ -286,7 +304,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                 onPressed: busy
                     ? null
                     : () => _edit(medication, periodId: period.id),
-                child: const Text('Edit change'),
+                child: Text(AppLocalizations.of(context).editChange),
               ),
               if (medication.periods.indexOf(period) > 0)
                 TextButton(
@@ -300,7 +318,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                             period.id,
                           ),
                         ),
-                  child: const Text('Cancel change'),
+                  child: Text(AppLocalizations.of(context).cancelChange),
                 ),
             ],
           ),
@@ -322,8 +340,8 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const AppSectionHeading(
-            title: 'Schedule',
+          AppSectionHeading(
+            title: AppLocalizations.of(context).schedule,
             icon: Icons.schedule_outlined,
           ),
           const SizedBox(height: 16),
@@ -363,7 +381,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
             onPressed: busy
                 ? null
                 : () => _edit(medication, periodId: period.id),
-            child: const Text('Edit details'),
+            child: Text(AppLocalizations.of(context).editDetails),
           ),
           const SizedBox(height: 8),
           _clinical(period),
@@ -403,9 +421,9 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
         ),
         const SizedBox(height: 8),
         Text(switch (medication.statusOn(state.currentTime)) {
-          MedicationStatus.active => 'Active',
-          MedicationStatus.upcoming => 'Upcoming',
-          MedicationStatus.completed => 'Completed',
+          MedicationStatus.active => AppLocalizations.of(context).active,
+          MedicationStatus.upcoming => AppLocalizations.of(context).upcoming,
+          MedicationStatus.completed => AppLocalizations.of(context).completed,
         }),
         const SizedBox(height: 24),
         if (current != null || pending.isNotEmpty) ...[
@@ -415,14 +433,14 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
         OutlinedButton.icon(
           onPressed: busy ? null : () => _edit(medication),
           icon: const Icon(Icons.edit_outlined),
-          label: const Text('Edit medication'),
+          label: Text(AppLocalizations.of(context).editMedication),
         ),
         if (current == null && pending.isEmpty) ...[
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: busy ? null : () => _edit(medication, newSchedule: true),
             icon: const Icon(Icons.event_repeat_outlined),
-            label: const Text('Schedule doses again'),
+            label: Text(AppLocalizations.of(context).scheduleAgain),
           ),
         ],
         if (current != null &&
@@ -443,7 +461,7 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                 title: Semantics(
                   header: true,
                   child: Text(
-                    'Clinic & notes',
+                    AppLocalizations.of(context).clinicAndNotes,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -469,7 +487,11 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
           ),
           onPressed: busy ? null : () => _toggleCalendar(state),
           icon: const Icon(Icons.calendar_month_outlined),
-          label: Text(_showCalendar ? 'Hide dose calendar' : 'Dose calendar'),
+          label: Text(
+            _showCalendar
+                ? AppLocalizations.of(context).hideDoseCalendar
+                : AppLocalizations.of(context).doseCalendar,
+          ),
         ),
         if (_showCalendar && state.calendar != null) ...[
           const SizedBox(height: 12),
@@ -491,8 +513,8 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
               shape: const Border(),
               collapsedShape: const Border(),
               maintainState: true,
-              title: const AppSectionHeading(
-                title: 'Previous schedules',
+              title: AppSectionHeading(
+                title: AppLocalizations.of(context).previousSchedules,
                 icon: Icons.history_outlined,
               ),
               childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -567,13 +589,16 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
             resizeToAvoidBottomInset: false,
             appBar: AppBar(
               toolbarHeight: PetCareTitle.toolbarHeight(context),
-              title: PetCareTitle(title: 'Medication', petName: widget.petName),
+              title: PetCareTitle(
+                title: AppLocalizations.of(context).medication,
+                petName: widget.petName,
+              ),
               leading: careBackButton(context, busy: busy),
               actions: [
                 MyPetsButton(enabled: !busy),
                 if (loaded != null)
                   IconButton(
-                    tooltip: 'Delete medication',
+                    tooltip: AppLocalizations.of(context).deleteMedication,
                     onPressed:
                         busy || loaded.isRefreshing || loaded.doses.isLoading
                         ? null
@@ -599,7 +624,13 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                   child: loaded == null
                       ? state is MedicationError
                             ? ErrorView(
-                                message: state.message,
+                                message: state.failure is NotFoundFailure
+                                    ? AppLocalizations.of(
+                                        context,
+                                      ).medicationNotFound
+                                    : AppLocalizations.of(
+                                        context,
+                                      ).medicationsLoadFailed,
                                 onRetry: _reload,
                               )
                             : const Center(child: CircularProgressIndicator())
@@ -609,12 +640,17 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                                 loaded.refreshError != null)
                               Flexible(
                                 child: AppErrorFeedback(
-                                  message:
-                                      loaded.actionError ??
-                                      loaded.refreshError!,
+                                  message: loaded.actionError != null
+                                      ? medicationActionError(
+                                          AppLocalizations.of(context),
+                                          loaded.failedAction,
+                                        )
+                                      : AppLocalizations.of(
+                                          context,
+                                        ).medicationsLoadFailed,
                                   retryLabel: loaded.failedAction != null
-                                      ? 'Retry action'
-                                      : 'Retry',
+                                      ? AppLocalizations.of(context).retryAction
+                                      : AppLocalizations.of(context).retry,
                                   onRetry: () {
                                     final action = loaded.failedAction;
                                     if (action != null) {

@@ -1,3 +1,5 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:petlytics/core/l10n/app_locale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +35,7 @@ void main() {
     double keyboard = 0,
     TextDirection direction = TextDirection.ltr,
     bool fixedActions = false,
+    Locale locale = englishLocale,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -40,6 +43,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: appSupportedLocales,
+        locale: locale,
         theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context).copyWith(
@@ -103,6 +109,40 @@ void main() {
 
   final field = find.byType(TextFormField);
   final next = find.widgetWithText(TextField, 'Next field');
+
+  testWidgets(
+    'Turkish search respects dotted and dotless I without changing names',
+    (tester) async {
+      options.value = ['IŞIK Kliniği', 'İNCİ Kliniği'];
+      await pumpField(tester, locale: turkishLocale);
+      await tester.enterText(field, 'ışık');
+      await tester.pumpAndSettle();
+      expect(find.text('IŞIK Kliniği'), findsOneWidget);
+      expect(find.text('İNCİ Kliniği'), findsNothing);
+      await tester.tap(find.text('IŞIK Kliniği'));
+      await tester.pumpAndSettle();
+      expect(text.text, 'IŞIK Kliniği');
+      await tester.enterText(field, 'inci');
+      await tester.pumpAndSettle();
+      expect(find.text('İNCİ Kliniği'), findsOneWidget);
+      expect(options.value, ['IŞIK Kliniği', 'İNCİ Kliniği']);
+    },
+  );
+
+  testWidgets('loading suggestions exposes a Turkish screen reader label', (
+    tester,
+  ) async {
+    await pumpField(tester, locale: turkishLocale);
+    text.text = 'İnci Kliniği';
+    loading.value = true;
+    await tester.pump();
+    expect(find.bySemanticsLabel('Öneriler yükleniyor'), findsOneWidget);
+    expect(find.bySemanticsLabel('Loading suggestions'), findsNothing);
+    expect(text.text, 'İnci Kliniği');
+    loading.value = false;
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Öneriler yükleniyor'), findsNothing);
+  });
 
   testWidgets('menu padding belongs to the focused suggestion field', (
     tester,

@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,6 +42,7 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: AppTheme.dark,
         home: Directionality(
           textDirection: direction,
@@ -99,8 +101,8 @@ void main() {
       (tester) async {
         await pumpSections(tester, direction, failed: true);
         for (final (message, retry, cardIndex) in [
-          ('Vaccinations unavailable', 'Retry vaccinations', 0),
-          ('Medications unavailable', 'Retry medications', 1),
+          ('Failed to load vaccinations', 'Retry vaccinations', 0),
+          ('Failed to load medications', 'Retry medications', 1),
         ]) {
           final card = tester.getRect(find.byType(Card).at(cardIndex));
           final text = tester.getRect(find.text(message));

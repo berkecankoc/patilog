@@ -85,7 +85,10 @@ void main() {
         return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.loadPets(),
-      expect: () => [const PetLoading(), const PetError('Failed to get pets')],
+      expect: () => [
+        const PetLoading(),
+        const PetError(LocalDatabaseFailure('Failed to get pets')),
+      ],
     );
   });
 
@@ -113,7 +116,10 @@ void main() {
         return PetCubit(repository, createPet, updatePet, deletePet);
       },
       act: (cubit) => cubit.getPetById('pet-1'),
-      expect: () => [const PetLoading(), const PetError('Pet not found')],
+      expect: () => [
+        const PetLoading(),
+        const PetError(NotFoundFailure('Pet not found')),
+      ],
     );
   });
   group('refreshPet', () {
@@ -129,7 +135,10 @@ void main() {
       act: (cubit) => cubit.refreshPet(pet.id),
       expect: () => [
         const PetLoaded(pet, isRefreshing: true),
-        const PetLoaded(pet, refreshError: 'Refresh failed'),
+        const PetLoaded(
+          pet,
+          refreshError: LocalDatabaseFailure('Refresh failed'),
+        ),
       ],
     );
     blocTest<PetCubit, PetState>(
@@ -165,7 +174,13 @@ void main() {
       await cubit.deletePet(pet);
       pending.complete(const Success(pet));
       await refresh;
-      expect(cubit.state, const PetLoaded(pet, deleteError: 'Delete failed'));
+      expect(
+        cubit.state,
+        const PetLoaded(
+          pet,
+          deleteError: LocalDatabaseFailure('Delete failed'),
+        ),
+      );
     });
   });
   group('createPet', () {
@@ -198,7 +213,7 @@ void main() {
       act: (cubit) => cubit.createPet(createParams),
       expect: () => [
         const PetLoading(),
-        const PetError('Failed to create pet'),
+        const PetError(LocalDatabaseFailure('Failed to create pet')),
       ],
       verify: (_) {
         verify(() => createPet(createParams)).called(1);
@@ -235,7 +250,7 @@ void main() {
       act: (cubit) => cubit.updatePet(pet, updateParams),
       expect: () => [
         const PetLoading(),
-        const PetError('Failed to update pet'),
+        const PetError(LocalDatabaseFailure('Failed to update pet')),
       ],
       verify: (_) {
         verify(() => updatePet(pet, updateParams)).called(1);
@@ -277,7 +292,10 @@ void main() {
       act: (cubit) => cubit.deletePet(pet),
       expect: () => [
         const PetLoaded(pet, isDeleting: true),
-        const PetLoaded(pet, deleteError: 'Failed to delete pet'),
+        const PetLoaded(
+          pet,
+          deleteError: LocalDatabaseFailure('Failed to delete pet'),
+        ),
       ],
       verify: (_) {
         verify(() => deletePet(pet)).called(1);

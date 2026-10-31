@@ -1,3 +1,4 @@
+import 'package:petlytics/core/error/failure.dart';
 import 'package:equatable/equatable.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose.dart';
@@ -22,12 +23,12 @@ final class MedicationLoading extends MedicationState {
 }
 
 final class MedicationError extends MedicationState {
-  final String message;
+  final Failure failure;
 
-  const MedicationError(this.message);
+  const MedicationError(this.failure);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [failure];
 }
 
 final class MedicationDeleted extends MedicationState {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/theme/app_colors.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
@@ -22,7 +23,7 @@ class ErrorView extends StatelessWidget {
               VerticalGap.md,
 
               Text(
-                'Something went wrong',
+                AppLocalizations.of(context).somethingWentWrong,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
@@ -33,7 +34,10 @@ class ErrorView extends StatelessWidget {
 
               VerticalGap.lg,
 
-              ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+              ElevatedButton(
+                onPressed: onRetry,
+                child: Text(AppLocalizations.of(context).retry),
+              ),
             ],
           ),
         ),

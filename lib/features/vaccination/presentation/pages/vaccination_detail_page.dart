@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
@@ -90,7 +92,7 @@ class VaccinationDetailPage extends StatelessWidget {
     bool busy, {
     required bool fixed,
   }) => AppFormActions(
-    label: 'Record administration',
+    label: AppLocalizations.of(context).recordAdministration,
     saving: false,
     fixed: fixed,
     onPressed: busy
@@ -128,7 +130,7 @@ class VaccinationDetailPage extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Edit vaccination',
+                  tooltip: AppLocalizations.of(context).editVaccination,
                   color: theme.colorScheme.primary,
                   onPressed: busy ? null : () => _edit(context, vaccination),
                   icon: const Icon(Icons.edit_outlined),
@@ -138,34 +140,43 @@ class VaccinationDetailPage extends StatelessWidget {
             VerticalGap.sm,
             VaccinationStatusBadge(vaccination: vaccination),
             VerticalGap.md,
-            AppDetailField(label: 'Vaccine', value: vaccination.vaccineName),
+            AppDetailField(
+              label: AppLocalizations.of(context).vaccine,
+              value: vaccination.vaccineName,
+            ),
             const Divider(height: AppSpacing.xl),
-            const AppSectionHeading(
-              title: 'Clinic & veterinarian',
+            AppSectionHeading(
+              title: AppLocalizations.of(context).clinical,
               icon: Icons.local_hospital_outlined,
             ),
             VerticalGap.md,
-            AppDetailField(label: 'Clinic', value: vaccination.clinicName),
+            AppDetailField(
+              label: AppLocalizations.of(context).clinic,
+              value: vaccination.clinicName,
+            ),
             VerticalGap.md,
             AppDetailField(
-              label: 'Veterinarian',
+              label: AppLocalizations.of(context).veterinarian,
               value: vaccination.veterinarianName,
             ),
             const Divider(height: AppSpacing.xl),
-            const AppSectionHeading(title: 'Notes', icon: Icons.notes_outlined),
+            AppSectionHeading(
+              title: AppLocalizations.of(context).notes,
+              icon: Icons.notes_outlined,
+            ),
             VerticalGap.md,
             Text(
-              vaccination.notes ?? 'Not provided',
+              vaccination.notes ?? AppLocalizations.of(context).notProvided,
               style: theme.textTheme.bodyLarge,
             ),
             if (vaccination.status == VaccinationStatus.planned) ...[
               const Divider(height: AppSpacing.xl),
-              const AppSectionHeading(
-                title: 'Reminders',
+              AppSectionHeading(
+                title: AppLocalizations.of(context).remindersTitle,
                 icon: Icons.notifications_outlined,
               ),
               VerticalGap.md,
-              const Text('Reminders are managed in Settings → Notifications.'),
+              Text(AppLocalizations.of(context).remindersSettingsGuidance),
             ],
           ],
         ),
@@ -203,15 +214,18 @@ class VaccinationDetailPage extends StatelessWidget {
         child: Scaffold(
           appBar: AppBar(
             toolbarHeight: PetCareTitle.toolbarHeight(context),
-            title: PetCareTitle(title: 'Vaccination', petName: petName),
+            title: PetCareTitle(
+              title: AppLocalizations.of(context).vaccination,
+              petName: petName,
+            ),
             leading: careBackButton(context, busy: deleting),
             bottom: busy
                 ? PreferredSize(
                     preferredSize: const Size.fromHeight(4),
                     child: LinearProgressIndicator(
                       semanticsLabel: deleting
-                          ? 'Deleting vaccination'
-                          : 'Refreshing vaccination',
+                          ? AppLocalizations.of(context).deletingVaccination
+                          : AppLocalizations.of(context).refreshingVaccination,
                     ),
                   )
                 : null,
@@ -219,7 +233,7 @@ class VaccinationDetailPage extends StatelessWidget {
               MyPetsButton(enabled: !busy),
               if (state case VaccinationLoaded(:final vaccination))
                 IconButton(
-                  tooltip: 'Delete vaccination',
+                  tooltip: AppLocalizations.of(context).deleteVaccination,
                   onPressed: busy ? null : () => _delete(context, vaccination),
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -248,10 +262,16 @@ class VaccinationDetailPage extends StatelessWidget {
                                 maxHeight: constraints.maxHeight * 0.75,
                               ),
                               child: AppErrorFeedback(
-                                message: deleteError ?? refreshError!,
+                                message: deleteError != null
+                                    ? AppLocalizations.of(
+                                        context,
+                                      ).vaccinationDeleteFailed
+                                    : AppLocalizations.of(
+                                        context,
+                                      ).vaccinationLoadFailed,
                                 retryLabel: deleteError != null
-                                    ? 'Retry deletion'
-                                    : 'Retry',
+                                    ? AppLocalizations.of(context).retryDeletion
+                                    : AppLocalizations.of(context).retry,
                                 onRetry: deleteError != null
                                     ? () => _delete(context, vaccination)
                                     : () => context
@@ -301,8 +321,10 @@ class VaccinationDetailPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                  VaccinationError(:final message) => ErrorView(
-                    message: message,
+                  VaccinationError(:final failure) => ErrorView(
+                    message: failure is NotFoundFailure
+                        ? AppLocalizations.of(context).vaccinationNotFound
+                        : AppLocalizations.of(context).vaccinationLoadFailed,
                     onRetry: () => context
                         .read<VaccinationCubit>()
                         .loadVaccination(petId, vaccinationId),

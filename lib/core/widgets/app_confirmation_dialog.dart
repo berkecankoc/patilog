@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 
@@ -6,14 +7,14 @@ class AppConfirmationDialog extends StatelessWidget {
   final String title;
   final String message;
   final String confirmLabel;
-  final String cancelLabel;
+  final String? cancelLabel;
 
   const AppConfirmationDialog({
     super.key,
     required this.title,
     required this.message,
     required this.confirmLabel,
-    this.cancelLabel = 'Cancel',
+    this.cancelLabel,
   });
 
   @override
@@ -79,7 +80,9 @@ class AppConfirmationDialog extends StatelessWidget {
                         minimumSize: const Size(96, 48),
                       ),
                       onPressed: () => Navigator.of(context).pop(false),
-                      child: Text(cancelLabel),
+                      child: Text(
+                        cancelLabel ?? AppLocalizations.of(context).cancel,
+                      ),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(

@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -42,7 +43,7 @@ class NotificationSettingsPage extends StatelessWidget {
       useSafeArea: true,
       isDismissible: false,
       enableDrag: false,
-      builder: (_) => _ScheduleEditor(
+      builder: (context) => _ScheduleEditor(
         initial: cubit.state.preferences!.vaccinationSchedule,
       ),
     );
@@ -133,7 +134,7 @@ class NotificationSettingsPage extends StatelessWidget {
         canPop: !state.isSaving,
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('Notifications'),
+            title: Text(AppLocalizations.of(context).notificationsTitle),
             leading: state.isSaving
                 ? IconButton(
                     tooltip: MaterialLocalizations.of(
@@ -144,10 +145,12 @@ class NotificationSettingsPage extends StatelessWidget {
                   )
                 : BackButton(onPressed: back),
             bottom: state.isBusy
-                ? const PreferredSize(
+                ? PreferredSize(
                     preferredSize: Size.fromHeight(4),
                     child: LinearProgressIndicator(
-                      semanticsLabel: 'Updating reminders',
+                      semanticsLabel: AppLocalizations.of(
+                        context,
+                      ).updatingReminders,
                     ),
                   )
                 : null,
@@ -162,10 +165,35 @@ class NotificationSettingsPage extends StatelessWidget {
                         maxHeight: constraints.maxHeight * 0.5,
                       ),
                       child: AppErrorFeedback(
-                        message: state.saveError ?? state.issue!.message,
+                        message: state.saveError != null
+                            ? AppLocalizations.of(
+                                context,
+                              ).reminderSettingsSaveFailed
+                            : switch (state.issue!.action) {
+                                NotificationAction.initialize =>
+                                  AppLocalizations.of(
+                                    context,
+                                  ).remindersInitializeFailed,
+                                NotificationAction.synchronize =>
+                                  AppLocalizations.of(
+                                    context,
+                                  ).remindersSyncFailed,
+                                NotificationAction.notificationPermission =>
+                                  AppLocalizations.of(
+                                    context,
+                                  ).notificationPermissionFailed,
+                                NotificationAction.exactPermission =>
+                                  AppLocalizations.of(
+                                    context,
+                                  ).exactPermissionFailed,
+                                NotificationAction.openSettings =>
+                                  AppLocalizations.of(
+                                    context,
+                                  ).deviceSettingsFailed,
+                              },
                         retryLabel: state.saveError != null
-                            ? 'Retry save'
-                            : 'Retry',
+                            ? AppLocalizations.of(context).retrySave
+                            : AppLocalizations.of(context).retry,
                         onRetry: state.isBusy
                             ? null
                             : state.saveError != null
@@ -180,13 +208,15 @@ class NotificationSettingsPage extends StatelessWidget {
                         child: ListView(
                           padding: const EdgeInsets.all(AppSpacing.lg),
                           children: [
-                            const AppSectionHeading(
-                              title: 'Reminders',
+                            AppSectionHeading(
+                              title: AppLocalizations.of(
+                                context,
+                              ).remindersTitle,
                               icon: Icons.notifications_outlined,
                             ),
                             const SizedBox(height: AppSpacing.sm),
-                            const Text(
-                              'Choose which reminders this device sends. Times follow the device’s local time.',
+                            Text(
+                              AppLocalizations.of(context).remindersDeviceHint,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             Card(
@@ -194,8 +224,12 @@ class NotificationSettingsPage extends StatelessWidget {
                               child: Column(
                                 children: [
                                   _reminderToggle(
-                                    title: 'Medication reminders',
-                                    subtitle: 'At scheduled dose times.',
+                                    title: AppLocalizations.of(
+                                      context,
+                                    ).medicationReminders,
+                                    subtitle: AppLocalizations.of(
+                                      context,
+                                    ).medicationReminderHint,
                                     icon: Icons.medication_outlined,
                                     value:
                                         preferences
@@ -216,8 +250,12 @@ class NotificationSettingsPage extends StatelessWidget {
                                     endIndent: AppSpacing.md,
                                   ),
                                   _reminderToggle(
-                                    title: 'Vaccination reminders',
-                                    subtitle: 'On selected days.',
+                                    title: AppLocalizations.of(
+                                      context,
+                                    ).vaccinationReminders,
+                                    subtitle: AppLocalizations.of(
+                                      context,
+                                    ).vaccinationReminderHint,
                                     icon: Icons.vaccines_outlined,
                                     value:
                                         preferences
@@ -236,21 +274,30 @@ class NotificationSettingsPage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: AppSpacing.lg),
-                            const AppSectionHeading(
-                              title: 'Vaccination schedule',
+                            AppSectionHeading(
+                              title: AppLocalizations.of(
+                                context,
+                              ).vaccinationSchedule,
                               icon: Icons.schedule_outlined,
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             Card(
                               margin: EdgeInsets.zero,
                               child: ListTile(
-                                title: const Text('Days & time'),
+                                title: Text(
+                                  AppLocalizations.of(context).daysAndTime,
+                                ),
                                 subtitle: Text(
                                   preferences == null
                                       ? state.issue == null
-                                            ? 'Loading schedule…'
-                                            : 'Schedule unavailable'
+                                            ? AppLocalizations.of(
+                                                context,
+                                              ).loadingSchedule
+                                            : AppLocalizations.of(
+                                                context,
+                                              ).scheduleUnavailable
                                       : reminderScheduleSummary(
+                                          AppLocalizations.of(context),
                                           preferences.vaccinationSchedule,
                                         ),
                                 ),
@@ -261,8 +308,10 @@ class NotificationSettingsPage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: AppSpacing.sm),
-                            const Text(
-                              'These days and time apply to all planned vaccinations.',
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              ).sharedVaccinationScheduleHint,
                             ),
                             if (blocked || inexact) ...[
                               const SizedBox(height: AppSpacing.lg),
@@ -276,15 +325,23 @@ class NotificationSettingsPage extends StatelessWidget {
                                     children: [
                                       AppSectionHeading(
                                         title: blocked
-                                            ? 'Notifications are blocked'
-                                            : 'Precise timing is off',
+                                            ? AppLocalizations.of(
+                                                context,
+                                              ).notificationsBlocked
+                                            : AppLocalizations.of(
+                                                context,
+                                              ).preciseRemindersOff,
                                         icon: Icons.notifications_off_outlined,
                                       ),
                                       const SizedBox(height: AppSpacing.sm),
                                       Text(
                                         blocked
-                                            ? 'Allow notifications on this device to receive reminders.'
-                                            : 'Medication reminders use normal scheduling and may arrive late.',
+                                            ? AppLocalizations.of(
+                                                context,
+                                              ).allowNotificationsHint
+                                            : AppLocalizations.of(
+                                                context,
+                                              ).inexactRemindersHint,
                                       ),
                                       const SizedBox(height: AppSpacing.sm),
                                       FilledButton.tonal(
@@ -299,8 +356,12 @@ class NotificationSettingsPage extends StatelessWidget {
                                               ),
                                         child: Text(
                                           blocked
-                                              ? 'Allow notifications'
-                                              : 'Allow precise reminders',
+                                              ? AppLocalizations.of(
+                                                  context,
+                                                ).allowNotifications
+                                              : AppLocalizations.of(
+                                                  context,
+                                                ).allowPreciseReminders,
                                         ),
                                       ),
                                       if (blocked)
@@ -311,8 +372,10 @@ class NotificationSettingsPage extends StatelessWidget {
                                                   NotificationAction
                                                       .openSettings,
                                                 ),
-                                          child: const Text(
-                                            'Open device settings',
+                                          child: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            ).openDeviceSettings,
                                           ),
                                         ),
                                     ],
@@ -333,23 +396,57 @@ class NotificationSettingsPage extends StatelessWidget {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      const AppSectionHeading(
-                                        title: 'Upcoming reminders',
+                                      AppSectionHeading(
+                                        title: AppLocalizations.of(
+                                          context,
+                                        ).upcomingReminders,
                                         icon: Icons.event_available_outlined,
                                       ),
                                       const SizedBox(height: AppSpacing.sm),
                                       Text(
                                         state.isBusy
-                                            ? 'Updating reminders…'
+                                            ? AppLocalizations.of(
+                                                context,
+                                              ).updatingRemindersEllipsis
                                             : state.plan!.reminders.isEmpty
-                                            ? 'No upcoming reminders. Add a planned vaccination or a medication schedule.'
-                                            : 'Next: ${MaterialLocalizations.of(context).formatShortDate(state.plan!.nextRefreshAt!)}, ${reminderTime(state.plan!.nextRefreshAt!.hour * 60 + state.plan!.nextRefreshAt!.minute)}',
+                                            ? AppLocalizations.of(
+                                                context,
+                                              ).noUpcomingReminders
+                                            : AppLocalizations.of(
+                                                context,
+                                              ).nextReminder(
+                                                MaterialLocalizations.of(
+                                                  context,
+                                                ).formatShortDate(
+                                                  state.plan!.nextRefreshAt!,
+                                                ),
+                                                reminderTime(
+                                                  state
+                                                              .plan!
+                                                              .nextRefreshAt!
+                                                              .hour *
+                                                          60 +
+                                                      state
+                                                          .plan!
+                                                          .nextRefreshAt!
+                                                          .minute,
+                                                ),
+                                              ),
                                       ),
                                       if (!state.isBusy &&
                                           state.plan!.reminders.isNotEmpty) ...[
                                         const SizedBox(height: AppSpacing.sm),
                                         Text(
-                                          '${state.plan!.reminders.length} ${state.plan!.reminders.length == 1 ? 'reminder' : 'reminders'} queued through ${MaterialLocalizations.of(context).formatShortDate(state.plan!.scheduledThrough!)}.',
+                                          AppLocalizations.of(
+                                            context,
+                                          ).queuedReminderSummary(
+                                            state.plan!.reminders.length,
+                                            MaterialLocalizations.of(
+                                              context,
+                                            ).formatShortDate(
+                                              state.plan!.scheduledThrough!,
+                                            ),
+                                          ),
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodyMedium,
@@ -358,8 +455,10 @@ class NotificationSettingsPage extends StatelessWidget {
                                       if (!state.isBusy &&
                                           state.plan!.hasMore) ...[
                                         const SizedBox(height: AppSpacing.sm),
-                                        const Text(
-                                          'Open the app regularly to prepare later reminders.',
+                                        Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          ).reminderQueueRefreshHint,
                                         ),
                                       ],
                                     ],
@@ -418,11 +517,11 @@ class _ScheduleEditorState extends State<_ScheduleEditor> {
       _confirming = true;
       final discard = await showDialog<bool>(
         context: context,
-        builder: (_) => const AppConfirmationDialog(
-          title: 'Discard changes?',
-          message: 'Leave without updating the reminder schedule?',
-          cancelLabel: 'Keep editing',
-          confirmLabel: 'Discard changes',
+        builder: (context) => AppConfirmationDialog(
+          title: AppLocalizations.of(context).discardChangesTitle,
+          message: AppLocalizations.of(context).discardReminderSchedule,
+          cancelLabel: AppLocalizations.of(context).keepEditing,
+          confirmLabel: AppLocalizations.of(context).discardChanges,
         ),
       );
       _confirming = false;
@@ -457,11 +556,12 @@ class _ScheduleEditorState extends State<_ScheduleEditor> {
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Form(
                     key: _form,
+                    autovalidateMode: AutovalidateMode.onUserInteractionIfError,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          'Vaccination reminders',
+                          AppLocalizations.of(context).vaccinationReminders,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: AppSpacing.lg),
@@ -477,12 +577,15 @@ class _ScheduleEditorState extends State<_ScheduleEditor> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 child: AppFormActions(
-                  label: 'Save changes',
+                  label: AppLocalizations.of(context).saveChanges,
                   saving: false,
                   onPressed: _save,
                 ),
               ),
-              TextButton(onPressed: _cancel, child: const Text('Cancel')),
+              TextButton(
+                onPressed: _cancel,
+                child: Text(AppLocalizations.of(context).cancel),
+              ),
               const SizedBox(height: AppSpacing.sm),
             ],
           ),

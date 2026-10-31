@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,6 +42,7 @@ void main() {
       });
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(
               context,
@@ -97,6 +99,7 @@ void main() {
         addTearDown(number.dispose);
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             theme: ThemeData(platform: platform),
             builder: (_, child) => AppKeyboard(child: child!),
             home: Scaffold(
@@ -160,6 +163,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           theme: ThemeData(platform: platform),
           builder: (_, child) => AppKeyboard(child: child!),
           home: Builder(

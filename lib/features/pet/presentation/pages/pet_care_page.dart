@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
@@ -167,6 +168,7 @@ class _PetCarePageState extends State<PetCarePage>
   @override
   Widget build(BuildContext context) => BlocBuilder<PetCubit, PetState>(
     builder: (context, state) {
+      final strings = AppLocalizations.of(context);
       if (state is PetLoaded) _pet = state.pet;
       final pet = _pet;
       final theme = Theme.of(context);
@@ -213,7 +215,7 @@ class _PetCarePageState extends State<PetCarePage>
                 actions: [
                   if (widget.tab == PetCareTab.profile && state is PetLoaded)
                     IconButton(
-                      tooltip: 'Delete pet',
+                      tooltip: strings.deletePet,
                       onPressed: busy
                           ? null
                           : () => deletePetWithConfirmation(context, state.pet),
@@ -223,7 +225,7 @@ class _PetCarePageState extends State<PetCarePage>
                     const SizedBox(width: 48),
                 ],
                 title: pet == null
-                    ? const Text('Pet profile')
+                    ? Text(strings.petProfile)
                     : Row(
                         children: [
                           ExcludeSemantics(
@@ -256,7 +258,7 @@ class _PetCarePageState extends State<PetCarePage>
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        pet.species.label,
+                                        pet.species.label(strings),
                                         style: theme.textTheme.bodySmall
                                             ?.copyWith(
                                               color: theme
@@ -282,7 +284,7 @@ class _PetCarePageState extends State<PetCarePage>
                                             ),
                                       ),
                                       Text(
-                                        pet.species.label,
+                                        pet.species.label(strings),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: theme.textTheme.bodySmall
@@ -326,7 +328,7 @@ class _PetCarePageState extends State<PetCarePage>
                           },
                           tabs: [
                             for (final tab in PetCareTab.values)
-                              Tab(text: tab.label),
+                              Tab(text: tab.label(strings)),
                           ],
                         ),
                       ),

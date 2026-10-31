@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 
 class AppDetailField extends StatelessWidget {
@@ -22,7 +23,7 @@ class AppDetailField extends StatelessWidget {
         ),
         VerticalGap.xs,
         Text(
-          hasValue ? value! : 'Not provided',
+          hasValue ? value! : AppLocalizations.of(context).notProvided,
           style: hasValue
               ? theme.textTheme.bodyLarge
               : theme.textTheme.bodyMedium?.copyWith(

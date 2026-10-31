@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:petlytics/core/l10n/app_locale.dart';
+import 'package:petlytics/core/l10n/app_number_formats.dart';
 import 'package:petlytics/features/vet_visit/presentation/utils/vet_visit_cost.dart';
 
 void main() {
@@ -13,7 +15,9 @@ void main() {
       ('92233720368547758.07', 9223372036854775807),
     ]) {
       expect(parseVetVisitCost(input), expected, reason: input);
-      expect(parseVetVisitCost(formatVetVisitCost(expected)), expected);
+      for (final locale in appSupportedLocales) {
+        expect(parseVetVisitCost(localizedAmount(expected, locale)), expected);
+      }
     }
   });
 

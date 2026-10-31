@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
@@ -15,43 +16,41 @@ Future<void> performMedicationAction(
       .where((item) => item.id == action.medicationId)
       .firstOrNull;
   if (medication == null) return;
-  final String title;
-  final String message;
-  switch (action) {
-    case DeleteMedicationAction():
-      title = 'Delete medication?';
-      message =
-          'Delete ${medication.name}, all its schedules and dose records?';
-    case DeleteMedicationPeriodAction():
-      final index = medication.periods.indexWhere(
-        (period) => period.id == action.periodId,
-      );
-      if (index < 1) return;
-      final previous = medication.periods[index - 1];
-      final resumes =
-          previous.endDate == null ||
-          calendarDayNumber(previous.endDate!) >=
-              calendarDayNumber(medication.periods[index].startDate);
-      title = 'Cancel scheduled changes?';
-      message =
-          'Remove these unstarted changes?${resumes ? ' The previous schedule may continue until its end date or the next change.' : ' Earlier dose records will be kept.'}';
-    case ClearMedicationDoseAction():
-      title = 'Clear dose record?';
-      message =
-          'This dose will return to No record. The scheduled dose stays in the plan.';
-    case SaveMedicationDoseAction():
-      return cubit.performAction(action);
+  if (action is SaveMedicationDoseAction) return cubit.performAction(action);
+  var resumes = false;
+  if (action is DeleteMedicationPeriodAction) {
+    final index = medication.periods.indexWhere(
+      (period) => period.id == action.periodId,
+    );
+    if (index < 1) return;
+    final previous = medication.periods[index - 1];
+    resumes =
+        previous.endDate == null ||
+        calendarDayNumber(previous.endDate!) >=
+            calendarDayNumber(medication.periods[index].startDate);
   }
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (_) => AppConfirmationDialog(
-      title: title,
-      message: message,
+    builder: (context) => AppConfirmationDialog(
+      title: action is DeleteMedicationAction
+          ? AppLocalizations.of(context).deleteMedicationTitle
+          : action is DeleteMedicationPeriodAction
+          ? AppLocalizations.of(context).cancelScheduledChangesTitle
+          : AppLocalizations.of(context).clearDoseRecordTitle,
+      message: action is DeleteMedicationAction
+          ? AppLocalizations.of(
+              context,
+            ).deleteMedicationMessage(medication.name)
+          : action is DeleteMedicationPeriodAction
+          ? resumes
+                ? AppLocalizations.of(context).cancelScheduleResumeMessage
+                : AppLocalizations.of(context).cancelScheduleKeepHistoryMessage
+          : AppLocalizations.of(context).clearDoseRecordMessage,
       confirmLabel: action is DeleteMedicationAction
-          ? 'Delete'
+          ? AppLocalizations.of(context).deleteAction
           : action is ClearMedicationDoseAction
-          ? 'Clear record'
-          : 'Cancel changes',
+          ? AppLocalizations.of(context).clearRecord
+          : AppLocalizations.of(context).cancelChanges,
     ),
   );
   if (confirmed == true && context.mounted && !cubit.isClosed) {

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +8,7 @@ import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/utils/weight_utils.dart';
+import 'package:petlytics/core/l10n/app_number_formats.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
@@ -45,6 +47,7 @@ class PetDetailPage extends StatelessWidget {
       }
     },
     builder: (context, state) {
+      final strings = AppLocalizations.of(context);
       final loaded = state is PetLoaded ? state : null;
       final deleting = loaded?.isDeleting == true;
       return PopScope<String>(
@@ -53,7 +56,7 @@ class PetDetailPage extends StatelessWidget {
           appBar: petCareAppBar(
             context,
             title: PetCareTitle(
-              title: 'Pet profile',
+              title: strings.petProfile,
               petName: loaded?.pet.name,
             ),
             busy: deleting,
@@ -63,7 +66,7 @@ class PetDetailPage extends StatelessWidget {
             actions: [
               if (loaded != null)
                 IconButton(
-                  tooltip: 'Delete pet',
+                  tooltip: strings.deletePet,
                   onPressed: deleting
                       ? null
                       : () => deletePetWithConfirmation(context, loaded.pet),
@@ -80,10 +83,14 @@ class PetDetailPage extends StatelessWidget {
                     if (deleteError != null || refreshError != null)
                       Flexible(
                         child: AppErrorFeedback(
-                          message: deleteError ?? refreshError!,
+                          message: deleteError != null
+                              ? strings.petDeleteFailed
+                              : refreshError is NotFoundFailure
+                              ? strings.petNotFound
+                              : strings.petRefreshFailed,
                           retryLabel: deleteError != null
-                              ? 'Retry deletion'
-                              : 'Retry profile',
+                              ? strings.retryDeletion
+                              : strings.retryProfile,
                           onRetry: () => deleteError != null
                               ? deletePetWithConfirmation(context, pet)
                               : context.read<PetCubit>().refreshPet(petId),
@@ -97,8 +104,10 @@ class PetDetailPage extends StatelessWidget {
                     ),
                   ],
                 ),
-              PetError(:final message) => ErrorView(
-                message: message,
+              PetError(:final failure) => ErrorView(
+                message: failure is NotFoundFailure
+                    ? strings.petNotFound
+                    : strings.petLoadFailed,
                 onRetry: () => context.read<PetCubit>().getPetById(petId),
               ),
               _ => const Center(child: CircularProgressIndicator()),
@@ -117,6 +126,7 @@ class _PetView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final strings = AppLocalizations.of(context);
     final colors = theme.colorScheme;
     final birthDate = pet.birthDate;
     return SafeArea(
@@ -137,12 +147,12 @@ class _PetView extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            'Profile details',
+                            strings.profileDetails,
                             style: theme.textTheme.titleMedium,
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Edit profile',
+                          tooltip: strings.editProfile,
                           onPressed: onEdit,
                           icon: const Icon(Icons.edit_outlined),
                         ),
@@ -150,16 +160,16 @@ class _PetView extends StatelessWidget {
                     ),
                     VerticalGap.md,
                     for (final (index, detail) in [
-                      (Icons.wc_outlined, 'Sex', pet.sex.label),
-                      (Icons.category_outlined, 'Breed', pet.breed),
+                      (Icons.wc_outlined, strings.sex, pet.sex.label(strings)),
+                      (Icons.category_outlined, strings.breed, pet.breed),
                       (
                         Icons.health_and_safety_outlined,
-                        'Reproductive status',
-                        pet.reproductiveStatus.label,
+                        strings.reproductiveStatus,
+                        pet.reproductiveStatus.label(strings),
                       ),
                       (
                         Icons.cake_outlined,
-                        'Birth date',
+                        strings.birthDate,
                         birthDate == null
                             ? null
                             : MaterialLocalizations.of(
@@ -168,12 +178,16 @@ class _PetView extends StatelessWidget {
                       ),
                       (
                         Icons.monitor_weight_outlined,
-                        'Current weight',
+                        strings.currentWeight,
                         pet.weight == null
                             ? null
-                            : '${formatWeight(pet.weight!)} kg',
+                            : '${localizedWeight(pet.weight!, Localizations.localeOf(context))} kg',
                       ),
-                      (Icons.memory_outlined, 'Microchip ID', pet.microchipId),
+                      (
+                        Icons.memory_outlined,
+                        strings.microchipId,
+                        pet.microchipId,
+                      ),
                     ].indexed) ...[
                       if (index > 0)
                         const Padding(
@@ -207,7 +221,7 @@ class _PetView extends StatelessWidget {
                                 Text(
                                   detail.$3?.trim().isNotEmpty == true
                                       ? detail.$3!
-                                      : 'Not provided',
+                                      : strings.notProvided,
                                   style: theme.textTheme.bodyLarge,
                                 ),
                               ],

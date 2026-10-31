@@ -1,17 +1,23 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/utils/time_input_formatter.dart';
 import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
-String reminderScheduleSummary(VaccinationReminderSchedule schedule) {
+String reminderScheduleSummary(
+  AppLocalizations strings,
+  VaccinationReminderSchedule schedule,
+) {
   final days = schedule.daysBefore
       .map(
-        (day) => day == 0
-            ? 'Vaccination day'
-            : '$day ${day == 1 ? 'day' : 'days'} before',
+        (day) =>
+            day == 0 ? strings.vaccinationDay : strings.reminderDaysBefore(day),
       )
       .join(', ');
-  return '$days · ${reminderTime(schedule.minuteOfDay)}';
+  return strings.reminderScheduleSummary(
+    days,
+    reminderTime(schedule.minuteOfDay),
+  );
 }
 
 String reminderTime(int minute) =>
@@ -64,16 +70,19 @@ class _ReminderScheduleFieldsState extends State<ReminderScheduleFields> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('Remind me', style: Theme.of(context).textTheme.titleMedium),
+      Text(
+        AppLocalizations.of(context).remindMe,
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
       const SizedBox(height: AppSpacing.sm),
-      const Text('Choose up to 3 reminder days.'),
+      Text(AppLocalizations.of(context).reminderDayLimitHint),
       const SizedBox(height: AppSpacing.sm),
       FormField<Set<int>>(
         initialValue: _days,
         validator: (_) => _days.isEmpty
-            ? 'Select at least one day'
+            ? AppLocalizations.of(context).reminderDayRequired
             : _days.length > VaccinationReminderSchedule.maxReminderDays
-            ? 'Choose up to 3 reminder days'
+            ? AppLocalizations.of(context).reminderDayLimit
             : null,
         builder: (field) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,8 +97,10 @@ class _ReminderScheduleFieldsState extends State<ReminderScheduleFields> {
                     key: ValueKey('reminder-day-$day'),
                     label: Text(
                       day == 0
-                          ? 'Vaccination day'
-                          : '$day ${day == 1 ? 'day' : 'days'} before',
+                          ? AppLocalizations.of(context).vaccinationDay
+                          : AppLocalizations.of(
+                              context,
+                            ).reminderDaysBefore(day),
                     ),
                     selected: _days.contains(day),
                     onSelected: _days.contains(day) || !_atDayLimit
@@ -125,13 +136,15 @@ class _ReminderScheduleFieldsState extends State<ReminderScheduleFields> {
         textInputAction: TextInputAction.done,
         inputFormatters: const [TimeInputFormatter()],
         onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
-        decoration: const InputDecoration(
-          labelText: 'Reminder time',
-          hintText: 'HH:mm',
-          helperText: '24-hour time on this device.',
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context).reminderTime,
+          hintText: AppLocalizations.of(context).timeFormatHint,
+          helperText: AppLocalizations.of(context).time24DeviceHint,
           errorMaxLines: 3,
         ),
-        validator: (_) => _minute != null ? null : 'Use 00:00–23:59',
+        validator: (_) => _minute != null
+            ? null
+            : AppLocalizations.of(context).timeRangeInvalid,
         onChanged: (_) => _changed(),
       ),
     ],

@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -105,9 +106,9 @@ class _NotificationNavigationState extends State<NotificationNavigation>
                 AppLifecycleState.resumed) {
           _deferred = target;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'Finish the current form or action to open this reminder.',
+                AppLocalizations.of(context).finishFormToOpenReminder,
               ),
             ),
           );
@@ -136,11 +137,15 @@ class _NotificationNavigationState extends State<NotificationNavigation>
         case Error(:final failure):
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(failure.message),
+              content: Text(
+                failure is NotFoundFailure
+                    ? AppLocalizations.of(context).reminderTargetUnavailable
+                    : AppLocalizations.of(context).reminderOpenFailed,
+              ),
               action: failure is NotFoundFailure
                   ? null
                   : SnackBarAction(
-                      label: 'Retry',
+                      label: AppLocalizations.of(context).retry,
                       onPressed: () => _cubit.requestOpen(target),
                     ),
             ),

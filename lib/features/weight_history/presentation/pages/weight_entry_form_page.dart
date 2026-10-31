@@ -1,6 +1,9 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/l10n/app_number_formats.dart';
 import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -34,13 +37,13 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
   final _weightController = TextEditingController();
   late DateTime _measuredAt;
   late final DateTime _initialMeasuredAt;
-  String? _saveError;
+  Failure? _saveError;
   bool _allowPop = false;
   bool _confirmingDiscard = false;
+  String? _initialWeightText;
 
   bool get _hasChanges =>
-      _weightController.text !=
-          (widget.entry == null ? '' : formatWeight(widget.entry!.weight)) ||
+      _weightController.text != _initialWeightText ||
       !DateUtils.isSameDay(_measuredAt, _initialMeasuredAt);
 
   @override
@@ -49,10 +52,20 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
     _measuredAt =
         widget.entry?.measuredAt.toLocal() ??
         DateUtils.dateOnly(DateTime.now());
-    _weightController.text = widget.entry == null
-        ? ''
-        : formatWeight(widget.entry!.weight);
     _initialMeasuredAt = _measuredAt;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialWeightText != null) return;
+    _initialWeightText = widget.entry == null
+        ? ''
+        : localizedWeight(
+            widget.entry!.weight,
+            Localizations.localeOf(context),
+          );
+    _weightController.text = _initialWeightText!;
   }
 
   @override
@@ -114,11 +127,11 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
     _confirmingDiscard = true;
     final discard = await showDialog<bool>(
       context: context,
-      builder: (_) => const AppConfirmationDialog(
-        title: 'Discard changes?',
-        message: 'Your changes have not been saved. Leave without saving?',
-        cancelLabel: 'Keep editing',
-        confirmLabel: 'Discard changes',
+      builder: (context) => AppConfirmationDialog(
+        title: AppLocalizations.of(context).discardChangesTitle,
+        message: AppLocalizations.of(context).discardChangesMessage,
+        cancelLabel: AppLocalizations.of(context).keepEditing,
+        confirmLabel: AppLocalizations.of(context).discardChanges,
       ),
     );
     _confirmingDiscard = false;
@@ -133,28 +146,28 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textInputAction: TextInputAction.done,
         onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
-        decoration: const InputDecoration(
-          labelText: 'Weight',
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context).weight,
           suffixText: 'kg',
           errorMaxLines: 3,
         ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return 'Weight is required';
+            return AppLocalizations.of(context).weightRequired;
           }
           final weight = parseWeight(value);
           if (weight == null || !weight.isFinite || weight <= 0) {
-            return 'Enter a weight greater than zero';
+            return AppLocalizations.of(context).weightGreaterThanZero;
           }
           if (!hasValidWeightPrecision(value)) {
-            return 'Use up to 3 decimal places';
+            return AppLocalizations.of(context).weightThreeDecimals;
           }
           return null;
         },
       ),
       VerticalGap.md,
       AppDateField(
-        labelText: 'Measurement date',
+        labelText: AppLocalizations.of(context).measurementDate,
         value: _measuredAt,
         firstDate: DateTime(1900),
         lastDate: DateTime.now(),
@@ -170,73 +183,85 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
   );
 
   @override
-  Widget build(
-    BuildContext context,
-  ) => BlocConsumer<WeightHistoryCubit, WeightHistoryState>(
-    listener: (context, state) {
-      if (state case WeightEntryCreated() || WeightEntryUpdated()) {
-        _leave(result: true);
-      } else if (state case WeightHistoryError(:final message)) {
-        setState(() => _saveError = message);
-      }
-    },
-    builder: (context, state) => AppMultiStepForm(
-      title: PetCareTitle(
-        title: widget.entry == null ? 'Add measurement' : 'Edit measurement',
-        petName: widget.petName,
-      ),
-      toolbarHeight: PetCareTitle.toolbarHeight(context),
-      editing: widget.entry != null,
-      isSaving: () {
-        final current = context.read<WeightHistoryCubit>().state;
-        return current is WeightHistoryLoading ||
-            current is WeightEntryCreated ||
-            current is WeightEntryUpdated;
-      },
-      allowPop: _allowPop,
-      canSubmit: widget.entry == null || _hasChanges,
-      submitLabel: widget.entry == null ? 'Save' : 'Save changes',
-      saveError: _saveError,
-      onSubmit: _submit,
-      onExit: _requestExit,
-      onChanged: () => setState(() {}),
-      steps: [
-        AppFormStep(title: 'Measurement', builder: (_, _) => _measurement()),
-        AppFormStep(
-          title: 'Review',
-          builder: (context, edit) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Review measurement',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              VerticalGap.md,
-              AppFormReviewSection(
-                title: 'Measurement',
-                icon: Icons.monitor_weight_outlined,
-                onEdit: () => edit(0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    AppDetailField(
-                      label: 'Weight',
-                      value: '${_weightController.text} kg',
-                    ),
-                    VerticalGap.md,
-                    AppDetailField(
-                      label: 'Measurement date',
-                      value: MaterialLocalizations.of(
-                        context,
-                      ).formatShortDate(_measuredAt),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+  Widget build(BuildContext context) =>
+      BlocConsumer<WeightHistoryCubit, WeightHistoryState>(
+        listener: (context, state) {
+          if (state case WeightEntryCreated() || WeightEntryUpdated()) {
+            _leave(result: true);
+          } else if (state case WeightHistoryError(:final failure)) {
+            setState(() => _saveError = failure);
+          }
+        },
+        builder: (context, state) => AppMultiStepForm(
+          title: PetCareTitle(
+            title: widget.entry == null
+                ? AppLocalizations.of(context).addMeasurement
+                : AppLocalizations.of(context).editMeasurement,
+            petName: widget.petName,
           ),
+          toolbarHeight: PetCareTitle.toolbarHeight(context),
+          editing: widget.entry != null,
+          isSaving: () {
+            final current = context.read<WeightHistoryCubit>().state;
+            return current is WeightHistoryLoading ||
+                current is WeightEntryCreated ||
+                current is WeightEntryUpdated;
+          },
+          allowPop: _allowPop,
+          canSubmit: widget.entry == null || _hasChanges,
+          submitLabel: widget.entry == null
+              ? AppLocalizations.of(context).save
+              : AppLocalizations.of(context).saveChanges,
+          saveError: _saveError == null
+              ? null
+              : _saveError is NotFoundFailure
+              ? AppLocalizations.of(context).measurementNotFound
+              : widget.entry == null
+              ? AppLocalizations.of(context).measurementCreateFailed
+              : AppLocalizations.of(context).measurementUpdateFailed,
+          onSubmit: _submit,
+          onExit: _requestExit,
+          onChanged: () => setState(() {}),
+          steps: [
+            AppFormStep(
+              title: AppLocalizations.of(context).measurement,
+              builder: (_, _) => _measurement(),
+            ),
+            AppFormStep(
+              title: AppLocalizations.of(context).review,
+              builder: (context, edit) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    AppLocalizations.of(context).reviewMeasurement,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  VerticalGap.md,
+                  AppFormReviewSection(
+                    title: AppLocalizations.of(context).measurement,
+                    icon: Icons.monitor_weight_outlined,
+                    onEdit: () => edit(0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AppDetailField(
+                          label: AppLocalizations.of(context).weight,
+                          value: '${_weightController.text} kg',
+                        ),
+                        VerticalGap.md,
+                        AppDetailField(
+                          label: AppLocalizations.of(context).measurementDate,
+                          value: MaterialLocalizations.of(
+                            context,
+                          ).formatShortDate(_measuredAt),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }

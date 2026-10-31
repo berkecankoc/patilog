@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
@@ -28,7 +30,7 @@ class LinkedVetVisitSection extends StatelessWidget {
     void load() => context.read<VetVisitCubit>().loadVetVisit(petId, visitId);
     return AppRelatedRecordsSection(
       key: ValueKey((petId, visitId)),
-      title: 'Linked vet visit',
+      title: AppLocalizations.of(context).linkedVetVisit,
       icon: Icons.link_outlined,
       onLoad: load,
       child: BlocBuilder<VetVisitCubit, VetVisitState>(
@@ -39,14 +41,14 @@ class LinkedVetVisitSection extends StatelessWidget {
               if (refreshError != null)
                 AppErrorFeedback(
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  message: refreshError,
-                  retryLabel: 'Retry visit',
+                  message: AppLocalizations.of(context).visitLoadFailed,
+                  retryLabel: AppLocalizations.of(context).retryVisit,
                   onRetry: load,
                 ),
               AppRelatedRecordTile(
                 title: visit.reason,
                 icon: Icons.event_note_outlined,
-                openLabel: 'Open vet visit',
+                openLabel: AppLocalizations.of(context).openVetVisit,
                 onOpen: onOpen,
                 details: AppRelatedClinicalDetails(
                   clinicName: visit.clinicName,
@@ -57,17 +59,19 @@ class LinkedVetVisitSection extends StatelessWidget {
               ),
             ],
           ),
-          VetVisitError(:final message) => AppErrorFeedback(
+          VetVisitError(:final failure) => AppErrorFeedback(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-            message: message,
-            retryLabel: 'Retry visit',
+            message: failure is NotFoundFailure
+                ? AppLocalizations.of(context).visitNotFound
+                : AppLocalizations.of(context).visitLoadFailed,
+            retryLabel: AppLocalizations.of(context).retryVisit,
             onRetry: load,
           ),
-          _ => const Padding(
+          _ => Padding(
             padding: EdgeInsets.all(AppSpacing.md),
             child: Center(
               child: CircularProgressIndicator(
-                semanticsLabel: 'Loading linked vet visit',
+                semanticsLabel: AppLocalizations.of(context).loadingLinkedVisit,
               ),
             ),
           ),

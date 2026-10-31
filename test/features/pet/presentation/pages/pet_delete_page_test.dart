@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'dart:async';
 import '../../../../helpers/all_pets_care_dependencies.dart';
 import 'package:petlytics/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
@@ -97,6 +98,7 @@ void main() {
       RepositoryProvider<ImageStorage>.value(
         value: images,
         child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           theme:
               (brightness == Brightness.light ? AppTheme.light : AppTheme.dark)
                   .copyWith(platform: platform),
@@ -261,10 +263,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PetDetailPage), findsOneWidget);
     expect(find.text(pet.name), findsOneWidget);
-    expect(
-      find.text('Could not delete pet. Please retry.').hitTestable(),
-      findsOneWidget,
-    );
+    expect(find.text('Failed to delete pet').hitTestable(), findsOneWidget);
     expect(find.text('Retry deletion').hitTestable(), findsOneWidget);
     expect(
       tester
@@ -358,7 +357,7 @@ void main() {
           await confirmDialog(tester);
           await tester.tap(find.text('Delete'));
           await tester.pumpAndSettle();
-          final message = find.text('Could not delete pet. Please retry.');
+          final message = find.text('Failed to delete pet');
           final retry = find.text('Retry deletion');
           expect(retry.hitTestable(), findsOneWidget);
           expect(
@@ -419,10 +418,7 @@ void main() {
         await confirmDialog(tester);
         await tester.tap(find.text('Delete'));
         await tester.pumpAndSettle();
-        expect(
-          find.text('Could not delete pet. Please retry.').hitTestable(),
-          findsOneWidget,
-        );
+        expect(find.text('Failed to delete pet').hitTestable(), findsOneWidget);
         expect(find.text('Retry deletion').hitTestable(), findsOneWidget);
         expect(tester.takeException(), isNull);
       });

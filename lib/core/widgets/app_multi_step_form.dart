@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_form_actions.dart';
@@ -60,6 +61,24 @@ class _AppMultiStepFormState extends State<AppMultiStepForm> {
   late int _step =
       widget.initialStep ?? (widget.editing ? widget.steps.length - 1 : 0);
   final _history = <int>[];
+  final _validatedSteps = <int>{};
+  Locale? _locale;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context);
+    if (_locale != null && _locale != locale) {
+      // Refresh visible errors without validating untouched form steps.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        for (final step in _validatedSteps) {
+          _forms[step].currentState?.validate();
+        }
+      });
+    }
+    _locale = locale;
+  }
 
   int get _review => widget.steps.length - 1;
   bool get _returningToReview => _history.lastOrNull == _review;
@@ -76,6 +95,7 @@ class _AppMultiStepFormState extends State<AppMultiStepForm> {
   }
 
   bool _validate(int step) {
+    _validatedSteps.add(step);
     final errors = _forms[step].currentState!.validateGranularly();
     if (errors.isEmpty) return true;
     final field = errors.first;
@@ -155,7 +175,9 @@ class _AppMultiStepFormState extends State<AppMultiStepForm> {
                           ),
                           child: AppErrorFeedback(
                             message: widget.saveError!,
-                            retryLabel: 'Review changes',
+                            retryLabel: AppLocalizations.of(
+                              context,
+                            ).reviewChanges,
                             onRetry: _step == _review
                                 ? null
                                 : () => _edit(_review),
@@ -194,7 +216,13 @@ class _AppMultiStepFormState extends State<AppMultiStepForm> {
                                               Semantics(
                                                 liveRegion: true,
                                                 child: Text(
-                                                  'Step ${index + 1} of ${widget.steps.length} · ${widget.steps[index].title}',
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  ).formStep(
+                                                    index + 1,
+                                                    widget.steps.length,
+                                                    widget.steps[index].title,
+                                                  ),
                                                 ),
                                               ),
                                               const SizedBox(height: 12),
@@ -203,7 +231,9 @@ class _AppMultiStepFormState extends State<AppMultiStepForm> {
                                                     (index + 1) /
                                                     widget.steps.length,
                                                 semanticsLabel:
-                                                    'Current form step',
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    ).currentFormStep,
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                               ),
@@ -234,8 +264,8 @@ class _AppMultiStepFormState extends State<AppMultiStepForm> {
                 label: _step == _review
                     ? widget.submitLabel
                     : _returningToReview
-                    ? 'Done'
-                    : 'Continue',
+                    ? AppLocalizations.of(context).done
+                    : AppLocalizations.of(context).continueAction,
                 saving: widget.saving,
                 onPressed: _step == _review
                     ? (widget.canSubmit ? _submit : null)
@@ -279,7 +309,7 @@ class AppFormReviewSection extends StatelessWidget {
               final heading = AppSectionHeading(title: title, icon: icon);
               final edit = TextButton(
                 onPressed: onEdit,
-                child: const Text('Edit'),
+                child: Text(AppLocalizations.of(context).edit),
               );
               if (constraints.maxWidth < 360 &&
                   MediaQuery.textScalerOf(context).scale(14) >= 21) {
@@ -405,7 +435,7 @@ class AppFormNavigationActions extends StatelessWidget {
                 if (!showBack) return primary;
                 final back = TextButton(
                   onPressed: saving ? null : onBack,
-                  child: const Text('Back'),
+                  child: Text(AppLocalizations.of(context).back),
                 );
                 if (constraints.maxWidth < 360 &&
                     MediaQuery.textScalerOf(context).scale(14) >= 21) {

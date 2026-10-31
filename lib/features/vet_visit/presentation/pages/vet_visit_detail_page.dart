@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +23,7 @@ import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
 import 'package:petlytics/features/vet_visit/presentation/utils/confirm_vet_visit_deletion.dart';
-import 'package:petlytics/features/vet_visit/presentation/utils/vet_visit_cost.dart';
+import 'package:petlytics/core/l10n/app_number_formats.dart';
 import 'package:petlytics/features/vet_visit/presentation/widgets/visit_vaccinations_section.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
@@ -129,15 +131,18 @@ class VetVisitDetailPage extends StatelessWidget {
           child: Scaffold(
             appBar: AppBar(
               toolbarHeight: PetCareTitle.toolbarHeight(context),
-              title: PetCareTitle(title: 'Vet visit', petName: petName),
+              title: PetCareTitle(
+                title: AppLocalizations.of(context).vetVisit,
+                petName: petName,
+              ),
               leading: careBackButton(context, busy: deleting),
               bottom: busy
                   ? PreferredSize(
                       preferredSize: const Size.fromHeight(4),
                       child: LinearProgressIndicator(
                         semanticsLabel: deleting
-                            ? 'Deleting visit'
-                            : 'Refreshing visit',
+                            ? AppLocalizations.of(context).deletingVisit
+                            : AppLocalizations.of(context).refreshingVisit,
                       ),
                     )
                   : null,
@@ -145,7 +150,7 @@ class VetVisitDetailPage extends StatelessWidget {
                 MyPetsButton(enabled: !busy),
                 if (state case VetVisitLoaded(:final visit))
                   IconButton(
-                    tooltip: 'Delete visit',
+                    tooltip: AppLocalizations.of(context).deleteVisit,
                     icon: const Icon(Icons.delete_outline),
                     onPressed: busy ? null : () => _delete(context, visit),
                   ),
@@ -166,10 +171,16 @@ class VetVisitDetailPage extends StatelessWidget {
                           if (deleteError != null || refreshError != null)
                             Flexible(
                               child: AppErrorFeedback(
-                                message: deleteError ?? refreshError!,
+                                message: deleteError != null
+                                    ? AppLocalizations.of(
+                                        context,
+                                      ).visitDeleteFailed
+                                    : AppLocalizations.of(
+                                        context,
+                                      ).visitLoadFailed,
                                 retryLabel: deleteError != null
-                                    ? 'Retry deletion'
-                                    : 'Retry',
+                                    ? AppLocalizations.of(context).retryDeletion
+                                    : AppLocalizations.of(context).retry,
                                 onRetry: deleteError != null
                                     ? () => _delete(context, visit)
                                     : () => context
@@ -221,7 +232,9 @@ class VetVisitDetailPage extends StatelessWidget {
                                                 ),
                                               ),
                                               IconButton(
-                                                tooltip: 'Edit visit',
+                                                tooltip: AppLocalizations.of(
+                                                  context,
+                                                ).editVisit,
                                                 color: colors.primary,
                                                 onPressed: busy
                                                     ? null
@@ -235,51 +248,69 @@ class VetVisitDetailPage extends StatelessWidget {
                                           ),
                                           VerticalGap.md,
                                           AppDetailField(
-                                            label: 'Reason for visit',
+                                            label: AppLocalizations.of(
+                                              context,
+                                            ).visitReason,
                                             value: visit.reason,
                                           ),
                                           const Divider(height: AppSpacing.xxl),
-                                          const AppSectionHeading(
-                                            title: 'Clinic & veterinarian',
+                                          AppSectionHeading(
+                                            title: AppLocalizations.of(
+                                              context,
+                                            ).clinical,
                                             icon: Icons.local_hospital_outlined,
                                           ),
                                           VerticalGap.md,
                                           AppDetailField(
-                                            label: 'Clinic',
+                                            label: AppLocalizations.of(
+                                              context,
+                                            ).clinic,
                                             value: visit.clinicName,
                                           ),
                                           VerticalGap.md,
                                           AppDetailField(
-                                            label: 'Veterinarian',
+                                            label: AppLocalizations.of(
+                                              context,
+                                            ).veterinarian,
                                             value: visit.veterinarianName,
                                           ),
                                           const Divider(height: AppSpacing.xxl),
-                                          const AppSectionHeading(
-                                            title: 'Medical notes',
+                                          AppSectionHeading(
+                                            title: AppLocalizations.of(
+                                              context,
+                                            ).medicalNotes,
                                             icon: Icons
                                                 .medical_information_outlined,
                                           ),
                                           VerticalGap.md,
                                           AppDetailField(
-                                            label: 'Diagnosis',
+                                            label: AppLocalizations.of(
+                                              context,
+                                            ).diagnosis,
                                             value: visit.diagnosis,
                                           ),
                                           VerticalGap.md,
                                           AppDetailField(
-                                            label: 'Notes',
+                                            label: AppLocalizations.of(
+                                              context,
+                                            ).notes,
                                             value: visit.notes,
                                           ),
                                           const Divider(height: AppSpacing.xxl),
-                                          const AppSectionHeading(
-                                            title: 'Cost',
+                                          AppSectionHeading(
+                                            title: AppLocalizations.of(
+                                              context,
+                                            ).cost,
                                             icon: Icons.payments_outlined,
                                           ),
                                           VerticalGap.md,
                                           AppDetailField(
-                                            label: 'Amount',
+                                            label: AppLocalizations.of(
+                                              context,
+                                            ).amount,
                                             value: visit.costMinorUnits == null
                                                 ? null
-                                                : '${formatVetVisitCost(visit.costMinorUnits!)} ${visit.currency!.code}',
+                                                : '${localizedAmount(visit.costMinorUnits!, Localizations.localeOf(context))} ${visit.currency!.code}',
                                           ),
                                         ],
                                       ),
@@ -319,8 +350,10 @@ class VetVisitDetailPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                    VetVisitError(:final message) => ErrorView(
-                      message: message,
+                    VetVisitError(:final failure) => ErrorView(
+                      message: failure is NotFoundFailure
+                          ? AppLocalizations.of(context).visitNotFound
+                          : AppLocalizations.of(context).visitLoadFailed,
                       onRetry: () => context.read<VetVisitCubit>().loadVetVisit(
                         petId,
                         visitId,

@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
@@ -166,11 +167,11 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       _confirming = true;
       final discard = await showDialog<bool>(
         context: context,
-        builder: (_) => const AppConfirmationDialog(
-          title: 'Discard changes?',
-          message: 'Your changes have not been saved. Leave without saving?',
-          cancelLabel: 'Keep editing',
-          confirmLabel: 'Discard changes',
+        builder: (context) => AppConfirmationDialog(
+          title: AppLocalizations.of(context).discardChangesTitle,
+          message: AppLocalizations.of(context).discardChangesMessage,
+          cancelLabel: AppLocalizations.of(context).keepEditing,
+          confirmLabel: AppLocalizations.of(context).discardChanges,
         ),
       );
       _confirming = false;
@@ -195,24 +196,24 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
   }
 
   String? _nameError(String? text) => (text ?? '').trim().isEmpty
-      ? 'Enter a medication name.'
+      ? AppLocalizations.of(context).medicationNameRequired
       : _limit(text, 50);
   String? _limit(String? text, int max) =>
       (text ?? '').trim().characters.length > max
-      ? 'Use $max characters or fewer.'
+      ? AppLocalizations.of(context).maxCharacters(max)
       : null;
   String? _timeError(String? text) {
     final minute = parseDoseTime(text ?? '');
-    if (minute == null) return 'Use HH:mm, from 00:00 to 23:59.';
+    if (minute == null) return AppLocalizations.of(context).doseTimeInvalid;
     return _times.where((time) => parseDoseTime(time.text) == minute).length > 1
-        ? 'Each time must be different.'
+        ? AppLocalizations.of(context).uniqueDoseTimes
         : null;
   }
 
   String? get _scheduleError => _times.isEmpty
-      ? 'Add at least one dose time.'
+      ? AppLocalizations.of(context).doseTimeRequired
       : _end != null && calendarDayNumber(_end!) < calendarDayNumber(_saveStart)
-      ? 'End date must be on or after the start date.'
+      ? AppLocalizations.of(context).periodEndInvalid
       : null;
 
   void _submit() {
@@ -289,11 +290,14 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
   Widget _medication(MedicationFormState state) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('Which medication?', style: Theme.of(context).textTheme.titleLarge),
+      Text(
+        AppLocalizations.of(context).whichMedication,
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
       const SizedBox(height: 24),
       AppSuggestionField(
         controller: _name,
-        label: 'Medication name',
+        label: AppLocalizations.of(context).medicationName,
         suggestions: state.suggestions.medicationNames,
         loading: state.isLoadingSuggestions,
         validator: _nameError,
@@ -302,8 +306,8 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       const SizedBox(height: 16),
       _field(
         _dosage,
-        'Dosage instructions (optional)',
-        hintText: 'e.g. half a tablet',
+        AppLocalizations.of(context).dosageInstructionsOptional,
+        hintText: AppLocalizations.of(context).dosageExample,
         validator: (value) => _limit(value, 100),
         readOnly: _historical,
       ),
@@ -314,28 +318,24 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text(
-        'When are the doses?',
+        AppLocalizations.of(context).doseScheduleQuestion,
         style: Theme.of(context).textTheme.titleLarge,
       ),
       const SizedBox(height: 16),
       if (_historical)
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(bottom: 16),
-          child: Text(
-            'This previous schedule is read-only. You can still correct its clinic information and notes.',
-          ),
+          child: Text(AppLocalizations.of(context).previousScheduleReadOnly),
         ),
       if (_locked && !_historical || widget.newSchedule)
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(bottom: 16),
-          child: Text(
-            'Schedule changes start tomorrow or later. Earlier dose records stay unchanged.',
-          ),
+          child: Text(AppLocalizations.of(context).newScheduleEffectiveHint),
         ),
       AppDateField(
         labelText: _locked && !_historical || widget.newSchedule
-            ? 'Changes start'
-            : 'Start date',
+            ? AppLocalizations.of(context).changesStart
+            : AppLocalizations.of(context).startDate,
         value: _locked && !_historical || widget.newSchedule
             ? _changeStart
             : _start,
@@ -369,10 +369,18 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         initialValue: _daily,
         isExpanded: true,
         borderRadius: BorderRadius.circular(16),
-        decoration: const InputDecoration(labelText: 'Frequency'),
-        items: const [
-          DropdownMenuItem(value: true, child: Text('Daily')),
-          DropdownMenuItem(value: false, child: Text('Every N days')),
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context).frequency,
+        ),
+        items: [
+          DropdownMenuItem(
+            value: true,
+            child: Text(AppLocalizations.of(context).daily),
+          ),
+          DropdownMenuItem(
+            value: false,
+            child: Text(AppLocalizations.of(context).everyNDays),
+          ),
         ],
         onChanged: _historical
             ? null
@@ -384,11 +392,11 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         const SizedBox(height: 16),
         _field(
           _interval,
-          'Days between doses',
+          AppLocalizations.of(context).daysBetweenDoses,
           keyboardType: TextInputType.number,
           readOnly: _historical,
           validator: (value) => (int.tryParse(value ?? '') ?? 0) < 1
-              ? 'Enter at least 1 day.'
+              ? AppLocalizations.of(context).intervalRequired
               : null,
         ),
       ],
@@ -406,9 +414,9 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
                 inputFormatters: const [TimeInputFormatter()],
-                decoration: const InputDecoration(
-                  labelText: 'Dose time',
-                  hintText: 'HH:mm',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).doseTime,
+                  hintText: AppLocalizations.of(context).timeFormatHint,
                 ),
                 validator: _timeError,
                 onChanged: (_) => setState(() {}),
@@ -416,7 +424,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
             ),
             if (!_historical)
               IconButton(
-                tooltip: 'Remove ${time.text} dose time',
+                tooltip: AppLocalizations.of(context).removeDoseTime(time.text),
                 onPressed: () => setState(() => _times.remove(time)),
                 icon: const Icon(Icons.close),
               ),
@@ -438,12 +446,12 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
           alignment: AlignmentDirectional.centerStart,
           child: TextButton(
             onPressed: () => setState(() => _addTime()),
-            child: const Text('Add another time'),
+            child: Text(AppLocalizations.of(context).addAnotherTime),
           ),
         ),
       const SizedBox(height: 16),
       AppDateField(
-        labelText: 'End date (optional)',
+        labelText: AppLocalizations.of(context).endDateOptional,
         value: _end,
         firstDate: _saveStart,
         lastDate: DateTime(2100),
@@ -469,10 +477,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       ...state.visits.map((visit) => visit.id),
     ];
     String visitLabel(String? id) {
-      if (id == null) return 'No linked visit';
+      if (id == null) return AppLocalizations.of(context).noLinkedVisit;
       final visit = state.visits.where((visit) => visit.id == id).firstOrNull;
       return visit == null
-          ? 'Linked visit unavailable'
+          ? AppLocalizations.of(context).linkedVisitUnavailable
           : '${dates.formatShortDate(visit.visitedOn)} · ${visit.reason}';
     }
 
@@ -480,7 +488,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Review medication',
+          AppLocalizations.of(context).reviewMedication,
           style: Theme.of(context).textTheme.titleLarge,
         ),
         if (_period != null &&
@@ -490,12 +498,14 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Text(
-              'Editing scheduled changes from ${dates.formatShortDate(_period!.startDate)}. Current usage stays unchanged until then.',
+              AppLocalizations.of(context).editScheduledChangesNotice(
+                dates.formatShortDate(_period!.startDate),
+              ),
             ),
           ),
         const SizedBox(height: 16),
         AppFormReviewSection(
-          title: 'Medication',
+          title: AppLocalizations.of(context).medication,
           icon: Icons.medication_outlined,
           onEdit: () => edit(0),
           child: Column(
@@ -511,27 +521,46 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         ),
         const SizedBox(height: 16),
         AppFormReviewSection(
-          title: 'Schedule',
+          title: AppLocalizations.of(context).schedule,
           icon: Icons.schedule_outlined,
           onEdit: () => edit(1),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '${_daily ? 'Daily' : 'Every ${_interval.text} days'} · ${_times.map((time) => time.text).join(', ')}',
+                AppLocalizations.of(context).medicationScheduleSummary(
+                  _daily
+                      ? AppLocalizations.of(context).daily
+                      : AppLocalizations.of(context).medicationEveryDays(
+                          int.tryParse(_interval.text) ?? 1,
+                        ),
+                  _times.map((time) => time.text).join(', '),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
-                '${_successor ? 'Changes from' : 'From'} ${dates.formatShortDate(_saveStart)}',
+                _successor
+                    ? AppLocalizations.of(
+                        context,
+                      ).changesFromDate(dates.formatShortDate(_saveStart))
+                    : AppLocalizations.of(
+                        context,
+                      ).fromDate(dates.formatShortDate(_saveStart)),
               ),
               if (_end != null) ...[
                 const SizedBox(height: 8),
-                Text('Until ${dates.formatShortDate(_end!)}'),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  ).untilDate(dates.formatShortDate(_end!)),
+                ),
               ],
               if (_successor)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 8),
-                  child: Text('Earlier dose records stay unchanged.'),
+                  child: Text(
+                    AppLocalizations.of(context).preserveEarlierDoseRecords,
+                  ),
                 ),
             ],
           ),
@@ -540,7 +569,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         AppFormOptionalSection(
           controller: _details,
           initiallyExpanded: _details.isExpanded,
-          title: 'Clinic & notes (optional)',
+          title: AppLocalizations.of(context).clinicalNotesOptional,
           icon: Icons.local_hospital_outlined,
           onExpansionChanged: (expanded) {
             if (expanded) _loadOptions();
@@ -556,8 +585,8 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                 itemHeight: null,
                 menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
                 borderRadius: BorderRadius.circular(16),
-                decoration: const InputDecoration(
-                  labelText: 'Vet visit (optional)',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).vetVisitOptional,
                 ),
                 selectedItemBuilder: (_) => options
                     .map(
@@ -597,11 +626,13 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                 },
               ),
               if (state.isLoadingVisits)
-                const LinearProgressIndicator(semanticsLabel: 'Loading visits'),
+                LinearProgressIndicator(
+                  semanticsLabel: AppLocalizations.of(context).loadingVisits,
+                ),
               if (state.visitsError != null)
                 AppErrorFeedback(
-                  message: state.visitsError!,
-                  retryLabel: 'Retry visits',
+                  message: AppLocalizations.of(context).visitsLoadFailed,
+                  retryLabel: AppLocalizations.of(context).retryVisits,
                   onRetry: () => context.read<MedicationFormCubit>().loadVisits(
                     widget.petId,
                   ),
@@ -609,7 +640,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
               const SizedBox(height: 16),
               AppSuggestionField(
                 controller: _clinic,
-                label: 'Clinic (optional)',
+                label: AppLocalizations.of(context).clinicOptional,
                 suggestions: state.suggestions.clinicNames,
                 loading: state.isLoadingSuggestions,
                 onChanged: (_) {
@@ -622,7 +653,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
               const SizedBox(height: 16),
               AppSuggestionField(
                 controller: _vet,
-                label: 'Veterinarian (optional)',
+                label: AppLocalizations.of(context).veterinarianOptional,
                 suggestions: state.suggestions.veterinarianNames,
                 loading: state.isLoadingSuggestions,
                 onChanged: (_) => setState(() {}),
@@ -630,7 +661,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
               const SizedBox(height: 16),
               _field(
                 _notes,
-                'Notes (optional)',
+                AppLocalizations.of(context).notesOptional,
                 maxLines: 3,
                 validator: (value) => _limit(value, 200),
               ),
@@ -655,10 +686,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
           return AppMultiStepForm(
             title: PetCareTitle(
               title: widget.newSchedule
-                  ? 'Schedule doses'
+                  ? AppLocalizations.of(context).scheduleDoses
                   : _editing
-                  ? 'Edit medication'
-                  : 'Add medication',
+                  ? AppLocalizations.of(context).editMedication
+                  : AppLocalizations.of(context).addMedication,
               petName: widget.petName,
             ),
             toolbarHeight: PetCareTitle.toolbarHeight(context),
@@ -671,15 +702,17 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
             allowPop: _allowPop,
             canSubmit: !checking && (_dirty || !_editing || widget.newSchedule),
             submitLabel: widget.newSchedule
-                ? 'Schedule doses'
+                ? AppLocalizations.of(context).scheduleDoses
                 : _editing
-                ? 'Save changes'
-                : 'Add medication',
-            saveError: state.saveError,
+                ? AppLocalizations.of(context).saveChanges
+                : AppLocalizations.of(context).addMedication,
+            saveError: state.saveError == null
+                ? null
+                : AppLocalizations.of(context).medicationSaveFailed,
             status: state.periodError != null
                 ? AppErrorFeedback(
-                    message: state.periodError!,
-                    retryLabel: 'Retry dose history',
+                    message: AppLocalizations.of(context).periodCheckFailed,
+                    retryLabel: AppLocalizations.of(context).retryDoseHistory,
                     onRetry: () =>
                         context.read<MedicationFormCubit>().checkPeriod(
                           widget.petId,
@@ -688,8 +721,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
                         ),
                   )
                 : checking
-                ? const LinearProgressIndicator(
-                    semanticsLabel: 'Checking dose history',
+                ? LinearProgressIndicator(
+                    semanticsLabel: AppLocalizations.of(
+                      context,
+                    ).checkingDoseHistory,
                   )
                 : null,
             onSubmit: _submit,
@@ -697,19 +732,19 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
             onChanged: () => setState(() {}),
             steps: [
               AppFormStep(
-                title: 'Medication',
+                title: AppLocalizations.of(context).medication,
                 builder: (_, _) =>
                     _withSuggestionsError(state, _medication(state)),
               ),
               AppFormStep(
-                title: 'Schedule',
+                title: AppLocalizations.of(context).schedule,
                 builder: (_, _) => _withSuggestionsError(
                   state,
                   AbsorbPointer(absorbing: checking, child: _schedule()),
                 ),
               ),
               AppFormStep(
-                title: 'Review',
+                title: AppLocalizations.of(context).review,
                 builder: (_, edit) =>
                     _withSuggestionsError(state, _review(state, edit)),
               ),
@@ -725,8 +760,8 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
           child,
           if (state.suggestionsError != null)
             AppErrorFeedback(
-              message: state.suggestionsError!,
-              retryLabel: 'Retry suggestions',
+              message: AppLocalizations.of(context).suggestionsLoadFailed,
+              retryLabel: AppLocalizations.of(context).retrySuggestions,
               onRetry: () => context
                   .read<MedicationFormCubit>()
                   .loadSuggestions(clinicName: _clinic.text),

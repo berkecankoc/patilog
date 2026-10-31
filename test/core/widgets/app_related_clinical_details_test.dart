@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/widgets/app_related_clinical_details.dart';
@@ -8,6 +9,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Scaffold(
           body: AppRelatedClinicalDetails(
             clinicName: ' Clinic   A ',
@@ -27,6 +29,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Scaffold(
             body: AppRelatedClinicalDetails(
               clinicName: 'Clinic B',
@@ -41,6 +44,7 @@ void main() {
       expect(find.text('Veterinarian'), findsNothing);
       await tester.pumpWidget(
         const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Scaffold(
             body: AppRelatedClinicalDetails(
               clinicName: '  ',

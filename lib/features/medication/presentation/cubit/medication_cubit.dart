@@ -142,7 +142,7 @@ final class MedicationCubit extends Cubit<MedicationState> {
             ),
           );
         } else {
-          emit(MedicationError(result.failure.message));
+          emit(MedicationError(result.failure));
         }
     }
   }
