@@ -431,5 +431,11 @@
   "reminderSettingsSaveFailed": "Hatırlatma ayarları kaydedilemedi",
   "doseUpdateFailed": "Doz kaydı güncellenemedi",
   "reminderTargetUnavailable": "Bu hatırlatmanın kaydına artık ulaşılamıyor.",
-  "reminderOpenFailed": "Hatırlatma açılamadı"
+  "reminderOpenFailed": "Hatırlatma açılamadı",
+  "notificationTitle": "{petName} · {recordName}",
+  "notificationDoseBody": "Planlanan doz · {time}",
+  "notificationDoseInstructions": "{time} · {instructions}",
+  "notificationVaccinationBody": "Aşı tarihi: {date}.",
+  "medicationChannelDescription": "Planlanan ilaç dozları",
+  "vaccinationChannelDescription": "Planlanan aşılar için hatırlatmalar"
 }

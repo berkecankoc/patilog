@@ -5,6 +5,7 @@ import 'package:petlytics/features/notification/data/codecs/notification_target_
 import 'package:petlytics/features/notification/data/data_sources/notification_local_data_source.dart';
 import 'package:petlytics/features/notification/data/data_sources/notification_preferences_local_data_source.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
+import 'package:petlytics/features/notification/domain/entities/notification_channel_labels.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
@@ -81,8 +82,9 @@ final class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Result<void>> synchronizeReminders(
-    List<NotificationReminder> reminders,
-  ) {
+    List<NotificationReminder> reminders, {
+    required NotificationChannelLabels channels,
+  }) {
     final snapshot = List<NotificationReminder>.unmodifiable(reminders);
     return _mutate(() async {
       _validate(snapshot);
@@ -103,6 +105,8 @@ final class NotificationRepositoryImpl implements NotificationRepository {
         }
         exact = permission.canScheduleExactAlarms;
       }
+      // Rename existing channels even when the queue is empty; keep their IDs.
+      await notifications.updateChannels(channels);
       final desired = snapshot.map((item) => item.target.identityKey).toSet();
       final retainedIds = <String, int>{};
       final usedIds = pending.map((item) => item.id).toSet();
@@ -130,6 +134,7 @@ final class NotificationRepositoryImpl implements NotificationRepository {
         await notifications.scheduleReminder(
           id,
           reminder,
+          channels: channels,
           exact: exact && reminder.target is MedicationDoseNotificationTarget,
         );
       }

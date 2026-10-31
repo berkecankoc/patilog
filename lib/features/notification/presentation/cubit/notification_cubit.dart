@@ -12,6 +12,7 @@ import 'package:petlytics/features/notification/domain/repositories/notification
 import 'package:petlytics/features/notification/domain/use_cases/load_notification_data.dart';
 import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_state.dart';
+import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
 
 final class NotificationCubit extends Cubit<NotificationState> {
   final NotificationRepository repository;
@@ -19,6 +20,8 @@ final class NotificationCubit extends Cubit<NotificationState> {
   final PlanNotificationReminders planReminders;
   final DateTime Function() now;
   NotificationData? _data;
+  int? _dataDay;
+  NotificationContent _content = NotificationContent.english();
   StreamSubscription<NotificationTarget>? _taps;
   Future<void> _work = Future.value();
   bool _initialized = false;
@@ -40,6 +43,43 @@ final class NotificationCubit extends Cubit<NotificationState> {
     DateTime Function()? now,
   }) : now = now ?? DateTime.now,
        super(const NotificationState());
+
+  Future<void> setContent(NotificationContent content) {
+    if (_stopped || _content.locale == content.locale) return Future.value();
+    _content = content;
+    // Initial localization is supplied before runtime initialization starts.
+    if (!_initialized && !state.isBusy) return Future.value();
+    final revision = ++_revision;
+    return _enqueue(() async {
+      if (revision != _revision) return;
+      if (!_initialized || state.preferences == null) {
+        await _initialize(revision);
+      } else if (_data == null || _dataDay != calendarDayNumber(now())) {
+        await _refresh(revision);
+      } else {
+        final issue = state.issue?.action == NotificationAction.synchronize
+            ? null
+            : state.issue;
+        emit(state.copyWith(isBusy: true));
+        await _synchronize(
+          _plan(_data!, state.preferences!),
+          revision,
+          retainedIssue: issue,
+        );
+      }
+    });
+  }
+
+  NotificationPlan _plan(
+    NotificationData data,
+    NotificationPreferences preferences,
+  ) => planReminders(
+    data,
+    preferences,
+    now(),
+    medicationText: _content.medication,
+    vaccinationText: _content.vaccination,
+  );
 
   Future<void> initialize() {
     if (_closing || isClosed || state.isBusy) return _work;
@@ -99,6 +139,7 @@ final class NotificationCubit extends Cubit<NotificationState> {
     if (!preferences.medicationRemindersEnabled &&
         !preferences.vaccinationRemindersEnabled) {
       _data = NotificationData();
+      _dataDay = calendarDayNumber(now());
       await _synchronize(
         NotificationPlan(reminders: [], hasMore: false),
         revision,
@@ -116,13 +157,15 @@ final class NotificationCubit extends Cubit<NotificationState> {
     emit(state.copyWith(permissions: status));
     if (!status.canShowNotifications) {
       _data = NotificationData();
+      _dataDay = calendarDayNumber(now());
       await _synchronize(
         NotificationPlan(reminders: [], hasMore: false),
         revision,
       );
       return;
     }
-    final loaded = await loadData(preferences, now());
+    final readTime = now();
+    final loaded = await loadData(preferences, readTime);
     if (_stopped) return;
     switch (loaded) {
       case Error<NotificationData>():
@@ -130,17 +173,22 @@ final class NotificationCubit extends Cubit<NotificationState> {
         _fail(NotificationAction.synchronize, loaded.failure.message);
       case Success<NotificationData>():
         _data = loaded.data;
-        await _synchronize(
-          planReminders(loaded.data, preferences, now()),
-          revision,
-        );
+        _dataDay = calendarDayNumber(readTime);
+        await _synchronize(_plan(loaded.data, preferences), revision);
     }
   }
 
-  Future<void> _synchronize(NotificationPlan plan, int revision) async {
+  Future<void> _synchronize(
+    NotificationPlan plan,
+    int revision, {
+    NotificationIssue? retainedIssue,
+  }) async {
     // A newer mutation will refresh/cancel next; never submit a stale read.
     if (_stopped || revision != _revision) return;
-    final result = await repository.synchronizeReminders(plan.reminders);
+    final result = await repository.synchronizeReminders(
+      plan.reminders,
+      channels: _content.channels,
+    );
     if (_stopped) return;
     switch (result) {
       case Error<void>():
@@ -152,7 +200,8 @@ final class NotificationCubit extends Cubit<NotificationState> {
             plan: plan,
             lastSyncedAt: now(),
             isBusy: false,
-            clearIssue: true,
+            clearIssue: retainedIssue == null,
+            issue: retainedIssue,
           ),
         );
     }
@@ -191,10 +240,7 @@ final class NotificationCubit extends Cubit<NotificationState> {
       } else {
         _failedDeletion = null;
         if (_data != null && state.preferences != null) {
-          await _synchronize(
-            planReminders(_data!, state.preferences!, now()),
-            revision,
-          );
+          await _synchronize(_plan(_data!, state.preferences!), revision);
         } else {
           emit(state.copyWith(isBusy: false));
         }

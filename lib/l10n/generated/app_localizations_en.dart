@@ -1467,5 +1467,31 @@ class AppLocalizationsEn extends AppLocalizations {
       'This reminder’s record is no longer available.';
 
   @override
+  String notificationTitle(String petName, String recordName) {
+    return '$petName · $recordName';
+  }
+
+  @override
+  String notificationDoseBody(String time) {
+    return 'Scheduled dose · $time';
+  }
+
+  @override
+  String notificationDoseInstructions(String time, String instructions) {
+    return '$time · $instructions';
+  }
+
+  @override
+  String notificationVaccinationBody(String date) {
+    return 'Vaccination planned for $date.';
+  }
+
+  @override
+  String get medicationChannelDescription => 'Scheduled medication doses';
+
+  @override
+  String get vaccinationChannelDescription => 'Planned vaccination reminders';
+
+  @override
   String get reminderOpenFailed => 'Failed to open reminder';
 }

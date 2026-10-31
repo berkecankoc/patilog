@@ -15,6 +15,11 @@ import 'package:petlytics/features/notification/domain/entities/notification_per
 import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
+import 'package:petlytics/core/l10n/app_locale.dart';
+import 'package:petlytics/l10n/generated/app_localizations_tr.dart';
+import '../../../../helpers/notification_test_harness.dart'
+    show englishNotificationContent;
 
 class MockNotifications extends Mock implements NotificationLocalDataSource {}
 
@@ -71,7 +76,16 @@ void main() {
         NotificationTargetCodec.encode(reminder.target),
       );
 
-  setUpAll(() => registerFallbackValue(vaccine()));
+  Future<Result<void>> synchronize(List<NotificationReminder> reminders) =>
+      repository.synchronizeReminders(
+        reminders,
+        channels: englishNotificationContent.channels,
+      );
+
+  setUpAll(() {
+    registerFallbackValue(vaccine());
+    registerFallbackValue(englishNotificationContent.channels);
+  });
   setUp(() {
     notifications = MockNotifications();
     preferences = MockPreferences();
@@ -95,6 +109,7 @@ void main() {
     ).thenAnswer((_) async => allowed);
     when(notifications.openNotificationSettings).thenAnswer((_) async {});
     when(notifications.refreshTimeZone).thenAnswer((_) async {});
+    when(() => notifications.updateChannels(any())).thenAnswer((_) async {});
     when(
       notifications.getPendingNotifications,
     ).thenAnswer((_) async => List.of(pending));
@@ -106,6 +121,7 @@ void main() {
         any(),
         any(),
         exact: any(named: 'exact'),
+        channels: any(named: 'channels'),
       ),
     ).thenAnswer((call) async {
       final id = call.positionalArguments[0] as int;
@@ -254,10 +270,7 @@ void main() {
       final original = vaccine();
       pending = [request(42, original)];
       final changed = vaccine(minute: 900, title: 'Updated vaccine');
-      expect(
-        await repository.synchronizeReminders([changed]),
-        const Success<void>(null),
-      );
+      expect(await synchronize([changed]), const Success<void>(null));
       expect(scheduled, [(42, changed, false)]);
       final recreated = NotificationRepositoryImpl(
         preferences,
@@ -265,7 +278,9 @@ void main() {
         now: () => current,
       );
       expect(
-        await recreated.synchronizeReminders([changed]),
+        await recreated.synchronizeReminders([
+          changed,
+        ], channels: englishNotificationContent.channels),
         const Success<void>(null),
       );
       expect(scheduled.last.$1, 42);
@@ -290,10 +305,7 @@ void main() {
           'petlytics.reminder.v1:{',
         ),
       ];
-      expect(
-        await repository.synchronizeReminders([desired, dose()]),
-        const Success<void>(null),
-      );
+      expect(await synchronize([desired, dose()]), const Success<void>(null));
       expect(pending.map((item) => item.id).toSet(), {1, 4, 2});
       verify(() => notifications.cancelReminder(9)).called(1);
       verify(() => notifications.cancelReminder(5)).called(1);
@@ -313,10 +325,7 @@ void main() {
           requiresExactAlarmPermission: true,
         ),
       );
-      expect(
-        await repository.synchronizeReminders([dose()]),
-        const Success<void>(null),
-      );
+      expect(await synchronize([dose()]), const Success<void>(null));
       expect(scheduled.single.$3, isFalse);
       verifyNever(notifications.requestExactAlarmPermission);
     },
@@ -334,10 +343,7 @@ void main() {
           requiresExactAlarmPermission: true,
         ),
       );
-      expect(
-        await repository.synchronizeReminders([dose()]),
-        isA<Error<void>>(),
-      );
+      expect(await synchronize([dose()]), isA<Error<void>>());
       expect(pending.single.id, 3);
       expect(scheduled, isEmpty);
       verifyNever(() => notifications.cancelReminder(any()));
@@ -351,10 +357,7 @@ void main() {
         request(1, vaccine()),
         const PendingNotificationRequest(2, null, null, null),
       ];
-      expect(
-        await repository.synchronizeReminders([]),
-        const Success<void>(null),
-      );
+      expect(await synchronize([]), const Success<void>(null));
       expect(pending.single.id, 2);
       verifyNever(notifications.refreshTimeZone);
       verifyNever(notifications.getPermissionStatus);
@@ -390,7 +393,7 @@ void main() {
       [invalidMinute],
       List.generate(65, (index) => vaccine(id: '$index')),
     ]) {
-      expect(await repository.synchronizeReminders(batch), isA<Error<void>>());
+      expect(await synchronize(batch), isA<Error<void>>());
     }
     verifyZeroInteractions(notifications);
   });
@@ -400,9 +403,7 @@ void main() {
     () async {
       pending = [const PendingNotificationRequest(99, null, null, 'foreign')];
       expect(
-        await repository.synchronizeReminders(
-          List.generate(64, (i) => vaccine(id: '$i')),
-        ),
+        await synchronize(List.generate(64, (i) => vaccine(id: '$i'))),
         isA<Error<void>>(),
       );
       expect(scheduled, isEmpty);
@@ -413,9 +414,7 @@ void main() {
 
   test('accepts the complete 64 reminder budget', () async {
     expect(
-      await repository.synchronizeReminders(
-        List.generate(64, (i) => vaccine(id: '$i')),
-      ),
+      await synchronize(List.generate(64, (i) => vaccine(id: '$i'))),
       const Success<void>(null),
     );
     expect(pending, hasLength(64));
@@ -426,7 +425,7 @@ void main() {
     'replacing a full queue cancels the displaced item before adding and keeps other IDs',
     () async {
       final original = List.generate(64, (i) => vaccine(id: '$i'));
-      await repository.synchronizeReminders(original);
+      await synchronize(original);
       final retainedIds = {for (final item in pending) item.payload: item.id};
       final displacedId = pending.last.id;
       final replacement = [
@@ -438,6 +437,7 @@ void main() {
           any(),
           any(),
           exact: any(named: 'exact'),
+          channels: any(named: 'channels'),
         ),
       ).thenAnswer((call) async {
         final id = call.positionalArguments[0] as int;
@@ -446,10 +446,7 @@ void main() {
         pending.add(request(id, reminder));
         expect(pending.length, lessThanOrEqualTo(64));
       });
-      expect(
-        await repository.synchronizeReminders(replacement),
-        const Success<void>(null),
-      );
+      expect(await synchronize(replacement), const Success<void>(null));
       verify(() => notifications.cancelReminder(displacedId)).called(1);
       expect(pending, hasLength(64));
       expect(
@@ -510,6 +507,7 @@ void main() {
           any(),
           any(),
           exact: any(named: 'exact'),
+          channels: any(named: 'channels'),
         ),
       ).thenAnswer((call) async {
         if (++calls == 2) throw PlatformException(code: 'schedule_failed');
@@ -519,13 +517,10 @@ void main() {
         pending.add(request(id, reminder));
       });
       final batch = [vaccine(), dose()];
-      expect(await repository.synchronizeReminders(batch), isA<Error<void>>());
+      expect(await synchronize(batch), isA<Error<void>>());
       expect(pending, hasLength(1));
       final retainedId = pending.single.id;
-      expect(
-        await repository.synchronizeReminders(batch),
-        const Success<void>(null),
-      );
+      expect(await synchronize(batch), const Success<void>(null));
       expect(pending, hasLength(2));
       expect(pending.any((item) => item.id == retainedId), isTrue);
     },
@@ -540,6 +535,7 @@ void main() {
           any(),
           any(),
           exact: any(named: 'exact'),
+          channels: any(named: 'channels'),
         ),
       ).thenAnswer((call) async {
         await gate.future;
@@ -551,7 +547,7 @@ void main() {
         );
       });
       final input = [vaccine()];
-      final sync = repository.synchronizeReminders(input);
+      final sync = synchronize(input);
       input.clear();
       final cancel = repository.cancelPetReminders('pet1');
       await Future<void>.delayed(Duration.zero);
@@ -578,6 +574,88 @@ void main() {
         await repository.cancelPetReminders('pet1'),
         const Success<void>(null),
       );
+    },
+  );
+
+  test(
+    'localization replaces owned text under the same native IDs, retaining foreign reminders',
+    () async {
+      final original = vaccine(title: 'Milo · Vaccine');
+      pending = [
+        request(77, original),
+        const PendingNotificationRequest(
+          500,
+          'Foreign',
+          'Foreign body',
+          'foreign-payload',
+        ),
+      ];
+      final labels = NotificationContent(
+        AppLocalizationsTr('tr_TR'),
+        turkishLocale,
+      ).channels;
+      final translated = NotificationReminder(
+        target: original.target,
+        scheduledDate: original.scheduledDate,
+        scheduledMinute: original.scheduledMinute,
+        title: original.title,
+        body: 'Aşı tarihi: 2 Oca 2030.',
+      );
+      expect(
+        await repository.synchronizeReminders([translated], channels: labels),
+        const Success<void>(null),
+      );
+      expect(pending.map((request) => request.id), [500, 77]);
+      expect(
+        pending.singleWhere((request) => request.id == 77).body,
+        translated.body,
+      );
+      expect(
+        pending.singleWhere((request) => request.id == 500).payload,
+        'foreign-payload',
+      );
+      expect(scheduled.single.$1, 77);
+      expect(scheduled.single.$2.target, original.target);
+      expect(scheduled.single.$2.scheduledDate, original.scheduledDate);
+      expect(scheduled.single.$2.scheduledMinute, original.scheduledMinute);
+      verify(() => notifications.updateChannels(labels)).called(1);
+      verifyNever(() => notifications.cancelReminder(any()));
+    },
+  );
+
+  test(
+    'empty queues still update localized channels without requesting permission',
+    () async {
+      final labels = NotificationContent(
+        AppLocalizationsTr('tr_TR'),
+        turkishLocale,
+      ).channels;
+      expect(
+        await repository.synchronizeReminders([], channels: labels),
+        const Success<void>(null),
+      );
+      verify(() => notifications.updateChannels(labels)).called(1);
+      verifyNever(notifications.getPermissionStatus);
+      verifyNever(notifications.requestNotificationPermission);
+      verifyNever(notifications.requestExactAlarmPermission);
+      expect(scheduled, isEmpty);
+    },
+  );
+
+  test(
+    'channel metadata failures preserve pending entries and remain retryable',
+    () async {
+      pending = [request(77, vaccine())];
+      when(
+        () => notifications.updateChannels(any()),
+      ).thenThrow(PlatformException(code: 'channel_update_failed'));
+      expect(await synchronize([vaccine()]), isA<Error<void>>());
+      expect(pending.single.id, 77);
+      expect(scheduled, isEmpty);
+      verifyNever(() => notifications.cancelReminder(any()));
+      when(() => notifications.updateChannels(any())).thenAnswer((_) async {});
+      expect(await synchronize([vaccine()]), const Success<void>(null));
+      expect(pending.single.id, 77);
     },
   );
 }

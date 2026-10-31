@@ -12,6 +12,9 @@ import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
 import 'package:petlytics/features/settings/presentation/pages/settings_page.dart';
+import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
+import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:petlytics/features/notification/presentation/widgets/notification_runtime.dart';
 import 'package:petlytics/l10n/generated/app_localizations.dart';
 
 import '../../../../helpers/settings_test_harness.dart';
@@ -22,6 +25,96 @@ void main() {
   setUp(() {
     app = SettingsTestHarness()..register();
   });
+
+  testWidgets(
+    'stored Turkish schedules localized reminders on first launch and retains runtime identity across locale/theme changes',
+    (tester) async {
+      app.storedLanguage = LanguagePreference.turkish;
+      app.notifications.preferences = NotificationPreferences(
+        medicationRemindersEnabled: true,
+        vaccinationRemindersEnabled: true,
+      );
+      app.notifications.medicines.add(app.notifications.medication());
+      app.notifications.vaccines.add(app.notifications.vaccination());
+      await app.pump(tester);
+      final cubit = tester
+          .element(find.byType(SettingsPage))
+          .read<NotificationCubit>();
+      final runtime = tester.state(find.byType(NotificationRuntime));
+      final page = tester.element(find.byType(SettingsPage));
+      expect(app.notifications.submissions, hasLength(1));
+      expect(
+        app.notifications.submissions.single.first.body,
+        'Planlanan doz · 12:00',
+      );
+      expect(
+        app.notifications.channelSubmissions.single.medicationName,
+        'İlaç hatırlatmaları',
+      );
+      await app.cubit.setThemePreference(ThemePreference.light);
+      await tester.pumpAndSettle();
+      expect(app.notifications.submissions, hasLength(1));
+      await app.cubit.setLanguagePreference(LanguagePreference.english);
+      await tester.pumpAndSettle();
+      expect(app.notifications.submissions, hasLength(2));
+      expect(
+        app.notifications.submissions.last.first.body,
+        'Scheduled dose · 12:00',
+      );
+      expect(tester.state(find.byType(NotificationRuntime)), same(runtime));
+      expect(tester.element(find.byType(SettingsPage)), same(page));
+      expect(
+        tester.element(find.byType(SettingsPage)).read<NotificationCubit>(),
+        same(cubit),
+      );
+      expect(appRouter.state.uri.path, AppRoutes.settings);
+      verify(app.notifications.repository.initialize).called(1);
+      verifyNever(app.notifications.repository.requestNotificationPermission);
+      verifyNever(app.notifications.repository.requestExactAlarmPermission);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'System replans reminder text for device language changes while explicit choices remain independent',
+    (tester) async {
+      tester.platformDispatcher.localesTestValue = [englishLocale];
+      addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+      app.notifications.preferences = NotificationPreferences(
+        medicationRemindersEnabled: true,
+      );
+      app.notifications.medicines.add(app.notifications.medication());
+      await app.pump(tester);
+      expect(
+        app.notifications.submissions.last.first.body,
+        'Scheduled dose · 12:00',
+      );
+      tester.platformDispatcher.localesTestValue = [turkishLocale];
+      await tester.pumpAndSettle();
+      expect(
+        app.notifications.submissions.last.first.body,
+        'Planlanan doz · 12:00',
+      );
+      tester.platformDispatcher.localesTestValue = [const Locale('fr', 'FR')];
+      await tester.pumpAndSettle();
+      expect(
+        app.notifications.submissions.last.first.body,
+        'Scheduled dose · 12:00',
+      );
+      await app.cubit.setLanguagePreference(LanguagePreference.turkish);
+      await tester.pumpAndSettle();
+      final count = app.notifications.submissions.length;
+      tester.platformDispatcher.localesTestValue = [englishLocale];
+      await tester.pumpAndSettle();
+      expect(app.notifications.submissions, hasLength(count));
+      expect(
+        app.notifications.submissions.last.first.body,
+        'Planlanan doz · 12:00',
+      );
+      verify(app.notifications.repository.initialize).called(1);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   Future<void> select(WidgetTester tester, LanguagePreference choice) async {
     final tile = find.byWidgetPredicate(

@@ -2684,6 +2684,42 @@ abstract class AppLocalizations {
   /// **'This reminder’s record is no longer available.'**
   String get reminderTargetUnavailable;
 
+  /// Reminder title. Pet and clinical record names are user content, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{petName} · {recordName}'**
+  String notificationTitle(String petName, String recordName);
+
+  /// Medication reminder with a local 24-hour scheduled time.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled dose · {time}'**
+  String notificationDoseBody(String time);
+
+  /// Medication reminder with user-entered instructions, preserved verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} · {instructions}'**
+  String notificationDoseInstructions(String time, String instructions);
+
+  /// Vaccination reminder. The due calendar day is formatted using the effective regional locale.
+  ///
+  /// In en, this message translates to:
+  /// **'Vaccination planned for {date}.'**
+  String notificationVaccinationBody(String date);
+
+  /// Android medication notification channel description in system settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled medication doses'**
+  String get medicationChannelDescription;
+
+  /// Android vaccination notification channel description in system settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned vaccination reminders'**
+  String get vaccinationChannelDescription;
+
   /// A reminder target could not be loaded; Retry is available.
   ///
   /// In en, this message translates to:

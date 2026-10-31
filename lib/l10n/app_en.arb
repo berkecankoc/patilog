@@ -862,6 +862,18 @@
   "@doseUpdateFailed": {"description": "A dose result panel could not save or clear a result. The draft is retained."},
   "reminderTargetUnavailable": "This reminder’s record is no longer available.",
   "@reminderTargetUnavailable": {"description": "A reminder points to a removed record or a dose that is no longer scheduled. Opening does not record a dose."},
+  "notificationTitle": "{petName} · {recordName}",
+  "@notificationTitle": {"description":"Reminder title. Pet and clinical record names are user content, never translated.","placeholders":{"petName":{"type":"String"},"recordName":{"type":"String"}}},
+  "notificationDoseBody": "Scheduled dose · {time}",
+  "@notificationDoseBody": {"description":"Medication reminder with a local 24-hour scheduled time.","placeholders":{"time":{"type":"String"}}},
+  "notificationDoseInstructions": "{time} · {instructions}",
+  "@notificationDoseInstructions": {"description":"Medication reminder with user-entered instructions, preserved verbatim.","placeholders":{"time":{"type":"String"},"instructions":{"type":"String"}}},
+  "notificationVaccinationBody": "Vaccination planned for {date}.",
+  "@notificationVaccinationBody": {"description":"Vaccination reminder. The due calendar day is formatted using the effective regional locale.","placeholders":{"date":{"type":"String"}}},
+  "medicationChannelDescription": "Scheduled medication doses",
+  "@medicationChannelDescription": {"description":"Android medication notification channel description in system settings."},
+  "vaccinationChannelDescription": "Planned vaccination reminders",
+  "@vaccinationChannelDescription": {"description":"Android vaccination notification channel description in system settings."},
   "reminderOpenFailed": "Failed to open reminder",
   "@reminderOpenFailed": {"description": "A reminder target could not be loaded; Retry is available."}
 }

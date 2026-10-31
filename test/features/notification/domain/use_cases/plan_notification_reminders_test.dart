@@ -3,6 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_data.dart';
+import 'package:petlytics/features/notification/domain/entities/notification_plan.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
 import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
@@ -11,8 +12,18 @@ import 'package:petlytics/features/notification/domain/entities/vaccination_remi
 import '../../../../helpers/notification_test_harness.dart';
 
 void main() {
-  const planner = PlanNotificationReminders();
   late NotificationTestHarness h;
+  NotificationPlan planner(
+    NotificationData data,
+    NotificationPreferences preferences,
+    DateTime now,
+  ) => const PlanNotificationReminders()(
+    data,
+    preferences,
+    now,
+    medicationText: englishNotificationContent.medication,
+    vaccinationText: englishNotificationContent.vaccination,
+  );
   final both = NotificationPreferences(
     medicationRemindersEnabled: true,
     vaccinationRemindersEnabled: true,
@@ -207,7 +218,7 @@ void main() {
     );
     expect(plan.reminders.first.scheduledDate, DateTime(2030, 1, 1));
     expect(plan.reminders.first.scheduledMinute, 720);
-    expect(plan.reminders.last.body, 'Vaccination planned for 2030-01-04.');
+    expect(plan.reminders.last.body, 'Vaccination planned for Jan 4, 2030.');
   });
 
   test('category switches are independent and both default Off', () {

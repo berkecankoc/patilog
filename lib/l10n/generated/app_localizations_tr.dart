@@ -1429,5 +1429,32 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu hatırlatmanın kaydına artık ulaşılamıyor.';
 
   @override
+  String notificationTitle(String petName, String recordName) {
+    return '$petName · $recordName';
+  }
+
+  @override
+  String notificationDoseBody(String time) {
+    return 'Planlanan doz · $time';
+  }
+
+  @override
+  String notificationDoseInstructions(String time, String instructions) {
+    return '$time · $instructions';
+  }
+
+  @override
+  String notificationVaccinationBody(String date) {
+    return 'Aşı tarihi: $date.';
+  }
+
+  @override
+  String get medicationChannelDescription => 'Planlanan ilaç dozları';
+
+  @override
+  String get vaccinationChannelDescription =>
+      'Planlanan aşılar için hatırlatmalar';
+
+  @override
   String get reminderOpenFailed => 'Hatırlatma açılamadı';
 }

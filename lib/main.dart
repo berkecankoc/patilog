@@ -46,33 +46,33 @@ class MyApp extends StatelessWidget {
         value: getIt<ImageStorage>(),
         child: CareRecordChangeScope(
           changes: getIt<CareRecordChanges>(),
-          child: NotificationRuntime(
-            child:
-                BlocSelector<
-                  SettingsCubit,
-                  SettingsState,
-                  ({ThemePreference theme, LanguagePreference language})
-                >(
-                  selector: (state) => (
-                    theme: state.themePreference,
-                    language: state.languagePreference,
-                  ),
-                  builder: (_, preference) => MaterialApp.router(
-                    title: 'Petlytics',
-                    locale: preference.language.locale,
-                    supportedLocales: appSupportedLocales,
-                    localizationsDelegates:
-                        AppLocalizations.localizationsDelegates,
-                    localeListResolutionCallback: resolveAppLocale,
-                    theme: AppTheme.light,
-                    darkTheme: AppTheme.dark,
-                    themeMode: switch (preference.theme) {
-                      ThemePreference.system => ThemeMode.system,
-                      ThemePreference.light => ThemeMode.light,
-                      ThemePreference.dark => ThemeMode.dark,
-                    },
-                    routerConfig: appRouter,
-                    builder: (_, child) => NotificationNavigation(
+          child:
+              BlocSelector<
+                SettingsCubit,
+                SettingsState,
+                ({ThemePreference theme, LanguagePreference language})
+              >(
+                selector: (state) => (
+                  theme: state.themePreference,
+                  language: state.languagePreference,
+                ),
+                builder: (_, preference) => MaterialApp.router(
+                  title: 'Petlytics',
+                  locale: preference.language.locale,
+                  supportedLocales: appSupportedLocales,
+                  localizationsDelegates:
+                      AppLocalizations.localizationsDelegates,
+                  localeListResolutionCallback: resolveAppLocale,
+                  theme: AppTheme.light,
+                  darkTheme: AppTheme.dark,
+                  themeMode: switch (preference.theme) {
+                    ThemePreference.system => ThemeMode.system,
+                    ThemePreference.light => ThemeMode.light,
+                    ThemePreference.dark => ThemeMode.dark,
+                  },
+                  routerConfig: appRouter,
+                  builder: (_, child) => NotificationRuntime(
+                    child: NotificationNavigation(
                       router: appRouter,
                       observers: appNavigationObservers,
                       routeChanges: appNavigationChanges,
@@ -81,7 +81,7 @@ class MyApp extends StatelessWidget {
                     ),
                   ),
                 ),
-          ),
+              ),
         ),
       ),
     );
