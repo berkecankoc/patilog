@@ -29,13 +29,16 @@ void main() {
     'fresh installation creates care tables and enables foreign keys',
     () async {
       db = await openAppDatabase();
-      expect(await db!.getVersion(), 5);
+      expect(await db!.getVersion(), 6);
       expect(await db!.query(DatabaseTables.weightEntries), isEmpty);
       expect(await db!.query('vet_visits'), isEmpty);
       expect(await db!.query(DatabaseTables.vaccinations), isEmpty);
       expect(await db!.query(DatabaseTables.medications), isEmpty);
       expect(await db!.query(DatabaseTables.medicationPeriods), isEmpty);
       expect(await db!.query(DatabaseTables.medicationDoseLogs), isEmpty);
+      expect(await db!.query(DatabaseTables.feedingPlans), isEmpty);
+      expect(await db!.query(DatabaseTables.feedingMeals), isEmpty);
+      expect(await db!.query(DatabaseTables.feedingEntries), isEmpty);
       final reminderColumn = (await db!.rawQuery(
         'PRAGMA table_info(vaccinations)',
       )).singleWhere((column) => column['name'] == 'reminder_settings');
@@ -71,7 +74,7 @@ void main() {
     },
   );
 
-  for (final legacyVersion in [1, 2, 3, 4]) {
+  for (final legacyVersion in [1, 2, 3, 4, 5]) {
     test(
       'version $legacyVersion upgrade preserves existing care data across reopen',
       () async {
@@ -185,6 +188,11 @@ void main() {
                   'CREATE INDEX medication_periods_visit ON medication_periods(vet_visit_id)',
                 );
               }
+              if (legacyVersion >= 5) {
+                await db.execute(
+                  'ALTER TABLE vaccinations ADD COLUMN reminder_settings TEXT',
+                );
+              }
             },
           ),
         );
@@ -230,6 +238,8 @@ void main() {
           'clinic_name': 'Original clinic',
           'veterinarian_name': 'Original veterinarian',
           'notes': 'Preserve this history',
+          if (legacyVersion >= 5)
+            'reminder_settings': '{"daysBefore":[3,1,0],"minuteOfDay":540}',
         };
         if (legacyVersion >= 3) {
           await legacy.insert('vaccinations', vaccination);
@@ -264,17 +274,38 @@ void main() {
           await legacy.insert(DatabaseTables.medicationPeriods, period);
           await legacy.insert(DatabaseTables.medicationDoseLogs, dose);
         }
+        final legacyTables = [
+          'pets',
+          'weight_entries',
+          if (legacyVersion >= 2) 'vet_visits',
+          if (legacyVersion >= 3) 'vaccinations',
+          if (legacyVersion >= 4) ...[
+            'medications',
+            'medication_periods',
+            'medication_dose_logs',
+          ],
+        ];
+        final rowIds = {
+          for (final table in legacyTables)
+            table: await legacy.rawQuery('SELECT rowid FROM $table'),
+        };
         await legacy.close();
 
         db = await openAppDatabase();
-        expect(await db!.getVersion(), 5);
+        expect(await db!.getVersion(), 6);
+        for (final table in legacyTables) {
+          expect(await db!.rawQuery('SELECT rowid FROM $table'), rowIds[table]);
+        }
+        expect(await db!.query(DatabaseTables.feedingPlans), isEmpty);
+        expect(await db!.query(DatabaseTables.feedingMeals), isEmpty);
+        expect(await db!.query(DatabaseTables.feedingEntries), isEmpty);
         expect(await db!.query('pets'), [pet]);
         expect(await db!.query('weight_entries'), [weight]);
         expect(
           await db!.query(DatabaseTables.vaccinations),
           legacyVersion >= 3
               ? [
-                  {...vaccination, 'reminder_settings': null},
+                  {'reminder_settings': null, ...vaccination},
                 ]
               : isEmpty,
         );
@@ -306,7 +337,7 @@ void main() {
         expect(await db!.query('weight_entries'), [weight]);
         expect(await db!.query('vet_visits'), [visit]);
         expect(await db!.query(DatabaseTables.vaccinations), [
-          {...vaccination, 'reminder_settings': null},
+          {'reminder_settings': null, ...vaccination},
         ]);
         if (legacyVersion >= 4) {
           expect(await db!.query(DatabaseTables.medications), [medication]);
