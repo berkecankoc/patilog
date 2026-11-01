@@ -1,32 +1,42 @@
 import 'package:equatable/equatable.dart';
+import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
 
 final class SettingsState extends Equatable {
   final ThemePreference themePreference;
+  final LanguagePreference languagePreference;
 
-  /// The current preference was read or saved successfully.
-  final bool hasLoaded;
+  /// Each preference is confirmed independently after its read or write succeeds.
+  final bool hasLoadedTheme;
+  final bool hasLoadedLanguage;
   final bool isLoading;
   final bool isSaving;
   final String? loadError;
   final String? saveError;
   final ThemePreference? failedThemePreference;
+  final LanguagePreference? failedLanguagePreference;
 
   const SettingsState({
     this.themePreference = ThemePreference.system,
-    this.hasLoaded = false,
+    this.languagePreference = LanguagePreference.system,
+    this.hasLoadedTheme = false,
+    this.hasLoadedLanguage = false,
     this.isLoading = false,
     this.isSaving = false,
     this.loadError,
     this.saveError,
     this.failedThemePreference,
+    this.failedLanguagePreference,
   });
 
   bool get isBusy => isLoading || isSaving;
+  bool get hasLoaded => hasLoadedTheme && hasLoadedLanguage;
 
   SettingsState copyWith({
     ThemePreference? themePreference,
-    bool? hasLoaded,
+    LanguagePreference? languagePreference,
+    bool? hasLoadedTheme,
+    bool? hasLoadedLanguage,
     bool? isLoading,
     bool? isSaving,
     String? loadError,
@@ -35,9 +45,13 @@ final class SettingsState extends Equatable {
     bool clearSaveError = false,
     ThemePreference? failedThemePreference,
     bool clearFailedThemePreference = false,
+    LanguagePreference? failedLanguagePreference,
+    bool clearFailedLanguagePreference = false,
   }) => SettingsState(
     themePreference: themePreference ?? this.themePreference,
-    hasLoaded: hasLoaded ?? this.hasLoaded,
+    languagePreference: languagePreference ?? this.languagePreference,
+    hasLoadedTheme: hasLoadedTheme ?? this.hasLoadedTheme,
+    hasLoadedLanguage: hasLoadedLanguage ?? this.hasLoadedLanguage,
     isLoading: isLoading ?? this.isLoading,
     isSaving: isSaving ?? this.isSaving,
     loadError: clearLoadError ? null : loadError ?? this.loadError,
@@ -45,16 +59,22 @@ final class SettingsState extends Equatable {
     failedThemePreference: clearFailedThemePreference
         ? null
         : failedThemePreference ?? this.failedThemePreference,
+    failedLanguagePreference: clearFailedLanguagePreference
+        ? null
+        : failedLanguagePreference ?? this.failedLanguagePreference,
   );
 
   @override
   List<Object?> get props => [
     themePreference,
-    hasLoaded,
+    languagePreference,
+    hasLoadedTheme,
+    hasLoadedLanguage,
     isLoading,
     isSaving,
     loadError,
     saveError,
     failedThemePreference,
+    failedLanguagePreference,
   ];
 }

@@ -1,3 +1,5 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:petlytics/core/l10n/app_locale.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
@@ -397,6 +399,7 @@ class PetCareTestHarness {
     double keyboard = 0,
     double bottomInset = 0,
     GlobalKey? captureKey,
+    Locale locale = englishLocale,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -415,6 +418,9 @@ class PetCareTestHarness {
       RepaintBoundary(
         key: captureKey,
         child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          locale: locale,
+          supportedLocales: appSupportedLocales,
           debugShowCheckedModeBanner: false,
           theme: dark ? AppTheme.dark : AppTheme.light,
           routerConfig: router,

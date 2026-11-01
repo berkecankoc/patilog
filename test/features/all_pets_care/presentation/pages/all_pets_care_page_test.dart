@@ -310,7 +310,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
       await tester.pumpAndSettle();
-      expect(find.text('Delete failed'), findsOneWidget);
+      expect(find.text('Failed to delete vet visit'), findsOneWidget);
       await tester.tap(find.text('Retry deletion'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));

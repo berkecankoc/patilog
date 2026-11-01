@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/widgets/pet_care_tabs.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
@@ -125,8 +127,8 @@ class VaccinationListPage extends StatelessWidget {
                 maxHeight: constraints.maxHeight * 0.75,
               ),
               child: AppErrorFeedback(
-                message: state.deleteError!,
-                retryLabel: 'Retry deletion',
+                message: AppLocalizations.of(context).vaccinationDeleteFailed,
+                retryLabel: AppLocalizations.of(context).retryDeletion,
                 onRetry: () => _delete(context, state.deletionVaccination!),
               ),
             )
@@ -136,8 +138,8 @@ class VaccinationListPage extends StatelessWidget {
                 maxHeight: constraints.maxHeight * 0.75,
               ),
               child: AppErrorFeedback(
-                message: state.refreshError!,
-                retryLabel: 'Retry',
+                message: AppLocalizations.of(context).vaccinationsLoadFailed,
+                retryLabel: AppLocalizations.of(context).retry,
                 onRetry: () =>
                     context.read<VaccinationCubit>().loadVaccinations(petId),
               ),
@@ -160,13 +162,13 @@ class VaccinationListPage extends StatelessWidget {
                           ),
                           VerticalGap.md,
                           Text(
-                            'No vaccinations yet',
+                            AppLocalizations.of(context).noVaccinations,
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           VerticalGap.sm,
-                          const Text(
-                            'Record an administered vaccine or plan an upcoming dose.',
+                          Text(
+                            AppLocalizations.of(context).vaccinationsEmpty,
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -177,14 +179,14 @@ class VaccinationListPage extends StatelessWidget {
                     slivers: [
                       ..._section(
                         context,
-                        'Planned',
+                        AppLocalizations.of(context).planned,
                         Icons.event_outlined,
                         planned,
                         state,
                       ),
                       ..._section(
                         context,
-                        'History',
+                        AppLocalizations.of(context).history,
                         Icons.history,
                         history,
                         state,
@@ -199,58 +201,65 @@ class VaccinationListPage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      BlocBuilder<VaccinationCubit, VaccinationState>(
-        builder: (context, state) {
-          final deleting = state is VaccinationsLoaded && state.isDeleting;
-          final busy =
-              state is VaccinationsLoaded &&
-              (state.isDeleting || state.isRefreshing);
-          return PopScope(
-            canPop: !deleting,
-            child: Scaffold(
-              appBar: petCareAppBar(
-                context,
-                title: PetCareTitle(title: 'Vaccinations', petName: petName),
-                toolbarHeight: PetCareTitle.toolbarHeight(context),
-                busy: deleting,
-                progress: busy
-                    ? const LinearProgressIndicator(
-                        semanticsLabel: 'Updating vaccinations',
-                      )
-                    : null,
-              ),
-              floatingActionButton: state is VaccinationsLoaded
-                  ? FloatingActionButton.extended(
-                      isExtended:
-                          MediaQuery.textScalerOf(context).scale(14) <= 21,
-                      tooltip: 'Add vaccination',
-                      onPressed: busy ? null : () => _add(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add vaccination'),
-                    )
-                  : null,
-              body: SafeArea(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 640),
-                    child: switch (state) {
-                      VaccinationsLoaded() => _loaded(context, state),
-                      VaccinationError(:final message) => ErrorView(
-                        message: message,
-                        onRetry: () => context
-                            .read<VaccinationCubit>()
-                            .loadVaccinations(petId),
-                      ),
-                      _ => const Center(child: CircularProgressIndicator()),
-                    },
+  Widget build(
+    BuildContext context,
+  ) => BlocBuilder<VaccinationCubit, VaccinationState>(
+    builder: (context, state) {
+      final deleting = state is VaccinationsLoaded && state.isDeleting;
+      final busy =
+          state is VaccinationsLoaded &&
+          (state.isDeleting || state.isRefreshing);
+      return PopScope(
+        canPop: !deleting,
+        child: Scaffold(
+          appBar: petCareAppBar(
+            context,
+            title: PetCareTitle(
+              title: AppLocalizations.of(context).vaccinations,
+              petName: petName,
+            ),
+            toolbarHeight: PetCareTitle.toolbarHeight(context),
+            busy: deleting,
+            progress: busy
+                ? LinearProgressIndicator(
+                    semanticsLabel: AppLocalizations.of(
+                      context,
+                    ).updatingVaccinations,
+                  )
+                : null,
+          ),
+          floatingActionButton: state is VaccinationsLoaded
+              ? FloatingActionButton.extended(
+                  isExtended: MediaQuery.textScalerOf(context).scale(14) <= 21,
+                  tooltip: AppLocalizations.of(context).addVaccination,
+                  onPressed: busy ? null : () => _add(context),
+                  icon: const Icon(Icons.add),
+                  label: Text(AppLocalizations.of(context).addVaccination),
+                )
+              : null,
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: switch (state) {
+                  VaccinationsLoaded() => _loaded(context, state),
+                  VaccinationError(:final failure) => ErrorView(
+                    message: failure is NotFoundFailure
+                        ? AppLocalizations.of(context).vaccinationNotFound
+                        : AppLocalizations.of(context).vaccinationsLoadFailed,
+                    onRetry: () => context
+                        .read<VaccinationCubit>()
+                        .loadVaccinations(petId),
                   ),
-                ),
+                  _ => const Center(child: CircularProgressIndicator()),
+                },
               ),
             ),
-          );
-        },
+          ),
+        ),
       );
+    },
+  );
 }
 
 class _VaccinationListItem extends StatelessWidget {
@@ -303,18 +312,23 @@ class _VaccinationListItem extends StatelessWidget {
                   SizedBox.square(
                     dimension: 48,
                     child: deleting
-                        ? const Center(
+                        ? Center(
                             child: SizedBox.square(
                               dimension: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                semanticsLabel: 'Deleting vaccination',
+                                semanticsLabel: AppLocalizations.of(
+                                  context,
+                                ).deletingVaccination,
                               ),
                             ),
                           )
                         : IconButton(
-                            tooltip:
-                                'Delete ${vaccination.vaccineName} from $date',
+                            tooltip: AppLocalizations.of(context)
+                                .deleteVaccinationTooltip(
+                                  vaccination.vaccineName,
+                                  date,
+                                ),
                             onPressed: onDelete,
                             icon: const Icon(Icons.delete_outline),
                           ),

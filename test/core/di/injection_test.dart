@@ -27,6 +27,7 @@ import 'package:petlytics/features/medication/presentation/cubit/medication_form
 import 'package:petlytics/features/medication/presentation/cubit/medication_form_state.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
 import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
@@ -207,10 +208,14 @@ void main() {
     'settings factory creates independent state backed by the repository',
     () async {
       const key = 'settings.theme_preference';
+      const languageKey = 'settings.language_preference';
       final preferences = MockPreferences();
       when(
         () => preferences.getAll(allowList: {key}),
       ).thenAnswer((_) async => {key: 'dark'});
+      when(
+        () => preferences.getAll(allowList: {languageKey}),
+      ).thenAnswer((_) async => {languageKey: 'turkish'});
       when(() => preferences.setString(key, 'light')).thenAnswer((_) async {});
       await getIt.unregister<SharedPreferencesAsync>();
       getIt.registerSingleton<SharedPreferencesAsync>(preferences);
@@ -223,10 +228,13 @@ void main() {
       verifyZeroInteractions(preferences);
       await first.load();
       expect(first.state.themePreference, ThemePreference.dark);
+      expect(first.state.languagePreference, LanguagePreference.turkish);
       await first.setThemePreference(ThemePreference.light);
       expect(first.state.themePreference, ThemePreference.light);
+      expect(first.state.languagePreference, LanguagePreference.turkish);
       expect(second.state, const SettingsState());
       verify(() => preferences.getAll(allowList: {key})).called(1);
+      verify(() => preferences.getAll(allowList: {languageKey})).called(1);
       verify(() => preferences.setString(key, 'light')).called(1);
     },
   );

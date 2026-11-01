@@ -1,6 +1,8 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/l10n/app_number_formats.dart';
 import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -48,6 +50,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
   late VetVisitCurrency _currency;
   bool _allowPop = false;
   bool _confirmingDiscard = false;
+  bool _localizedAmount = false;
 
   bool get _hasChanges =>
       _initialText.entries.any((entry) => entry.key.text != entry.value) ||
@@ -68,13 +71,24 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
       _veterinarian: visit?.veterinarianName ?? '',
       _diagnosis: visit?.diagnosis ?? '',
       _notes: visit?.notes ?? '',
-      _amount: visit?.costMinorUnits == null
-          ? ''
-          : formatVetVisitCost(visit!.costMinorUnits!),
+      _amount: '',
     };
     for (final entry in _initialText.entries) {
       entry.key.text = entry.value;
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_localizedAmount) return;
+    _localizedAmount = true;
+    final cost = widget.visit?.costMinorUnits;
+    final value = cost == null
+        ? ''
+        : localizedAmount(cost, Localizations.localeOf(context));
+    _amount.text = value;
+    _initialText[_amount] = value;
   }
 
   @override
@@ -135,11 +149,11 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
     _confirmingDiscard = true;
     final discard = await showDialog<bool>(
       context: context,
-      builder: (_) => const AppConfirmationDialog(
-        title: 'Discard changes?',
-        message: 'Your changes have not been saved. Leave without saving?',
-        cancelLabel: 'Keep editing',
-        confirmLabel: 'Discard changes',
+      builder: (context) => AppConfirmationDialog(
+        title: AppLocalizations.of(context).discardChangesTitle,
+        message: AppLocalizations.of(context).discardChangesMessage,
+        cancelLabel: AppLocalizations.of(context).keepEditing,
+        confirmLabel: AppLocalizations.of(context).discardChanges,
       ),
     );
     _confirmingDiscard = false;
@@ -153,22 +167,24 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
         key: const Key('visit-reason'),
         controller: _reason,
         textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(labelText: 'Reason for visit'),
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context).visitReason,
+        ),
         minLines: 1,
         maxLines: 3,
         validator: (value) {
           final reason = value?.trim() ?? '';
           if (reason.isEmpty) {
-            return 'Enter a reason for the visit';
+            return AppLocalizations.of(context).visitReasonRequired;
           }
           return reason.characters.length > 100
-              ? 'Keep reason within 100 characters'
+              ? AppLocalizations.of(context).visitReasonLimit
               : null;
         },
       ),
       VerticalGap.md,
       AppDateField(
-        labelText: 'Visit date',
+        labelText: AppLocalizations.of(context).visitDate,
         value: _visitedOn,
         firstDate: DateTime(1900),
         lastDate: DateTime.now(),
@@ -182,7 +198,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
           !DateUtils.isSameDay(_visitedOn, _initialDate)) ...[
         VerticalGap.xs,
         Text(
-          'Dates of any linked vaccinations will also change.',
+          AppLocalizations.of(context).linkedVaccinationDateNotice,
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -193,19 +209,25 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
   Widget _review(VetVisitFormState state, ValueChanged<int> edit) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('Review visit', style: Theme.of(context).textTheme.titleLarge),
+      Text(
+        AppLocalizations.of(context).reviewVisit,
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
       VerticalGap.md,
       AppFormReviewSection(
-        title: 'Visit details',
+        title: AppLocalizations.of(context).visitDetails,
         icon: Icons.event_note_outlined,
         onEdit: () => edit(0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AppDetailField(label: 'Visit reason', value: _reason.text),
+            AppDetailField(
+              label: AppLocalizations.of(context).visitReasonSummary,
+              value: _reason.text,
+            ),
             VerticalGap.md,
             AppDetailField(
-              label: 'Visit date',
+              label: AppLocalizations.of(context).visitDate,
               value: MaterialLocalizations.of(
                 context,
               ).formatShortDate(_visitedOn),
@@ -213,21 +235,21 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
             if (widget.visit != null &&
                 !DateUtils.isSameDay(_visitedOn, _initialDate)) ...[
               VerticalGap.sm,
-              const Text('Dates of any linked vaccinations will also change.'),
+              Text(AppLocalizations.of(context).linkedVaccinationDateNotice),
             ],
           ],
         ),
       ),
       VerticalGap.md,
       AppFormOptionalSection(
-        title: 'Clinic & veterinarian (optional)',
+        title: AppLocalizations.of(context).clinicalOptional,
         icon: Icons.local_hospital_outlined,
         initiallyExpanded: widget.visit != null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AppSuggestionField(
-              label: 'Clinic (optional)',
+              label: AppLocalizations.of(context).clinicOptional,
               loading: state.isLoadingSuggestions,
               controller: _clinic,
               suggestions: state.suggestions.clinicNames,
@@ -237,7 +259,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
             ),
             VerticalGap.md,
             AppSuggestionField(
-              label: 'Veterinarian (optional)',
+              label: AppLocalizations.of(context).veterinarianOptional,
               controller: _veterinarian,
               suggestions: state.suggestions.veterinarianNames,
             ),
@@ -246,7 +268,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
               Semantics(
                 liveRegion: true,
                 child: Text(
-                  state.suggestionsError!,
+                  AppLocalizations.of(context).suggestionsLoadFailed,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
@@ -263,7 +285,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
                   onPressed: () => context
                       .read<VetVisitFormCubit>()
                       .loadSuggestions(clinicName: _clinic.text),
-                  child: const Text('Retry suggestions'),
+                  child: Text(AppLocalizations.of(context).retrySuggestions),
                 ),
               ),
             ],
@@ -273,7 +295,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
       ),
       VerticalGap.md,
       AppFormOptionalSection(
-        title: 'Medical notes (optional)',
+        title: AppLocalizations.of(context).medicalNotesOptional,
         icon: Icons.medical_information_outlined,
         initiallyExpanded: widget.visit != null,
         child: Column(
@@ -283,15 +305,17 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
               key: const Key('visit-diagnosis'),
               controller: _diagnosis,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Diagnosis (optional)',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).diagnosisOptional,
               ),
               minLines: 1,
               maxLines: 4,
               maxLength: _medicalTextMaxLength,
               validator: (value) =>
                   (value?.characters.length ?? 0) > _medicalTextMaxLength
-                  ? 'Keep diagnosis within $_medicalTextMaxLength characters'
+                  ? AppLocalizations.of(
+                      context,
+                    ).diagnosisLimit(_medicalTextMaxLength)
                   : null,
             ),
             VerticalGap.md,
@@ -299,13 +323,17 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
               key: const Key('visit-notes'),
               controller: _notes,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).notesOptional,
+              ),
               minLines: 1,
               maxLines: 6,
               maxLength: _medicalTextMaxLength,
               validator: (value) =>
                   (value?.characters.length ?? 0) > _medicalTextMaxLength
-                  ? 'Keep notes within $_medicalTextMaxLength characters'
+                  ? AppLocalizations.of(
+                      context,
+                    ).notesLimit(_medicalTextMaxLength)
                   : null,
             ),
             VerticalGap.xl,
@@ -314,7 +342,7 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
       ),
       VerticalGap.md,
       AppFormOptionalSection(
-        title: 'Cost (optional)',
+        title: AppLocalizations.of(context).costOptional,
         icon: Icons.payments_outlined,
         initiallyExpanded: widget.visit != null,
         child: Column(
@@ -328,20 +356,24 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
               ),
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
-              decoration: const InputDecoration(labelText: 'Amount (optional)'),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).amountOptional,
+              ),
               validator: (value) =>
                   value == null ||
                       value.trim().isEmpty ||
                       parseVetVisitCost(value) != null
                   ? null
-                  : 'Enter a valid amount with up to 2 decimal places',
+                  : AppLocalizations.of(context).costInvalid,
             ),
             VerticalGap.md,
             DropdownButtonFormField<VetVisitCurrency>(
               initialValue: _currency,
               isExpanded: true,
               borderRadius: BorderRadius.circular(AppSpacing.md),
-              decoration: const InputDecoration(labelText: 'Currency'),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).currency,
+              ),
               items: [
                 for (final currency in VetVisitCurrency.values)
                   DropdownMenuItem(value: currency, child: Text(currency.code)),
@@ -368,7 +400,9 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
         },
         builder: (context, state) => AppMultiStepForm(
           title: PetCareTitle(
-            title: widget.visit == null ? 'Add visit' : 'Edit visit',
+            title: widget.visit == null
+                ? AppLocalizations.of(context).addVisit
+                : AppLocalizations.of(context).editVisit,
             petName: widget.petName,
           ),
           toolbarHeight: PetCareTitle.toolbarHeight(context),
@@ -379,15 +413,24 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
           },
           allowPop: _allowPop,
           canSubmit: widget.visit == null || _hasChanges,
-          submitLabel: widget.visit == null ? 'Add visit' : 'Save changes',
-          saveError: state.saveError,
+          submitLabel: widget.visit == null
+              ? AppLocalizations.of(context).addVisit
+              : AppLocalizations.of(context).saveChanges,
+          saveError: state.saveError == null
+              ? null
+              : widget.visit == null
+              ? AppLocalizations.of(context).visitCreateFailed
+              : AppLocalizations.of(context).visitUpdateFailed,
           onSubmit: _submit,
           onExit: _requestExit,
           onChanged: () => setState(() {}),
           steps: [
-            AppFormStep(title: 'Visit', builder: (_, _) => _visitDetails()),
             AppFormStep(
-              title: 'Review',
+              title: AppLocalizations.of(context).visit,
+              builder: (_, _) => _visitDetails(),
+            ),
+            AppFormStep(
+              title: AppLocalizations.of(context).review,
               builder: (_, edit) => _review(state, edit),
             ),
           ],

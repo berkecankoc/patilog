@@ -111,7 +111,7 @@ void main() {
       );
       await pump(tester);
       await tap(tester, target);
-      expect(find.text('Read failed'), findsOneWidget);
+      expect(find.text('Failed to open reminder'), findsOneWidget);
       when(
         () => app.care.vaccinations.getVaccinationById('pet', 'vax'),
       ).thenAnswer((_) async => Success(vaccination));

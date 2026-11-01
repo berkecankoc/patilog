@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 
 class AppDateField extends StatefulWidget {
   final String labelText;
@@ -87,8 +88,13 @@ class _AppDateFieldState extends State<AppDateField> {
         suffixIcon: widget.readOnly
             ? const Icon(Icons.calendar_today_outlined)
             : IconButton(
-                tooltip:
-                    '${canClear ? 'Clear' : 'Choose'} ${widget.labelText.toLowerCase()}',
+                tooltip: canClear
+                    ? AppLocalizations.of(
+                        context,
+                      ).clearDateField(widget.labelText)
+                    : AppLocalizations.of(
+                        context,
+                      ).chooseDateField(widget.labelText),
                 onPressed: canClear ? () => widget.onChanged(null) : _pickDate,
                 icon: Icon(
                   canClear ? Icons.clear : Icons.calendar_today_outlined,

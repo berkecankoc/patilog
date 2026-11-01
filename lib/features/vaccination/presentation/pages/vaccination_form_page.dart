@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
@@ -186,11 +187,11 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
     _confirmingDiscard = true;
     final discard = await showDialog<bool>(
       context: context,
-      builder: (_) => const AppConfirmationDialog(
-        title: 'Discard changes?',
-        message: 'Your changes have not been saved. Leave without saving?',
-        cancelLabel: 'Keep editing',
-        confirmLabel: 'Discard changes',
+      builder: (context) => AppConfirmationDialog(
+        title: AppLocalizations.of(context).discardChangesTitle,
+        message: AppLocalizations.of(context).discardChangesMessage,
+        cancelLabel: AppLocalizations.of(context).keepEditing,
+        confirmLabel: AppLocalizations.of(context).discardChanges,
       ),
     );
     _confirmingDiscard = false;
@@ -213,22 +214,24 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       itemHeight: null,
       menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
       borderRadius: BorderRadius.circular(AppSpacing.md),
-      decoration: const InputDecoration(labelText: 'Vet visit (optional)'),
-      hint: const Text(
-        'No linked visit',
+      decoration: InputDecoration(
+        labelText: AppLocalizations.of(context).vetVisitOptional,
+      ),
+      hint: Text(
+        AppLocalizations.of(context).noLinkedVisit,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
       selectedItemBuilder: (context) => [
-        const Text(
-          'No linked visit',
+        Text(
+          AppLocalizations.of(context).noLinkedVisit,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         if (_visitId != null &&
             !state.visits.any((visit) => visit.id == _visitId))
-          const Text(
-            'Linked visit unavailable',
+          Text(
+            AppLocalizations.of(context).linkedVisitUnavailable,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -240,13 +243,16 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
           ),
       ],
       items: [
-        const DropdownMenuItem(value: null, child: Text('No linked visit')),
+        DropdownMenuItem(
+          value: null,
+          child: Text(AppLocalizations.of(context).noLinkedVisit),
+        ),
         if (_visitId != null &&
             !state.visits.any((visit) => visit.id == _visitId))
           DropdownMenuItem(
             value: _visitId,
             enabled: false,
-            child: const Text('Linked visit unavailable'),
+            child: Text(AppLocalizations.of(context).linkedVisitUnavailable),
           ),
         for (final visit in state.visits)
           DropdownMenuItem(
@@ -265,11 +271,13 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
     ),
     if (state.isLoadingVisits) ...[
       VerticalGap.sm,
-      const LinearProgressIndicator(semanticsLabel: 'Loading visits'),
+      LinearProgressIndicator(
+        semanticsLabel: AppLocalizations.of(context).loadingVisits,
+      ),
     ],
     if (state.visitsError != null) ...[
       VerticalGap.sm,
-      _error(state.visitsError!),
+      _error(AppLocalizations.of(context).visitsLoadFailed),
       Align(
         alignment: AlignmentDirectional.centerStart,
         child: TextButton(
@@ -280,7 +288,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
           ),
           onPressed: () =>
               context.read<VaccinationFormCubit>().loadVisits(widget.petId),
-          child: const Text('Retry visits'),
+          child: Text(AppLocalizations.of(context).retryVisits),
         ),
       ),
     ],
@@ -292,14 +300,16 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
     children: [
       AppSuggestionField(
         key: const Key('vaccination-name'),
-        label: 'Vaccine name',
+        label: AppLocalizations.of(context).vaccineName,
         controller: _vaccine,
         suggestions: state.suggestions.vaccineNames,
         validator: (value) {
           final text = value?.trim() ?? '';
-          if (text.isEmpty) return 'Enter a vaccine name';
+          if (text.isEmpty) {
+            return AppLocalizations.of(context).vaccineNameRequired;
+          }
           return text.characters.length > 50
-              ? 'Keep vaccine name within 50 characters'
+              ? AppLocalizations.of(context).vaccineNameLimit
               : null;
         },
       ),
@@ -308,15 +318,17 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
         initialValue: _status,
         isExpanded: true,
         borderRadius: BorderRadius.circular(AppSpacing.md),
-        decoration: const InputDecoration(labelText: 'Status'),
-        items: const [
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context).status,
+        ),
+        items: [
           DropdownMenuItem(
             value: VaccinationStatus.administered,
-            child: Text('Administered'),
+            child: Text(AppLocalizations.of(context).administered),
           ),
           DropdownMenuItem(
             value: VaccinationStatus.planned,
-            child: Text('Planned'),
+            child: Text(AppLocalizations.of(context).planned),
           ),
         ],
         onChanged: _changeStatus,
@@ -327,11 +339,11 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
         validator: (_) {
           final today = DateUtils.dateOnly(DateTime.now());
           if (_status == VaccinationStatus.planned && _date.isBefore(today)) {
-            return 'Choose today or a future date';
+            return AppLocalizations.of(context).dateTodayOrFuture;
           }
           if (_status == VaccinationStatus.administered &&
               _date.isAfter(today)) {
-            return 'Choose today or an earlier date';
+            return AppLocalizations.of(context).dateTodayOrPast;
           }
           return null;
         },
@@ -341,8 +353,8 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
             AppDateField(
               key: const Key('vaccination-date'),
               labelText: _status == VaccinationStatus.planned
-                  ? 'Planned date'
-                  : 'Administration date',
+                  ? AppLocalizations.of(context).plannedDate
+                  : AppLocalizations.of(context).administrationDate,
               value: _date,
               readOnly: _visitId != null,
               firstDate: _status == VaccinationStatus.planned
@@ -361,7 +373,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
             if (_visitId != null) ...[
               VerticalGap.xs,
               Text(
-                'Date from linked vet visit',
+                AppLocalizations.of(context).dateFromLinkedVisit,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -375,40 +387,46 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
   Widget _review(VaccinationFormState state, ValueChanged<int> edit) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('Review vaccination', style: Theme.of(context).textTheme.titleLarge),
+      Text(
+        AppLocalizations.of(context).reviewVaccination,
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
       VerticalGap.md,
       AppFormReviewSection(
-        title: 'Vaccine details',
+        title: AppLocalizations.of(context).vaccineDetails,
         icon: Icons.vaccines_outlined,
         onEdit: () => edit(0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AppDetailField(label: 'Vaccine name', value: _vaccine.text),
+            AppDetailField(
+              label: AppLocalizations.of(context).vaccineName,
+              value: _vaccine.text,
+            ),
             VerticalGap.md,
             AppDetailField(
-              label: 'Status',
+              label: AppLocalizations.of(context).status,
               value: _status == VaccinationStatus.planned
-                  ? 'Planned'
-                  : 'Administered',
+                  ? AppLocalizations.of(context).planned
+                  : AppLocalizations.of(context).administered,
             ),
             VerticalGap.md,
             AppDetailField(
               label: _status == VaccinationStatus.planned
-                  ? 'Planned date'
-                  : 'Administration date',
+                  ? AppLocalizations.of(context).plannedDate
+                  : AppLocalizations.of(context).administrationDate,
               value: MaterialLocalizations.of(context).formatShortDate(_date),
             ),
             if (_visitId != null) ...[
               VerticalGap.sm,
-              const Text('Date from linked vet visit'),
+              Text(AppLocalizations.of(context).dateFromLinkedVisit),
             ],
           ],
         ),
       ),
       VerticalGap.md,
       AppFormOptionalSection(
-        title: 'Clinic & veterinarian (optional)',
+        title: AppLocalizations.of(context).clinicalOptional,
         icon: Icons.local_hospital_outlined,
         initiallyExpanded: widget.vaccination != null || _visitId != null,
         child: Column(
@@ -418,7 +436,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
               ..._visitOptions(state),
             AppSuggestionField(
               key: const Key('vaccination-clinic'),
-              label: 'Clinic (optional)',
+              label: AppLocalizations.of(context).clinicOptional,
               loading: state.isLoadingSuggestions,
               controller: _clinic,
               suggestions: state.suggestions.clinicNames,
@@ -429,13 +447,13 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
             VerticalGap.md,
             AppSuggestionField(
               key: const Key('vaccination-veterinarian'),
-              label: 'Veterinarian (optional)',
+              label: AppLocalizations.of(context).veterinarianOptional,
               controller: _veterinarian,
               suggestions: state.suggestions.veterinarianNames,
             ),
             if (state.suggestionsError != null) ...[
               VerticalGap.sm,
-              _error(state.suggestionsError!),
+              _error(AppLocalizations.of(context).suggestionsLoadFailed),
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: TextButton(
@@ -449,7 +467,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
                   onPressed: () => context
                       .read<VaccinationFormCubit>()
                       .loadSuggestions(clinicName: _clinic.text),
-                  child: const Text('Retry suggestions'),
+                  child: Text(AppLocalizations.of(context).retrySuggestions),
                 ),
               ),
             ],
@@ -459,7 +477,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       ),
       VerticalGap.md,
       AppFormOptionalSection(
-        title: 'Notes (optional)',
+        title: AppLocalizations.of(context).notesOptional,
         icon: Icons.notes_outlined,
         initiallyExpanded: widget.vaccination?.notes != null,
         child: Column(
@@ -469,11 +487,13 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
               key: const Key('vaccination-notes'),
               controller: _notes,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).notesOptional,
+              ),
               minLines: 1,
               maxLines: 4,
               validator: (value) => (value?.characters.length ?? 0) > 200
-                  ? 'Keep notes within 200 characters'
+                  ? AppLocalizations.of(context).notesLimit200
                   : null,
             ),
           ],
@@ -482,30 +502,28 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       if (_canPlanNextDose) ...[
         VerticalGap.md,
         AppFormOptionalSection(
-          title: 'Next dose (optional)',
+          title: AppLocalizations.of(context).nextDoseOptional,
           icon: Icons.event_repeat_outlined,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Optionally create a separate plan for the next dose.',
-              ),
+              Text(AppLocalizations.of(context).separateNextDoseHint),
               VerticalGap.md,
               FormField<DateTime>(
                 validator: (_) {
                   if (_nextDoseDate == null) return null;
                   if (!_nextDoseDate!.isAfter(_date)) {
-                    return 'Choose a date after the administration date';
+                    return AppLocalizations.of(context).dateAfterAdministration;
                   }
                   return _nextDoseDate!.isBefore(
                         DateUtils.dateOnly(DateTime.now()),
                       )
-                      ? 'Choose today or a future date'
+                      ? AppLocalizations.of(context).dateTodayOrFuture
                       : null;
                 },
                 builder: (field) => AppDateField(
                   key: const Key('vaccination-next-date'),
-                  labelText: 'Next dose date (optional)',
+                  labelText: AppLocalizations.of(context).nextDoseDateOptional,
                   value: _nextDoseDate,
                   firstDate: _nextDoseFirstDate,
                   lastDate: DateTime(2100, 12, 31),
@@ -525,7 +543,7 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
       ],
       VerticalGap.md,
       Text(
-        'Reminders are managed in Settings → Notifications.',
+        AppLocalizations.of(context).remindersSettingsGuidance,
         key: const Key('vaccination-reminder-guidance'),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -567,10 +585,10 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
         builder: (context, state) => AppMultiStepForm(
           title: PetCareTitle(
             title: widget.recordAdministration
-                ? 'Record administration'
+                ? AppLocalizations.of(context).recordAdministrationTitle
                 : widget.vaccination == null
-                ? 'Add vaccination'
-                : 'Edit vaccination',
+                ? AppLocalizations.of(context).addVaccination
+                : AppLocalizations.of(context).editVaccination,
             petName: widget.petName,
           ),
           toolbarHeight: PetCareTitle.toolbarHeight(context),
@@ -582,19 +600,23 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
           allowPop: _allowPop,
           canSubmit: widget.vaccination == null || _hasChanges,
           submitLabel: widget.vaccination == null
-              ? 'Add vaccination'
-              : 'Save changes',
-          saveError: state.saveError,
+              ? AppLocalizations.of(context).addVaccination
+              : AppLocalizations.of(context).saveChanges,
+          saveError: state.saveError == null
+              ? null
+              : widget.vaccination == null
+              ? AppLocalizations.of(context).vaccinationCreateFailed
+              : AppLocalizations.of(context).vaccinationUpdateFailed,
           onSubmit: _submit,
           onExit: _requestExit,
           onChanged: () => setState(() {}),
           steps: [
             AppFormStep(
-              title: 'Vaccination',
+              title: AppLocalizations.of(context).vaccination,
               builder: (_, _) => _vaccinationDetails(state),
             ),
             AppFormStep(
-              title: 'Review',
+              title: AppLocalizations.of(context).review,
               builder: (_, edit) => _review(state, edit),
             ),
           ],

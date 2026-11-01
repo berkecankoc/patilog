@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,6 +65,7 @@ void main() {
 
           await tester.pumpWidget(
             MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
               theme: brightness == Brightness.light
                   ? AppTheme.light
                   : AppTheme.dark,

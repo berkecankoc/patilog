@@ -9,6 +9,11 @@ import 'package:petlytics/features/notification/data/data_sources/notification_l
 import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
+import 'package:petlytics/core/l10n/app_locale.dart';
+import 'package:petlytics/l10n/generated/app_localizations_tr.dart';
+import '../../../../helpers/notification_test_harness.dart'
+    show englishNotificationContent;
 
 class MockPlugin extends Mock implements FlutterLocalNotificationsPlugin {}
 
@@ -44,6 +49,9 @@ void main() {
     registerFallbackValue(const NotificationDetails());
     registerFallbackValue(tz.TZDateTime(tz.UTC, 2035));
     registerFallbackValue(AndroidScheduleMode.inexactAllowWhileIdle);
+    registerFallbackValue(
+      const AndroidNotificationChannel('fallback', 'Fallback'),
+    );
   });
   setUp(() {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -86,6 +94,9 @@ void main() {
           >(),
     ).thenReturn(ios);
     when(android.areNotificationsEnabled).thenAnswer((_) async => true);
+    when(
+      () => android.createNotificationChannel(any()),
+    ).thenAnswer((_) async {});
     when(android.canScheduleExactNotifications).thenAnswer((_) async => false);
     when(android.requestNotificationsPermission).thenAnswer((_) async => true);
     when(android.requestExactAlarmsPermission).thenAnswer((_) async => false);
@@ -369,7 +380,12 @@ void main() {
       for (final identifier in ['Europe/Istanbul', 'America/New_York']) {
         zone = identifier;
         await source.refreshTimeZone();
-        await source.scheduleReminder(12, dose, exact: true);
+        await source.scheduleReminder(
+          12,
+          dose,
+          exact: true,
+          channels: englishNotificationContent.channels,
+        );
         final date =
             verify(
                   () => plugin.zonedSchedule(
@@ -397,7 +413,12 @@ void main() {
     'uses category channels and private Android lock-screen visibility',
     () async {
       await source.refreshTimeZone();
-      await source.scheduleReminder(12, dose, exact: false);
+      await source.scheduleReminder(
+        12,
+        dose,
+        exact: false,
+        channels: englishNotificationContent.channels,
+      );
       final details =
           verify(
                 () => plugin.zonedSchedule(
@@ -441,7 +462,12 @@ void main() {
           throw PlatformException(code: 'exact_alarms_not_permitted');
         }
       });
-      await source.scheduleReminder(12, dose, exact: true);
+      await source.scheduleReminder(
+        12,
+        dose,
+        exact: true,
+        channels: englishNotificationContent.channels,
+      );
       expect(modes, [
         AndroidScheduleMode.exactAllowWhileIdle,
         AndroidScheduleMode.inexactAllowWhileIdle,
@@ -465,7 +491,12 @@ void main() {
         ),
       ).thenThrow(PlatformException(code: 'different_failure'));
       await expectLater(
-        source.scheduleReminder(12, dose, exact: true),
+        source.scheduleReminder(
+          12,
+          dose,
+          exact: true,
+          channels: englishNotificationContent.channels,
+        ),
         throwsA(isA<PlatformException>()),
       );
     },
@@ -478,4 +509,88 @@ void main() {
     await source.cancelReminder(77);
     verify(() => plugin.cancel(id: 77)).called(1);
   });
+
+  test(
+    'updates localized channel metadata under the same IDs without deleting channels or requesting permission',
+    () async {
+      final translated = NotificationContent(
+        AppLocalizationsTr('tr_TR'),
+        turkishLocale,
+      ).channels;
+      await source.updateChannels(englishNotificationContent.channels);
+      await source.updateChannels(translated);
+      final channels = verify(
+        () => android.createNotificationChannel(captureAny()),
+      ).captured.cast<AndroidNotificationChannel>().toList();
+      expect(channels.map((c) => c.id), [
+        'medication_reminders',
+        'vaccination_reminders',
+        'medication_reminders',
+        'vaccination_reminders',
+      ]);
+      expect(channels[2].name, 'İlaç hatırlatmaları');
+      expect(channels[3].name, 'Aşı hatırlatmaları');
+      expect(channels[3].description, translated.vaccinationDescription);
+      expect(channels.map((c) => c.importance), everyElement(Importance.high));
+      verifyNever(
+        () => android.deleteNotificationChannel(
+          channelId: any(named: 'channelId'),
+        ),
+      );
+      verifyNever(android.requestNotificationsPermission);
+      verifyNever(android.requestExactAlarmsPermission);
+      verifyNever(
+        () => plugin.zonedSchedule(
+          id: any(named: 'id'),
+          scheduledDate: any(named: 'scheduledDate'),
+          notificationDetails: any(named: 'notificationDetails'),
+          androidScheduleMode: any(named: 'androidScheduleMode'),
+          title: any(named: 'title'),
+          body: any(named: 'body'),
+          payload: any(named: 'payload'),
+        ),
+      );
+    },
+  );
+
+  test(
+    'iOS has no Android channel operation or permission side effect',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      await source.updateChannels(englishNotificationContent.channels);
+      verifyZeroInteractions(plugin);
+      verifyZeroInteractions(android);
+      verifyZeroInteractions(ios);
+    },
+  );
+
+  test(
+    'scheduled reminders carry localized labels with the original channel IDs',
+    () async {
+      final labels = NotificationContent(
+        AppLocalizationsTr('tr_TR'),
+        turkishLocale,
+      ).channels;
+      await source.refreshTimeZone();
+      await source.scheduleReminder(12, dose, exact: false, channels: labels);
+      final details =
+          verify(
+                () => plugin.zonedSchedule(
+                  id: 12,
+                  scheduledDate: any(named: 'scheduledDate'),
+                  notificationDetails: captureAny(named: 'notificationDetails'),
+                  androidScheduleMode:
+                      AndroidScheduleMode.inexactAllowWhileIdle,
+                  title: dose.title,
+                  body: dose.body,
+                  payload: NotificationTargetCodec.encode(dose.target),
+                ),
+              ).captured.single
+              as NotificationDetails;
+      expect(details.android!.channelId, 'medication_reminders');
+      expect(details.android!.channelName, labels.medicationName);
+      expect(details.android!.channelDescription, labels.medicationDescription);
+      expect(details.android!.visibility, NotificationVisibility.private);
+    },
+  );
 }

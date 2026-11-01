@@ -406,14 +406,17 @@ void main() {
         const Error(LocalDatabaseFailure('History unavailable')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('History unavailable').hitTestable(), findsOneWidget);
+      expect(
+        find.text('Failed to check dose history').hitTestable(),
+        findsOneWidget,
+      );
       expect(find.text('Draft name'), findsOneWidget);
       when(
         () => app.repository.hasDoseLogs('pet', 'med', 'period'),
       ).thenAnswer((_) async => const Success(false));
       await tester.tap(find.text('Retry dose history'));
       await tester.pumpAndSettle();
-      expect(find.text('History unavailable'), findsNothing);
+      expect(find.text('Failed to check dose history'), findsNothing);
       expect(find.text('Draft name'), findsOneWidget);
       await tap(tester, 'Save changes');
       expect(app.medications.single.name, 'Draft name');
@@ -518,7 +521,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Draft medication'), findsOneWidget);
-      expect(find.text('Save failed'), findsOneWidget);
+      expect(find.text('Failed to save medication'), findsOneWidget);
       expect(find.text('Retry saving'), findsNothing);
       app.pendingCreate = null;
       await tester.tap(find.widgetWithText(ElevatedButton, 'Add medication'));
@@ -650,7 +653,7 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
       await tester.pumpAndSettle();
       expect(find.text('Medication A'), findsOneWidget);
-      expect(find.text('Delete failed'), findsOneWidget);
+      expect(find.text('Failed to delete medication'), findsOneWidget);
       app.failDelete = false;
       await tester.tap(find.text('Retry action'));
       await tester.pumpAndSettle();
@@ -734,7 +737,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Given').first);
       await tester.pumpAndSettle();
       expect(app.logs, isEmpty);
-      expect(find.text('Dose save failed'), findsOneWidget);
+      expect(find.text('Failed to save dose record'), findsOneWidget);
       app.failDose = false;
       await tester.tap(find.text('Retry action'));
       await tester.pumpAndSettle();

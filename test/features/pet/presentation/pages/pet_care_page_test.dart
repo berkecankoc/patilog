@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -55,7 +56,10 @@ void main() {
   });
 
   Future<void> select(WidgetTester tester, PetCareTab tab) async {
-    final target = find.widgetWithText(Tab, tab.label);
+    final target = find.widgetWithText(
+      Tab,
+      tab.label(AppLocalizations.of(tester.element(find.byType(TabBar)))),
+    );
     await tester.ensureVisible(target);
     await tester.pumpAndSettle();
     await tester.tap(target);
@@ -278,14 +282,14 @@ void main() {
             const Error(LocalDatabaseFailure('Could not refresh vaccinations')),
       );
       await select(tester, PetCareTab.vaccinations);
-      expect(find.text('Could not refresh vaccinations'), findsOneWidget);
+      expect(find.text('Failed to load vaccinations'), findsOneWidget);
       expect(find.text('No vaccinations yet'), findsOneWidget);
       when(
         () => app.vaccinations.getVaccinations('pet', vetVisitId: null),
       ).thenAnswer((_) async => const Success([]));
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
-      expect(find.text('Could not refresh vaccinations'), findsNothing);
+      expect(find.text('Failed to load vaccinations'), findsNothing);
       expect(find.text('No vaccinations yet'), findsOneWidget);
       verify(
         () => app.vaccinations.getVaccinations('pet', vetVisitId: null),

@@ -1,3 +1,4 @@
+import 'package:petlytics/core/error/failure.dart';
 import 'package:equatable/equatable.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 
@@ -62,9 +63,9 @@ final class WeightEntryUpdated extends WeightHistoryState {
 }
 
 final class WeightHistoryError extends WeightHistoryState {
-  final String message;
-  const WeightHistoryError(this.message);
+  final Failure failure;
+  const WeightHistoryError(this.failure);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [failure];
 }

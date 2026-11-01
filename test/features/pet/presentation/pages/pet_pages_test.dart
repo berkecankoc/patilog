@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'dart:io';
 import 'package:petlytics/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
 import '../../../../helpers/all_pets_care_dependencies.dart';
@@ -94,6 +95,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context).copyWith(
@@ -128,7 +130,7 @@ void main() {
             MockCreatePet(),
             MockUpdatePet(),
             MockDeletePet(),
-          )..emit(const PetError('Failed to get pets'));
+          )..emit(const PetError(LocalDatabaseFailure('Failed to get pets')));
           addTearDown(cubit.close);
           await pumpPage(
             tester,
@@ -290,7 +292,12 @@ void main() {
         .widget<SnackBar>(find.byType(SnackBar))
         .action!
         .onPressed;
-    await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+    await tester.pumpWidget(
+      const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: Scaffold(),
+      ),
+    );
     retry();
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
@@ -473,7 +480,8 @@ void main() {
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await submitForm(tester);
-    expect(find.text('Could not save. Please retry.'), findsOneWidget);
+    expect(find.text('Failed to create pet'), findsOneWidget);
+    expect(find.text('Could not save. Please retry.'), findsNothing);
     expect(find.text('Fluffy'), findsOneWidget);
     expect(
       tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
@@ -509,7 +517,11 @@ void main() {
       );
       addTearDown(router.dispose);
       await tester.pumpWidget(
-        MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          theme: AppTheme.light,
+          routerConfig: router,
+        ),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text(pet.name));
@@ -566,7 +578,11 @@ void main() {
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(
-      MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        theme: AppTheme.light,
+        routerConfig: router,
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text(pet.name));

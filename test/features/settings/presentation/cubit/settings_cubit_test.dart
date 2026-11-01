@@ -6,6 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
 import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
@@ -16,16 +17,26 @@ void main() {
   late MockSettingsRepository repository;
   const light = SettingsState(
     themePreference: ThemePreference.light,
-    hasLoaded: true,
+    hasLoadedTheme: true,
+    hasLoadedLanguage: true,
   );
   const readError = Error<ThemePreference>(
     PreferencesStorageFailure('Read failed'),
   );
   const writeError = Error<void>(PreferencesStorageFailure('Write failed'));
 
-  setUpAll(() => registerFallbackValue(ThemePreference.system));
+  setUpAll(() {
+    registerFallbackValue(ThemePreference.system);
+    registerFallbackValue(LanguagePreference.system);
+  });
   setUp(() {
     repository = MockSettingsRepository();
+    when(
+      repository.getLanguagePreference,
+    ).thenAnswer((_) async => const Success(LanguagePreference.system));
+    when(
+      () => repository.setLanguagePreference(any()),
+    ).thenAnswer((_) async => const Success<void>(null));
     when(
       repository.getThemePreference,
     ).thenAnswer((_) async => const Success(ThemePreference.light));
@@ -46,7 +57,10 @@ void main() {
 
   for (final (result, expected) in [
     (const Success(ThemePreference.light), light),
-    (readError, const SettingsState(loadError: 'Read failed')),
+    (
+      readError,
+      const SettingsState(hasLoadedLanguage: true, loadError: 'Read failed'),
+    ),
   ]) {
     blocTest<SettingsCubit, SettingsState>(
       'load returns ${expected.loadError == null ? 'the stored preference' : 'System with a retryable error'}',
@@ -64,7 +78,8 @@ void main() {
       const Success<void>(null),
       const SettingsState(
         themePreference: ThemePreference.dark,
-        hasLoaded: true,
+        hasLoadedTheme: true,
+        hasLoadedLanguage: true,
       ),
     ),
     (
@@ -97,14 +112,18 @@ void main() {
     final pending = Completer<Result<ThemePreference>>();
     when(repository.getThemePreference).thenAnswer((_) => pending.future);
     final retry = cubit.load();
-    expect(cubit.state, const SettingsState(isLoading: true));
+    expect(
+      cubit.state,
+      const SettingsState(hasLoadedLanguage: true, isLoading: true),
+    );
     pending.complete(const Success(ThemePreference.dark));
     await retry;
     expect(
       cubit.state,
       const SettingsState(
         themePreference: ThemePreference.dark,
-        hasLoaded: true,
+        hasLoadedTheme: true,
+        hasLoadedLanguage: true,
       ),
     );
     verify(repository.getThemePreference).called(2);
@@ -143,7 +162,10 @@ void main() {
       addTearDown(cubit.close);
       await cubit.load();
       await cubit.setThemePreference(ThemePreference.system);
-      expect(cubit.state, const SettingsState(hasLoaded: true));
+      expect(
+        cubit.state,
+        const SettingsState(hasLoadedTheme: true, hasLoadedLanguage: true),
+      );
       verify(
         () => repository.setThemePreference(ThemePreference.system),
       ).called(1);
@@ -202,7 +224,8 @@ void main() {
         cubit.state,
         const SettingsState(
           themePreference: ThemePreference.dark,
-          hasLoaded: true,
+          hasLoadedTheme: true,
+          hasLoadedLanguage: true,
         ),
       );
       verify(
@@ -210,6 +233,7 @@ void main() {
       ).called(2);
       verify(repository.getThemePreference).called(1);
       await cubit.retrySave();
+      verify(repository.getLanguagePreference).called(1);
       verifyNoMoreInteractions(repository);
     },
   );
@@ -224,7 +248,10 @@ void main() {
     await cubit.setThemePreference(ThemePreference.dark);
     await cubit.setThemePreference(ThemePreference.system);
     await cubit.retrySave();
-    expect(cubit.state, const SettingsState(hasLoaded: true));
+    expect(
+      cubit.state,
+      const SettingsState(hasLoadedTheme: true, hasLoadedLanguage: true),
+    );
     verify(() => repository.setThemePreference(ThemePreference.dark)).called(1);
     verify(
       () => repository.setThemePreference(ThemePreference.system),
@@ -249,8 +276,14 @@ void main() {
       pending.complete(readError);
       await retry;
       await cubit.retrySave();
-      expect(loading, const SettingsState(isLoading: true));
-      expect(cubit.state, const SettingsState(loadError: 'Read failed'));
+      expect(
+        loading,
+        const SettingsState(hasLoadedLanguage: true, isLoading: true),
+      );
+      expect(
+        cubit.state,
+        const SettingsState(hasLoadedLanguage: true, loadError: 'Read failed'),
+      );
       verify(
         () => repository.setThemePreference(ThemePreference.dark),
       ).called(1);
@@ -298,7 +331,171 @@ void main() {
     await cubit.close();
     await cubit.load();
     await cubit.setThemePreference(ThemePreference.dark);
+    await cubit.setLanguagePreference(LanguagePreference.turkish);
     await cubit.retrySave();
     verifyZeroInteractions(repository);
   });
+
+  test(
+    'a failed language read preserves the loaded theme through saving and retry',
+    () async {
+      when(repository.getLanguagePreference).thenAnswer(
+        (_) async => const Error<LanguagePreference>(
+          PreferencesStorageFailure('Language unavailable'),
+        ),
+      );
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      expect(cubit.state.themePreference, ThemePreference.light);
+      expect(cubit.state.hasLoaded, isFalse);
+      await cubit.setThemePreference(ThemePreference.dark);
+      expect(cubit.state.loadError, 'Language unavailable');
+      expect(cubit.state.hasLoadedLanguage, isFalse);
+      when(
+        repository.getThemePreference,
+      ).thenAnswer((_) async => const Success(ThemePreference.dark));
+      when(
+        repository.getLanguagePreference,
+      ).thenAnswer((_) async => const Success(LanguagePreference.turkish));
+      await cubit.load();
+      expect(cubit.state.hasLoaded, isTrue);
+      expect(cubit.state.themePreference, ThemePreference.dark);
+      expect(cubit.state.languagePreference, LanguagePreference.turkish);
+      expect(cubit.state.loadError, isNull);
+    },
+  );
+
+  test(
+    'a failed theme read does not erase a stored language when a language is saved',
+    () async {
+      when(repository.getThemePreference).thenAnswer((_) async => readError);
+      when(
+        repository.getLanguagePreference,
+      ).thenAnswer((_) async => const Success(LanguagePreference.turkish));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      expect(cubit.state.languagePreference, LanguagePreference.turkish);
+      await cubit.setLanguagePreference(LanguagePreference.english);
+      expect(cubit.state.languagePreference, LanguagePreference.english);
+      expect(cubit.state.loadError, 'Read failed');
+      expect(cubit.state.hasLoadedTheme, isFalse);
+    },
+  );
+
+  test(
+    'language writes keep the last choice until success and serialize theme and language changes',
+    () async {
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      final pending = Completer<Result<void>>();
+      when(
+        () => repository.setLanguagePreference(LanguagePreference.turkish),
+      ).thenAnswer((_) => pending.future);
+      final save = cubit.setLanguagePreference(LanguagePreference.turkish);
+      expect(cubit.state.languagePreference, LanguagePreference.system);
+      await cubit.setLanguagePreference(LanguagePreference.english);
+      await cubit.setThemePreference(ThemePreference.dark);
+      await cubit.load();
+      pending.complete(const Success<void>(null));
+      await save;
+      await cubit.setLanguagePreference(LanguagePreference.turkish);
+      expect(cubit.state.languagePreference, LanguagePreference.turkish);
+      expect(cubit.state.themePreference, ThemePreference.light);
+      verify(
+        () => repository.setLanguagePreference(LanguagePreference.turkish),
+      ).called(1);
+      verifyNever(
+        () => repository.setLanguagePreference(LanguagePreference.english),
+      );
+      verifyNever(() => repository.setThemePreference(any()));
+    },
+  );
+
+  test(
+    'language retry keeps the exact target and a successful theme write preserves language',
+    () async {
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      when(
+        () => repository.setLanguagePreference(LanguagePreference.turkish),
+      ).thenAnswer((_) async => writeError);
+      await cubit.setLanguagePreference(LanguagePreference.turkish);
+      expect(cubit.state.languagePreference, LanguagePreference.system);
+      expect(cubit.state.failedLanguagePreference, LanguagePreference.turkish);
+      when(
+        () => repository.setLanguagePreference(LanguagePreference.turkish),
+      ).thenAnswer((_) async => const Success<void>(null));
+      await cubit.retrySave();
+      await cubit.setThemePreference(ThemePreference.dark);
+      expect(cubit.state.languagePreference, LanguagePreference.turkish);
+      expect(cubit.state.themePreference, ThemePreference.dark);
+      expect(cubit.state.saveError, isNull);
+      expect(cubit.state.failedLanguagePreference, isNull);
+      verify(
+        () => repository.setLanguagePreference(LanguagePreference.turkish),
+      ).called(2);
+    },
+  );
+
+  test(
+    'confirming System after both reads fail resolves only the selected field',
+    () async {
+      when(repository.getThemePreference).thenAnswer((_) async => readError);
+      when(repository.getLanguagePreference).thenAnswer(
+        (_) async => const Error<LanguagePreference>(
+          PreferencesStorageFailure('Language unavailable'),
+        ),
+      );
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      await cubit.setLanguagePreference(LanguagePreference.system);
+      expect(cubit.state.hasLoadedTheme, isFalse);
+      expect(cubit.state.hasLoadedLanguage, isTrue);
+      expect(cubit.state.loadError, isNotNull);
+      await cubit.setThemePreference(ThemePreference.system);
+      expect(cubit.state.hasLoaded, isTrue);
+      expect(cubit.state.loadError, isNull);
+    },
+  );
+
+  test('a new theme choice clears the failed language retry target', () async {
+    final cubit = makeCubit();
+    addTearDown(cubit.close);
+    await cubit.load();
+    when(
+      () => repository.setLanguagePreference(LanguagePreference.turkish),
+    ).thenAnswer((_) async => writeError);
+    await cubit.setLanguagePreference(LanguagePreference.turkish);
+    await cubit.setThemePreference(ThemePreference.dark);
+    await cubit.retrySave();
+    expect(cubit.state.themePreference, ThemePreference.dark);
+    expect(cubit.state.languagePreference, LanguagePreference.system);
+    expect(cubit.state.saveError, isNull);
+    expect(cubit.state.failedLanguagePreference, isNull);
+    verify(
+      () => repository.setLanguagePreference(LanguagePreference.turkish),
+    ).called(1);
+  });
+
+  for (final result in [const Success<void>(null), writeError]) {
+    test(
+      'closing during a language write ignores its late ${result.runtimeType}',
+      () async {
+        final pending = Completer<Result<void>>();
+        when(
+          () => repository.setLanguagePreference(LanguagePreference.turkish),
+        ).thenAnswer((_) => pending.future);
+        final cubit = makeCubit();
+        final saving = cubit.setLanguagePreference(LanguagePreference.turkish);
+        await cubit.close();
+        pending.complete(result);
+        await expectLater(saving, completes);
+      },
+    );
+  }
 }

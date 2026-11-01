@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -101,6 +102,7 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(
       MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: (brightness == Brightness.light ? AppTheme.light : AppTheme.dark)
             .copyWith(platform: platform),
         routerConfig: router,
@@ -542,10 +544,7 @@ void main() {
     await changeName(tester);
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('Could not save. Please retry.').hitTestable(),
-      findsOneWidget,
-    );
+    expect(find.text('Failed to update pet').hitTestable(), findsOneWidget);
     expect(find.text('Updated Buddy'), findsOneWidget);
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();

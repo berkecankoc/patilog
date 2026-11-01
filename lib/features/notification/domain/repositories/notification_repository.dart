@@ -1,4 +1,5 @@
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/features/notification/domain/entities/notification_channel_labels.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
@@ -26,9 +27,11 @@ abstract interface class NotificationRepository {
   /// Accepts at most maxPendingReminders, with unique identities and future
   /// local dates/minutes; failures are returned without writing health records.
   /// Invalid batches are rejected before changing the native queue.
+  /// Localized channel labels are updated even when the queue is empty.
   Future<Result<void>> synchronizeReminders(
-    List<NotificationReminder> reminders,
-  );
+    List<NotificationReminder> reminders, {
+    required NotificationChannelLabels channels,
+  });
 
   /// Cancellation matches pending metadata by pet/record IDs, without rereading
   /// deleted clinical records.

@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/widgets/pet_care_tabs.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
@@ -78,12 +80,17 @@ class VetVisitListPage extends StatelessWidget {
           child: Scaffold(
             appBar: petCareAppBar(
               context,
-              title: PetCareTitle(title: 'Vet visits', petName: petName),
+              title: PetCareTitle(
+                title: AppLocalizations.of(context).vetVisitsNavigation,
+                petName: petName,
+              ),
               toolbarHeight: PetCareTitle.toolbarHeight(context),
               busy: deleting,
               progress: busy
-                  ? const LinearProgressIndicator(
-                      semanticsLabel: 'Updating visits',
+                  ? LinearProgressIndicator(
+                      semanticsLabel: AppLocalizations.of(
+                        context,
+                      ).updatingVisits,
                     )
                   : null,
             ),
@@ -91,10 +98,10 @@ class VetVisitListPage extends StatelessWidget {
                 ? FloatingActionButton.extended(
                     isExtended:
                         MediaQuery.textScalerOf(context).scale(14) <= 21,
-                    tooltip: 'Add visit',
+                    tooltip: AppLocalizations.of(context).addVisit,
                     onPressed: busy ? null : () => _addVisit(context),
                     icon: const Icon(Icons.add),
-                    label: const Text('Add visit'),
+                    label: Text(AppLocalizations.of(context).addVisit),
                   )
                 : null,
             body: SafeArea(
@@ -113,16 +120,22 @@ class VetVisitListPage extends StatelessWidget {
                           if (deleteError != null && deletionVisit != null)
                             Flexible(
                               child: AppErrorFeedback(
-                                message: deleteError,
-                                retryLabel: 'Retry deletion',
+                                message: AppLocalizations.of(
+                                  context,
+                                ).visitDeleteFailed,
+                                retryLabel: AppLocalizations.of(
+                                  context,
+                                ).retryDeletion,
                                 onRetry: () => _delete(context, deletionVisit),
                               ),
                             )
                           else if (refreshError != null)
                             Flexible(
                               child: AppErrorFeedback(
-                                message: refreshError,
-                                retryLabel: 'Retry',
+                                message: AppLocalizations.of(
+                                  context,
+                                ).visitsLoadFailed,
+                                retryLabel: AppLocalizations.of(context).retry,
                                 onRetry: () => context
                                     .read<VetVisitCubit>()
                                     .loadVetVisits(petId),
@@ -151,15 +164,19 @@ class VetVisitListPage extends StatelessWidget {
                                           ),
                                           VerticalGap.md,
                                           Text(
-                                            'No visits yet',
+                                            AppLocalizations.of(
+                                              context,
+                                            ).noVisits,
                                             textAlign: TextAlign.center,
                                             style: Theme.of(
                                               context,
                                             ).textTheme.titleLarge,
                                           ),
                                           VerticalGap.sm,
-                                          const Text(
-                                            'Add a completed visit to keep the details together.',
+                                          Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            ).visitsEmpty,
                                             textAlign: TextAlign.center,
                                           ),
                                         ],
@@ -196,8 +213,10 @@ class VetVisitListPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                    VetVisitError(:final message) => ErrorView(
-                      message: message,
+                    VetVisitError(:final failure) => ErrorView(
+                      message: failure is NotFoundFailure
+                          ? AppLocalizations.of(context).visitNotFound
+                          : AppLocalizations.of(context).visitsLoadFailed,
                       onRetry: () =>
                           context.read<VetVisitCubit>().loadVetVisits(petId),
                     ),
@@ -274,18 +293,21 @@ class _VisitListItem extends StatelessWidget {
                     SizedBox.square(
                       dimension: 48,
                       child: deleting
-                          ? const Center(
+                          ? Center(
                               child: SizedBox.square(
                                 dimension: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  semanticsLabel: 'Deleting visit',
+                                  semanticsLabel: AppLocalizations.of(
+                                    context,
+                                  ).deletingVisit,
                                 ),
                               ),
                             )
                           : IconButton(
-                              tooltip:
-                                  'Delete visit from $date: ${visit.reason}',
+                              tooltip: AppLocalizations.of(
+                                context,
+                              ).deleteVisitTooltip(date, visit.reason),
                               onPressed: onDelete,
                               icon: const Icon(Icons.delete_outline),
                             ),

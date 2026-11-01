@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
+import 'package:petlytics/core/l10n/app_locale.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:petlytics/features/notification/presentation/widgets/notification_runtime.dart';
 import 'package:petlytics/features/notification/presentation/widgets/notification_navigation.dart';
@@ -11,6 +13,7 @@ import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
 
@@ -43,29 +46,42 @@ class MyApp extends StatelessWidget {
         value: getIt<ImageStorage>(),
         child: CareRecordChangeScope(
           changes: getIt<CareRecordChanges>(),
-          child: NotificationRuntime(
-            child: BlocSelector<SettingsCubit, SettingsState, ThemePreference>(
-              selector: (state) => state.themePreference,
-              builder: (_, preference) => MaterialApp.router(
-                title: 'Petlytics',
-                theme: AppTheme.light,
-                darkTheme: AppTheme.dark,
-                themeMode: switch (preference) {
-                  ThemePreference.system => ThemeMode.system,
-                  ThemePreference.light => ThemeMode.light,
-                  ThemePreference.dark => ThemeMode.dark,
-                },
-                routerConfig: appRouter,
-                builder: (_, child) => NotificationNavigation(
-                  router: appRouter,
-                  observers: appNavigationObservers,
-                  routeChanges: appNavigationChanges,
-                  resolve: getIt<ResolveNotificationTarget>(),
-                  child: AppKeyboard(child: child!),
+          child:
+              BlocSelector<
+                SettingsCubit,
+                SettingsState,
+                ({ThemePreference theme, LanguagePreference language})
+              >(
+                selector: (state) => (
+                  theme: state.themePreference,
+                  language: state.languagePreference,
+                ),
+                builder: (_, preference) => MaterialApp.router(
+                  title: 'Petlytics',
+                  locale: preference.language.locale,
+                  supportedLocales: appSupportedLocales,
+                  localizationsDelegates:
+                      AppLocalizations.localizationsDelegates,
+                  localeListResolutionCallback: resolveAppLocale,
+                  theme: AppTheme.light,
+                  darkTheme: AppTheme.dark,
+                  themeMode: switch (preference.theme) {
+                    ThemePreference.system => ThemeMode.system,
+                    ThemePreference.light => ThemeMode.light,
+                    ThemePreference.dark => ThemeMode.dark,
+                  },
+                  routerConfig: appRouter,
+                  builder: (_, child) => NotificationRuntime(
+                    child: NotificationNavigation(
+                      router: appRouter,
+                      observers: appNavigationObservers,
+                      routeChanges: appNavigationChanges,
+                      resolve: getIt<ResolveNotificationTarget>(),
+                      child: AppKeyboard(child: child!),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
         ),
       ),
     );

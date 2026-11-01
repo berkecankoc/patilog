@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 
 class AppKeyboard extends StatelessWidget {
   final Widget child;
@@ -32,7 +33,7 @@ class AppHideKeyboardButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-    tooltip: 'Hide keyboard',
+    tooltip: AppLocalizations.of(context).hideKeyboard,
     onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
     icon: const Icon(Icons.keyboard_hide_outlined),
   );

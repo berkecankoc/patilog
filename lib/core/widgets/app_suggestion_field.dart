@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
@@ -35,11 +36,17 @@ class _AppSuggestionFieldState extends State<AppSuggestionField> {
   ValueNotifier<bool>? _scrolling;
 
   List<String> get _options {
-    final query = widget.controller.text.trim().toLowerCase();
+    String searchKey(String value) {
+      if (Localizations.localeOf(context).languageCode == 'tr') {
+        value = value.replaceAll('I', 'ı').replaceAll('İ', 'i');
+      }
+      return value.trim().toLowerCase();
+    }
+
+    final query = searchKey(widget.controller.text);
     return widget.suggestions
         .where(
-          (name) =>
-              name.toLowerCase().contains(query) && name.toLowerCase() != query,
+          (name) => searchKey(name).contains(query) && searchKey(name) != query,
         )
         .take(5)
         .toList();
@@ -190,13 +197,15 @@ class _AppSuggestionFieldState extends State<AppSuggestionField> {
               decoration: InputDecoration(
                 labelText: widget.label,
                 suffixIcon: widget.loading
-                    ? const Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
+                    ? Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
                         child: SizedBox.square(
                           dimension: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            semanticsLabel: 'Loading suggestions',
+                            semanticsLabel: AppLocalizations.of(
+                              context,
+                            ).loadingSuggestions,
                           ),
                         ),
                       )

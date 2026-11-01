@@ -1,3 +1,4 @@
+import 'package:petlytics/core/error/failure.dart';
 import 'package:equatable/equatable.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 
@@ -85,10 +86,10 @@ final class VetVisitDeleted extends VetVisitState {
 }
 
 final class VetVisitError extends VetVisitState {
-  final String message;
+  final Failure failure;
 
-  const VetVisitError(this.message);
+  const VetVisitError(this.failure);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [failure];
 }

@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
@@ -15,12 +16,12 @@ class VaccinationStatusBadge extends StatelessWidget {
     final administered = vaccination.status == VaccinationStatus.administered;
     final overdue = !administered && date.isBefore(today);
     final label = administered
-        ? 'Administered'
+        ? AppLocalizations.of(context).administered
         : overdue
-        ? 'Overdue'
+        ? AppLocalizations.of(context).overdue
         : date == today
-        ? 'Due today'
-        : 'Upcoming';
+        ? AppLocalizations.of(context).dueToday
+        : AppLocalizations.of(context).upcoming;
     final foreground = administered
         ? colors.onSurfaceVariant
         : overdue

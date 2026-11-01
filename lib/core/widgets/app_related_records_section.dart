@@ -22,6 +22,11 @@ class AppRelatedRecordsSection extends StatefulWidget {
 
 class _AppRelatedRecordsSectionState extends State<AppRelatedRecordsSection> {
   bool _requested = false;
+  // Translated headings must not change a record's expansion identity.
+  late final _expansionKey = PageStorageKey((
+    'related-expansion',
+    widget.key ?? Object(),
+  ));
   // Expansion booleans and child scroll offsets must use separate storage.
   final _contentStorage = PageStorageBucket();
 
@@ -42,11 +47,7 @@ class _AppRelatedRecordsSectionState extends State<AppRelatedRecordsSection> {
           horizontalTitleGap: AppSpacing.sm,
           titleAlignment: ListTileTitleAlignment.center,
           child: ExpansionTile(
-            key: PageStorageKey((
-              'related-expansion',
-              widget.title,
-              widget.key,
-            )),
+            key: _expansionKey,
             maintainState: true,
             expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
             shape: const Border(),

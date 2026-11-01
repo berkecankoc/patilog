@@ -16,6 +16,8 @@ import 'package:petlytics/features/notification/domain/repositories/notification
 import 'package:petlytics/features/notification/domain/use_cases/load_notification_data.dart';
 import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
+import 'package:petlytics/features/notification/domain/entities/notification_channel_labels.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
@@ -31,6 +33,8 @@ class MockNotificationMedications extends Mock
 
 class MockNotificationVaccinations extends Mock
     implements VaccinationRepository {}
+
+final englishNotificationContent = NotificationContent.english();
 
 class NotificationTestHarness {
   final repository = MockNotificationRepository();
@@ -65,6 +69,7 @@ class NotificationTestHarness {
   final vaccines = <Vaccination>[];
   final logs = <MedicationDoseLog>[];
   final submissions = <List<NotificationReminder>>[];
+  final channelSubmissions = <NotificationChannelLabels>[];
   final cancellations = <String>[];
   bool failSave = false;
   bool failSync = false;
@@ -122,6 +127,7 @@ class NotificationTestHarness {
   );
 
   NotificationTestHarness() {
+    registerFallbackValue(englishNotificationContent.channels);
     registerFallbackValue(NotificationPreferences());
     registerFallbackValue(DateTime(2030));
     when(() => repository.openedNotifications).thenAnswer((_) => taps.stream);
@@ -148,9 +154,17 @@ class NotificationTestHarness {
       preferences = call.positionalArguments.single as NotificationPreferences;
       return const Success(null);
     });
-    when(() => repository.synchronizeReminders(any())).thenAnswer((call) async {
+    when(
+      () => repository.synchronizeReminders(
+        any(),
+        channels: any(named: 'channels'),
+      ),
+    ).thenAnswer((call) async {
       submissions.add(
         List.of(call.positionalArguments.single as List<NotificationReminder>),
+      );
+      channelSubmissions.add(
+        call.namedArguments[#channels] as NotificationChannelLabels,
       );
       return failSync
           ? const Error(NotificationFailure('Sync failed'))

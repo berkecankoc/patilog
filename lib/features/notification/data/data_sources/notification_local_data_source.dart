@@ -7,6 +7,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:petlytics/core/error/exception.dart';
 import 'package:petlytics/features/notification/data/codecs/notification_target_codec.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
+import 'package:petlytics/features/notification/domain/entities/notification_channel_labels.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -21,10 +22,12 @@ abstract interface class NotificationLocalDataSource {
   Future<void> openNotificationSettings();
   Future<void> refreshTimeZone();
   Future<List<PendingNotificationRequest>> getPendingNotifications();
+  Future<void> updateChannels(NotificationChannelLabels labels);
   Future<void> scheduleReminder(
     int id,
     NotificationReminder reminder, {
     required bool exact,
+    required NotificationChannelLabels channels,
   });
   Future<void> cancelReminder(int id);
   Future<void> dispose();
@@ -32,6 +35,8 @@ abstract interface class NotificationLocalDataSource {
 
 final class NotificationLocalDataSourceImpl
     implements NotificationLocalDataSource {
+  static const _medicationChannelId = 'medication_reminders';
+  static const _vaccinationChannelId = 'vaccination_reminders';
   final FlutterLocalNotificationsPlugin plugin;
   final _opened = StreamController<NotificationTarget>.broadcast();
   Future<void>? _initialization;
@@ -171,10 +176,38 @@ final class NotificationLocalDataSourceImpl
   }
 
   @override
+  Future<void> updateChannels(NotificationChannelLabels labels) async {
+    if (!_android) return;
+    await _ensureInitialized();
+    for (final (id, name, description) in [
+      (
+        _medicationChannelId,
+        labels.medicationName,
+        labels.medicationDescription,
+      ),
+      (
+        _vaccinationChannelId,
+        labels.vaccinationName,
+        labels.vaccinationDescription,
+      ),
+    ]) {
+      await _androidPlugin.createNotificationChannel(
+        AndroidNotificationChannel(
+          id,
+          name,
+          description: description,
+          importance: Importance.high,
+        ),
+      );
+    }
+  }
+
+  @override
   Future<void> scheduleReminder(
     int id,
     NotificationReminder reminder, {
     required bool exact,
+    required NotificationChannelLabels channels,
   }) async {
     await _ensureInitialized();
     final location = _location;
@@ -194,11 +227,11 @@ final class NotificationLocalDataSourceImpl
       ),
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
-          medication ? 'medication_reminders' : 'vaccination_reminders',
-          medication ? 'Medication reminders' : 'Vaccination reminders',
+          medication ? _medicationChannelId : _vaccinationChannelId,
+          medication ? channels.medicationName : channels.vaccinationName,
           channelDescription: medication
-              ? 'Scheduled medication doses'
-              : 'Planned vaccination reminders',
+              ? channels.medicationDescription
+              : channels.vaccinationDescription,
           importance: Importance.high,
           priority: Priority.high,
           visibility: NotificationVisibility.private,

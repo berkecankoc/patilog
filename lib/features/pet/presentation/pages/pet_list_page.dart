@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
@@ -80,7 +81,7 @@ class _PetListPageState extends State<PetListPage> {
       return _PetListView(pets: widget.pets!, onOpenPet: widget.onOpenPet!);
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('My pets')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).myPets)),
       body: BlocBuilder<PetCubit, PetState>(
         builder: (context, state) {
           return switch (state) {
@@ -91,10 +92,10 @@ class _PetListPageState extends State<PetListPage> {
                   ? _EmptyPetsView(onAddPet: () => _openAddPet(context))
                   : _PetListView(pets: pets, onOpenPet: _openPet),
 
-            PetError(:final message) => Padding(
+            PetError() => Padding(
               padding: const EdgeInsets.only(bottom: 96),
               child: ErrorView(
-                message: message,
+                message: AppLocalizations.of(context).petsLoadFailed,
                 onRetry: () => context.read<PetCubit>().loadPets(),
               ),
             ),
@@ -106,7 +107,7 @@ class _PetListPageState extends State<PetListPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openAddPet(context),
         icon: const Icon(Icons.add),
-        label: const Text('Add pet'),
+        label: Text(AppLocalizations.of(context).addPet),
       ),
     );
   }
@@ -141,14 +142,14 @@ class _EmptyPetsView extends StatelessWidget {
                 VerticalGap.md,
 
                 Text(
-                  'No pets yet',
+                  AppLocalizations.of(context).noPetsYet,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
 
                 VerticalGap.sm,
 
                 Text(
-                  'Add your first pet to start tracking health and care.',
+                  AppLocalizations.of(context).petsEmptyDescription,
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -157,7 +158,7 @@ class _EmptyPetsView extends StatelessWidget {
 
                 ElevatedButton(
                   onPressed: onAddPet,
-                  child: const Text('Add pet'),
+                  child: Text(AppLocalizations.of(context).addPet),
                 ),
               ],
             ),
@@ -182,16 +183,14 @@ class _PetListView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
                   AppSpacing.lg,
                   AppSpacing.md,
                   AppSpacing.lg,
                   AppSpacing.md,
                 ),
-                child: Text(
-                  'Choose a pet to view its profile and care overview.',
-                ),
+                child: Text(AppLocalizations.of(context).choosePetOverview),
               ),
               Expanded(
                 child: ListView.separated(
@@ -243,7 +242,7 @@ class _PetListItem extends StatelessWidget {
                     Text(pet.name, style: theme.textTheme.titleMedium),
                     VerticalGap.xs,
                     Text(
-                      pet.speciesAndBreed,
+                      pet.speciesAndBreed(AppLocalizations.of(context)),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

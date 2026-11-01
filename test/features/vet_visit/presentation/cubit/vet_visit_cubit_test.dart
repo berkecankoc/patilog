@@ -48,7 +48,7 @@ void main() {
     act: (cubit) => cubit.loadVetVisit(visit.petId, visit.id),
     expect: () => [
       VetVisitLoaded(visit, isRefreshing: true),
-      const VetVisitError('Vet visit not found'),
+      const VetVisitError(NotFoundFailure('Vet visit not found')),
     ],
   );
 
@@ -87,7 +87,10 @@ void main() {
       return makeCubit();
     },
     act: (cubit) => cubit.loadVetVisits(visit.petId),
-    expect: () => [const VetVisitLoading(), const VetVisitError('Load failed')],
+    expect: () => [
+      const VetVisitLoading(),
+      const VetVisitError(LocalDatabaseFailure('Load failed')),
+    ],
   );
 
   blocTest<VetVisitCubit, VetVisitState>(
@@ -121,11 +124,11 @@ void main() {
     (Success(visit), VetVisitLoaded(visit)),
     (
       const Error(NotFoundFailure('Visit not found')),
-      const VetVisitError('Visit not found'),
+      const VetVisitError(NotFoundFailure('Visit not found')),
     ),
     (
       const Error(LocalDatabaseFailure('Load failed')),
-      const VetVisitError('Load failed'),
+      const VetVisitError(LocalDatabaseFailure('Load failed')),
     ),
   ]) {
     blocTest<VetVisitCubit, VetVisitState>(
@@ -240,7 +243,10 @@ void main() {
         (_) async => const Error(LocalDatabaseFailure('Load failed')),
       );
       await cubit.loadVetVisits(visit.petId);
-      expect(cubit.state, const VetVisitError('Load failed'));
+      expect(
+        cubit.state,
+        const VetVisitError(LocalDatabaseFailure('Load failed')),
+      );
     },
   );
 

@@ -277,7 +277,7 @@ void main() {
     act: (cubit) => cubit.loadMedications('pet'),
     expect: () => [
       const MedicationLoading(),
-      const MedicationError('Try again'),
+      const MedicationError(LocalDatabaseFailure('Try again')),
     ],
     verify: (_) => verifyNever(
       () => repository.getDoseLogs(
@@ -325,7 +325,7 @@ void main() {
         () => repository.getMedicationById('pet', 'med'),
       ).thenAnswer((_) async => const Error(NotFoundFailure('Missing')));
       await cubit.loadMedication('pet', 'med');
-      expect(cubit.state, const MedicationError('Missing'));
+      expect(cubit.state, const MedicationError(NotFoundFailure('Missing')));
     },
   );
 

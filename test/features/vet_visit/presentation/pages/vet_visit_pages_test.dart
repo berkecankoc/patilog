@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'dart:async';
 import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
 import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
@@ -198,6 +199,7 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(
       MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
         routerConfig: router,
         builder: (context, child) => MediaQuery(
@@ -717,12 +719,12 @@ void main() {
       await revealFormField(tester, find.text('Retry suggestions'));
       expect(
         tester.getTopLeft(find.text('Retry suggestions')).dx,
-        tester.getTopLeft(find.text('Could not load suggestions')).dx,
+        tester.getTopLeft(find.text('Failed to load suggestions')).dx,
       );
       failed = false;
       await tester.tap(find.text('Retry suggestions'));
       await tester.pumpAndSettle();
-      expect(find.text('Could not load suggestions'), findsNothing);
+      expect(find.text('Failed to load suggestions'), findsNothing);
       expect(
         tester.widget<TextFormField>(clinicField).controller!.text,
         'New clinic',
@@ -817,7 +819,7 @@ void main() {
       await tester.pumpAndSettle();
       await tapFormControl(
         tester,
-        find.byTooltip('Choose visit date', skipOffstage: false),
+        find.byTooltip('Visit date: choose date', skipOffstage: false),
       );
       await tester.pumpAndSettle();
       final picker = tester.widget<DatePickerDialog>(

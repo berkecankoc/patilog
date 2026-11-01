@@ -1,6 +1,21 @@
 import 'package:equatable/equatable.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
 
+typedef NotificationText = ({String title, String body});
+typedef MedicationReminderText =
+    NotificationText Function(
+      String petName,
+      String medicationName,
+      int minute,
+      String? instructions,
+    );
+typedef VaccinationReminderText =
+    NotificationText Function(
+      String petName,
+      String vaccineName,
+      DateTime date,
+    );
+
 final class NotificationReminder extends Equatable {
   final NotificationTarget target;
 

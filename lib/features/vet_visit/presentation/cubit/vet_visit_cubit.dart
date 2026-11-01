@@ -41,7 +41,7 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
       case Error<List<VetVisit>>():
         emit(
           previous == null
-              ? VetVisitError(result.failure.message)
+              ? VetVisitError(result.failure)
               : VetVisitsLoaded(
                   petId,
                   previous.visits,
@@ -75,7 +75,7 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
       case Error<VetVisit>():
         emit(
           previous == null || result.failure is NotFoundFailure
-              ? VetVisitError(result.failure.message)
+              ? VetVisitError(result.failure)
               : VetVisitLoaded(
                   previous.visit,
                   refreshError: result.failure.message,

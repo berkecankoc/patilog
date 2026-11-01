@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
@@ -35,10 +36,20 @@ class MedicationDoseCalendar extends StatelessWidget {
         month.month,
         day,
       ).isAfter(DateUtils.dateOnly(state.currentTime))) {
-        return [(Icons.schedule_outlined, '${doses.length} scheduled')];
+        return [
+          (
+            Icons.schedule_outlined,
+            AppLocalizations.of(context).scheduledDoseCount(doses.length),
+          ),
+        ];
       }
       if (!calendar.hasLoaded) {
-        return [(Icons.hourglass_empty, 'Dose records unavailable')];
+        return [
+          (
+            Icons.hourglass_empty,
+            AppLocalizations.of(context).doseRecordsUnavailable,
+          ),
+        ];
       }
       final given = doses
           .where((dose) => dose.log?.status == MedicationDoseStatus.given)
@@ -48,10 +59,21 @@ class MedicationDoseCalendar extends StatelessWidget {
           .length;
       final missing = doses.length - given - skipped;
       return [
-        if (given > 0) (Icons.check_circle_outline, '$given given'),
-        if (skipped > 0) (Icons.remove_circle_outline, '$skipped skipped'),
+        if (given > 0)
+          (
+            Icons.check_circle_outline,
+            AppLocalizations.of(context).givenDoseCount(given),
+          ),
+        if (skipped > 0)
+          (
+            Icons.remove_circle_outline,
+            AppLocalizations.of(context).skippedDoseCount(skipped),
+          ),
         if (missing > 0)
-          (Icons.radio_button_unchecked, '$missing with no record'),
+          (
+            Icons.radio_button_unchecked,
+            AppLocalizations.of(context).missingDoseCount(missing),
+          ),
       ];
     }
 
@@ -59,8 +81,12 @@ class MedicationDoseCalendar extends StatelessWidget {
       final date = DateTime(month.year, month.month, day);
       final selected = DateUtils.isSameDay(date, state.doses.date);
       final indicators = statuses(day);
-      final label =
-          '${dates.formatFullDate(date)}. ${indicators.isEmpty ? 'No scheduled doses' : indicators.map((item) => item.$2).join(', ')}';
+      final label = AppLocalizations.of(context).calendarDayDescription(
+        dates.formatFullDate(date),
+        indicators.isEmpty
+            ? AppLocalizations.of(context).noScheduledDoses
+            : indicators.map((item) => item.$2).join(', '),
+      );
       return Semantics(
         label: label,
         button: true,
@@ -129,7 +155,7 @@ class MedicationDoseCalendar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
-              tooltip: 'Previous month',
+              tooltip: AppLocalizations.of(context).previousMonth,
               onPressed: busy
                   ? null
                   : () => cubit.loadCalendar(
@@ -145,7 +171,7 @@ class MedicationDoseCalendar extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Next month',
+              tooltip: AppLocalizations.of(context).nextMonth,
               onPressed: busy
                   ? null
                   : () => cubit.loadCalendar(
@@ -169,17 +195,17 @@ class MedicationDoseCalendar extends StatelessWidget {
                     cubit.selectCalendarDay(now);
                   },
             icon: const Icon(Icons.today_outlined),
-            label: const Text('Go to today'),
+            label: Text(AppLocalizations.of(context).goToToday),
           ),
         ),
         if (calendar.isLoading)
-          const LinearProgressIndicator(
-            semanticsLabel: 'Loading month records',
+          LinearProgressIndicator(
+            semanticsLabel: AppLocalizations.of(context).loadingMonthRecords,
           ),
         if (calendar.error != null)
           AppErrorFeedback(
-            message: calendar.error!,
-            retryLabel: 'Retry calendar',
+            message: AppLocalizations.of(context).doseLoadFailed,
+            retryLabel: AppLocalizations.of(context).retryCalendar,
             onRetry: () => cubit.loadCalendar(month),
           ),
         if (largeText) ...[
@@ -231,10 +257,19 @@ class MedicationDoseCalendar extends StatelessWidget {
           runSpacing: 8,
           children: [
             for (final item in [
-              (Icons.check_circle_outline, 'Given'),
-              (Icons.remove_circle_outline, 'Skipped'),
-              (Icons.radio_button_unchecked, 'No record'),
-              (Icons.schedule_outlined, 'Scheduled'),
+              (
+                Icons.check_circle_outline,
+                AppLocalizations.of(context).doseGiven,
+              ),
+              (
+                Icons.remove_circle_outline,
+                AppLocalizations.of(context).doseSkipped,
+              ),
+              (
+                Icons.radio_button_unchecked,
+                AppLocalizations.of(context).noDoseRecord,
+              ),
+              (Icons.schedule_outlined, AppLocalizations.of(context).scheduled),
             ])
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -258,7 +293,7 @@ class MedicationDoseCalendar extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (state.doses.doses.isEmpty)
-          const Text('No doses scheduled for this day.'),
+          Text(AppLocalizations.of(context).noCalendarDayDoses),
         for (final dose in state.doses.doses)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),

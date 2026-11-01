@@ -13,6 +13,7 @@ import 'package:petlytics/core/router/app_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/storage/image_storage.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
 import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
 import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
 import 'package:petlytics/main.dart';
@@ -31,6 +32,11 @@ class SettingsTestHarness {
   final notifications = NotificationTestHarness();
   final repository = MockSettingsRepository();
   ThemePreference stored = ThemePreference.system;
+  LanguagePreference storedLanguage = LanguagePreference.system;
+  bool failLanguageLoad = false;
+  bool failLanguageSave = false;
+  Completer<Result<LanguagePreference>>? pendingLanguageLoad;
+  Completer<Result<void>>? pendingLanguageSave;
   bool failLoad = false;
   bool failSave = false;
   Completer<Result<ThemePreference>>? pendingLoad;
@@ -42,6 +48,7 @@ class SettingsTestHarness {
     final sample = PetCareTestHarness().sample();
     registerFallbackValue(DateTime(2026));
     registerFallbackValue(ThemePreference.system);
+    registerFallbackValue(LanguagePreference.system);
     registerFallbackValue(sample);
     registerFallbackValue(sample.periods.single);
     registerFallbackValue(
@@ -76,6 +83,29 @@ class SettingsTestHarness {
               PreferencesStorageFailure('Failed to load theme preference'),
             )
           : Success(stored);
+    });
+    when(repository.getLanguagePreference).thenAnswer((_) async {
+      if (pendingLanguageLoad case final pending?) return pending.future;
+      return failLanguageLoad
+          ? const Error(
+              PreferencesStorageFailure('Failed to load language preference'),
+            )
+          : Success(storedLanguage);
+    });
+    when(() => repository.setLanguagePreference(any())).thenAnswer((
+      call,
+    ) async {
+      final result = pendingLanguageSave != null
+          ? await pendingLanguageSave!.future
+          : failLanguageSave
+          ? const Error<void>(
+              PreferencesStorageFailure('Failed to save language preference'),
+            )
+          : const Success<void>(null);
+      if (result is Success<void>) {
+        storedLanguage = call.positionalArguments.single as LanguagePreference;
+      }
+      return result;
     });
     when(() => repository.setThemePreference(any())).thenAnswer((call) async {
       final result = pendingSave != null

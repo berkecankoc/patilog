@@ -12,11 +12,14 @@ import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart'
 final class PlanNotificationReminders {
   const PlanNotificationReminders();
 
+  // Text comes from the locale boundary; scheduling and identity stay pure Dart.
   NotificationPlan call(
     NotificationData data,
     NotificationPreferences preferences,
-    DateTime now,
-  ) {
+    DateTime now, {
+    required MedicationReminderText medicationText,
+    required VaccinationReminderText vaccinationText,
+  }) {
     const limit = NotificationRepository.maxPendingReminders;
     final lastDay = calendarDayNumber(DateTime(9999, 12, 31));
     final pets = {for (final pet in data.pets) pet.id: pet.name};
@@ -61,9 +64,12 @@ final class PlanNotificationReminders {
                   recorded.contains((period.id, day, minute))) {
                 continue;
               }
-              final instructions = period.dosageInstructions?.trim();
-              final time =
-                  '${(minute ~/ 60).toString().padLeft(2, '0')}:${(minute % 60).toString().padLeft(2, '0')}';
+              final text = medicationText(
+                petName,
+                medication.name,
+                minute,
+                period.dosageInstructions?.trim(),
+              );
               upcoming.add(
                 NotificationReminder(
                   target: MedicationDoseNotificationTarget(
@@ -75,10 +81,8 @@ final class PlanNotificationReminders {
                   ),
                   scheduledDate: date,
                   scheduledMinute: minute,
-                  title: '$petName · ${medication.name}',
-                  body: instructions == null || instructions.isEmpty
-                      ? 'Scheduled dose · $time'
-                      : '$time · $instructions',
+                  title: text.title,
+                  body: text.body,
                 ),
               );
             }
@@ -106,9 +110,11 @@ final class PlanNotificationReminders {
           if (day < calendarDayNumber(now) || day > lastDay) continue;
           final date = _day(day);
           if (!_time(date, schedule.minuteOfDay).isAfter(now)) continue;
-          final due = vaccination.date;
-          final dueDate =
-              '${due.year.toString().padLeft(4, '0')}-${due.month.toString().padLeft(2, '0')}-${due.day.toString().padLeft(2, '0')}';
+          final text = vaccinationText(
+            petName,
+            vaccination.vaccineName,
+            vaccination.date,
+          );
           candidates.add(
             NotificationReminder(
               target: VaccinationNotificationTarget(
@@ -118,8 +124,8 @@ final class PlanNotificationReminders {
               ),
               scheduledDate: date,
               scheduledMinute: schedule.minuteOfDay,
-              title: '$petName · ${vaccination.vaccineName}',
-              body: 'Vaccination planned for $dueDate.',
+              title: text.title,
+              body: text.body,
             ),
           );
         }

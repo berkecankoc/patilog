@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 
 /// App-level lifetime, independent of the currently visible care tab or form.
 class NotificationRuntime extends StatefulWidget {
@@ -37,6 +39,14 @@ class _NotificationRuntimeState extends State<NotificationRuntime>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    unawaited(
+      _cubit.setContent(
+        NotificationContent(
+          AppLocalizations.of(context),
+          Localizations.localeOf(context),
+        ),
+      ),
+    );
     final changes = CareRecordChanges.maybeOf(context);
     if (changes != _changes) {
       _changes?.removeListener(_onChange);

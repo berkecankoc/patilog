@@ -94,7 +94,7 @@ void main() {
     act: (cubit) => cubit.loadWeightHistory(entry.petId),
     expect: () => [
       const WeightHistoryLoading(),
-      const WeightHistoryError('Load failed'),
+      const WeightHistoryError(LocalDatabaseFailure('Load failed')),
     ],
   );
 
@@ -102,7 +102,7 @@ void main() {
     (const Success(null), const WeightEntryCreated()),
     (
       const Error(LocalDatabaseFailure('Save failed')),
-      const WeightHistoryError('Save failed'),
+      const WeightHistoryError(LocalDatabaseFailure('Save failed')),
     ),
   ]) {
     blocTest<WeightHistoryCubit, WeightHistoryState>(
@@ -131,11 +131,11 @@ void main() {
     (const Success(null), const WeightEntryUpdated()),
     (
       const Error(LocalDatabaseFailure('Update failed')),
-      const WeightHistoryError('Update failed'),
+      const WeightHistoryError(LocalDatabaseFailure('Update failed')),
     ),
     (
       const Error(NotFoundFailure('Measurement not found')),
-      const WeightHistoryError('Measurement not found'),
+      const WeightHistoryError(NotFoundFailure('Measurement not found')),
     ),
   ]) {
     blocTest<WeightHistoryCubit, WeightHistoryState>(

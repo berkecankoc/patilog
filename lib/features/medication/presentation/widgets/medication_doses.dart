@@ -1,3 +1,4 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/core/widgets/app_keyboard.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -170,11 +171,13 @@ class MedicationDoseTile extends StatelessWidget {
                 child: !known
                     ? Text(
                         loading
-                            ? 'Loading dose record…'
-                            : 'Dose record unavailable',
+                            ? AppLocalizations.of(context).loadingDoseRecord
+                            : AppLocalizations.of(
+                                context,
+                              ).doseRecordUnavailable,
                       )
                     : future
-                    ? const Text('Scheduled')
+                    ? Text(AppLocalizations.of(context).scheduled)
                     : log != null
                     ? TextButton.icon(
                         onPressed: busy ? null : record,
@@ -186,8 +189,13 @@ class MedicationDoseTile extends StatelessWidget {
                         ),
                         label: Text(
                           log.status == MedicationDoseStatus.given
-                              ? 'Given at ${formatDoseTime(log.givenAt!.toLocal().hour * 60 + log.givenAt!.toLocal().minute)} · Edit'
-                              : 'Skipped · Edit',
+                              ? AppLocalizations.of(context).givenAtEdit(
+                                  formatDoseTime(
+                                    log.givenAt!.toLocal().hour * 60 +
+                                        log.givenAt!.toLocal().minute,
+                                  ),
+                                )
+                              : AppLocalizations.of(context).skippedEdit,
                         ),
                       )
                     : today
@@ -199,7 +207,7 @@ class MedicationDoseTile extends StatelessWidget {
                             onPressed: busy
                                 ? null
                                 : () => save(MedicationDoseStatus.skipped),
-                            child: const Text('Skip'),
+                            child: Text(AppLocalizations.of(context).skipDose),
                           ),
                           FilledButton(
                             onPressed: busy
@@ -218,7 +226,7 @@ class MedicationDoseTile extends StatelessWidget {
                                       givenAt: instant,
                                     );
                                   },
-                            child: const Text('Given'),
+                            child: Text(AppLocalizations.of(context).doseGiven),
                           ),
                         ],
                       )
@@ -227,10 +235,12 @@ class MedicationDoseTile extends StatelessWidget {
                         spacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Text('No record'),
+                          Text(AppLocalizations.of(context).noDoseRecord),
                           TextButton(
                             onPressed: busy ? null : record,
-                            child: const Text('Record dose'),
+                            child: Text(
+                              AppLocalizations.of(context).recordDose,
+                            ),
                           ),
                         ],
                       ),
@@ -255,7 +265,7 @@ Future<void> showMedicationDoseSheet(
     useSafeArea: true,
     isDismissible: false,
     enableDrag: false,
-    builder: (_) => _DoseSheet(
+    builder: (context) => _DoseSheet(
       dose: dose,
       editor: editor ?? MedicationDoseEditor.forCubit(context, dose),
       petIdentity: petIdentity,
@@ -319,11 +329,11 @@ class _DoseSheetState extends State<_DoseSheet> {
       _confirming = true;
       final discard = await showDialog<bool>(
         context: context,
-        builder: (_) => const AppConfirmationDialog(
-          title: 'Discard changes?',
-          message: 'Your dose record changes have not been saved.',
-          cancelLabel: 'Keep editing',
-          confirmLabel: 'Discard changes',
+        builder: (context) => AppConfirmationDialog(
+          title: AppLocalizations.of(context).discardChangesTitle,
+          message: AppLocalizations.of(context).unsavedDoseRecord,
+          cancelLabel: AppLocalizations.of(context).keepEditing,
+          confirmLabel: AppLocalizations.of(context).discardChanges,
         ),
       );
       _confirming = false;
@@ -423,6 +433,7 @@ class _DoseSheetState extends State<_DoseSheet> {
                   padding: const EdgeInsets.all(24),
                   child: Form(
                     key: _form,
+                    autovalidateMode: AutovalidateMode.onUserInteractionIfError,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -432,15 +443,17 @@ class _DoseSheetState extends State<_DoseSheet> {
                             Expanded(
                               child: Text(
                                 widget.dose.log == null
-                                    ? 'Record dose'
-                                    : 'Edit dose record',
+                                    ? AppLocalizations.of(context).recordDose
+                                    : AppLocalizations.of(
+                                        context,
+                                      ).editDoseRecord,
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ),
                             if (MediaQuery.viewInsetsOf(context).bottom > 0)
                               const AppHideKeyboardButton(),
                             IconButton(
-                              tooltip: 'Close',
+                              tooltip: AppLocalizations.of(context).close,
                               onPressed: blocked ? null : _close,
                               icon: const Icon(Icons.close),
                             ),
@@ -452,7 +465,10 @@ class _DoseSheetState extends State<_DoseSheet> {
                           const SizedBox(height: 8),
                         ],
                         Text(
-                          '${widget.dose.medication.name} · ${formatDoseTime(widget.dose.scheduledMinute)} dose',
+                          AppLocalizations.of(context).doseWithNameAndTime(
+                            widget.dose.medication.name,
+                            formatDoseTime(widget.dose.scheduledMinute),
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -462,14 +478,18 @@ class _DoseSheetState extends State<_DoseSheet> {
                         ),
                         const SizedBox(height: 24),
                         SegmentedButton<MedicationDoseStatus>(
-                          segments: const [
+                          segments: [
                             ButtonSegment(
                               value: MedicationDoseStatus.given,
-                              label: Text('Given'),
+                              label: Text(
+                                AppLocalizations.of(context).doseGiven,
+                              ),
                             ),
                             ButtonSegment(
                               value: MedicationDoseStatus.skipped,
-                              label: Text('Skipped'),
+                              label: Text(
+                                AppLocalizations.of(context).doseSkipped,
+                              ),
                             ),
                           ],
                           selected: {_status},
@@ -489,14 +509,16 @@ class _DoseSheetState extends State<_DoseSheet> {
                             onFieldSubmitted: (_) =>
                                 FocusScope.of(context).unfocus(),
                             inputFormatters: const [TimeInputFormatter()],
-                            decoration: const InputDecoration(
-                              labelText: 'Given at',
-                              hintText: 'HH:mm · 24-hour',
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context).givenAt,
+                              hintText: AppLocalizations.of(context).time24Hint,
                             ),
                             validator: (value) {
                               final minute = parseDoseTime(value ?? '');
                               if (minute == null) {
-                                return 'Use HH:mm, from 00:00 to 23:59.';
+                                return AppLocalizations.of(
+                                  context,
+                                ).doseTimeInvalid;
                               }
                               final day = widget.dose.scheduledDate;
                               return DateTime(
@@ -506,7 +528,7 @@ class _DoseSheetState extends State<_DoseSheet> {
                                     minute ~/ 60,
                                     minute % 60,
                                   ).isAfter(widget.editor.now())
-                                  ? 'Given time cannot be in the future.'
+                                  ? AppLocalizations.of(context).givenTimeFuture
                                   : null;
                             },
                           ),
@@ -517,7 +539,7 @@ class _DoseSheetState extends State<_DoseSheet> {
                             child: Semantics(
                               liveRegion: true,
                               child: Text(
-                                current.error!,
+                                AppLocalizations.of(context).doseUpdateFailed,
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.error,
                                 ),
@@ -525,17 +547,19 @@ class _DoseSheetState extends State<_DoseSheet> {
                             ),
                           ),
                         if (!known || currentDose == null)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(top: 16),
                             child: Text(
-                              'This dose is not available for changes. Close and refresh the selected day.',
+                              AppLocalizations.of(
+                                context,
+                              ).doseNoLongerAvailable,
                             ),
                           ),
                         const SizedBox(height: 24),
                         AppFormActions(
                           label: widget.dose.log == null
-                              ? 'Save'
-                              : 'Save changes',
+                              ? AppLocalizations.of(context).save
+                              : AppLocalizations.of(context).saveChanges,
                           saving: busy,
                           onPressed:
                               blocked ||
@@ -550,7 +574,9 @@ class _DoseSheetState extends State<_DoseSheet> {
                             onPressed: blocked
                                 ? null
                                 : () => _save(clear: true),
-                            child: const Text('Clear record'),
+                            child: Text(
+                              AppLocalizations.of(context).clearRecord,
+                            ),
                           ),
                       ],
                     ),

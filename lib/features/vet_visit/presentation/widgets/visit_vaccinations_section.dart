@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
@@ -32,7 +34,7 @@ class VisitVaccinationsSection extends StatelessWidget {
     );
     return AppRelatedRecordsSection(
       key: ValueKey((petId, visitId)),
-      title: 'Linked vaccinations',
+      title: AppLocalizations.of(context).linkedVaccinations,
       icon: Icons.vaccines_outlined,
       onLoad: load,
       child: BlocBuilder<VaccinationCubit, VaccinationState>(
@@ -47,14 +49,18 @@ class VisitVaccinationsSection extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.xs,
                     ),
-                    message: refreshError,
-                    retryLabel: 'Retry vaccinations',
+                    message: AppLocalizations.of(
+                      context,
+                    ).vaccinationsLoadFailed,
+                    retryLabel: AppLocalizations.of(context).retryVaccinations,
                     onRetry: load,
                   ),
                 if (vaccinations.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                    child: Text('No vaccinations linked to this visit.'),
+                    child: Text(
+                      AppLocalizations.of(context).noLinkedVaccinations,
+                    ),
                   )
                 else
                   ConstrainedBox(
@@ -77,8 +83,9 @@ class VisitVaccinationsSection extends StatelessWidget {
                         return AppRelatedRecordTile(
                           title: vaccination.vaccineName,
                           icon: Icons.vaccines_outlined,
-                          openLabel:
-                              'Open vaccination: ${vaccination.vaccineName}',
+                          openLabel: AppLocalizations.of(
+                            context,
+                          ).openVaccination(vaccination.vaccineName),
                           onOpen: onOpen == null
                               ? null
                               : () => onOpen!(vaccination),
@@ -94,17 +101,21 @@ class VisitVaccinationsSection extends StatelessWidget {
                   ),
               ],
             ),
-          VaccinationError(:final message) => AppErrorFeedback(
+          VaccinationError(:final failure) => AppErrorFeedback(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-            message: message,
-            retryLabel: 'Retry vaccinations',
+            message: failure is NotFoundFailure
+                ? AppLocalizations.of(context).vaccinationNotFound
+                : AppLocalizations.of(context).vaccinationsLoadFailed,
+            retryLabel: AppLocalizations.of(context).retryVaccinations,
             onRetry: load,
           ),
-          _ => const Padding(
+          _ => Padding(
             padding: EdgeInsets.all(AppSpacing.md),
             child: Center(
               child: CircularProgressIndicator(
-                semanticsLabel: 'Loading linked vaccinations',
+                semanticsLabel: AppLocalizations.of(
+                  context,
+                ).loadingLinkedVaccinations,
               ),
             ),
           ),

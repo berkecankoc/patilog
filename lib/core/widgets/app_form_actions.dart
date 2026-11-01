@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
 
@@ -39,7 +40,7 @@ class AppFormActions extends StatelessWidget {
                       ),
                     ),
                     HorizontalGap.sm,
-                    const Flexible(child: Text('Saving…')),
+                    Flexible(child: Text(AppLocalizations.of(context).saving)),
                   ],
                 )
               : Text(label),

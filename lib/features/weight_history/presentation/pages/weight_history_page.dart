@@ -1,3 +1,5 @@
+import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/widgets/pet_care_tabs.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
@@ -5,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/core/utils/weight_utils.dart';
+import 'package:petlytics/core/l10n/app_number_formats.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_gap.dart';
@@ -36,16 +38,17 @@ class WeightHistoryPage extends StatelessWidget {
   }
 
   Future<void> _delete(BuildContext context, WeightEntry entry) async {
-    final date = MaterialLocalizations.of(
-      context,
-    ).formatShortDate(entry.measuredAt.toLocal());
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AppConfirmationDialog(
-        title: 'Delete measurement?',
-        message:
-            'Remove the ${formatWeight(entry.weight)} kg measurement from $date?',
-        confirmLabel: 'Delete',
+        title: AppLocalizations.of(context).deleteMeasurementTitle,
+        message: AppLocalizations.of(context).deleteMeasurementMessage(
+          localizedWeight(entry.weight, Localizations.localeOf(context)),
+          MaterialLocalizations.of(
+            context,
+          ).formatShortDate(entry.measuredAt.toLocal()),
+        ),
+        confirmLabel: AppLocalizations.of(context).deleteAction,
       ),
     );
     if (confirmed == true && context.mounted) {
@@ -74,13 +77,18 @@ class WeightHistoryPage extends StatelessWidget {
           child: Scaffold(
             appBar: petCareAppBar(
               context,
-              title: PetCareTitle(title: 'Weight history', petName: petName),
+              title: PetCareTitle(
+                title: AppLocalizations.of(context).weightHistory,
+                petName: petName,
+              ),
               toolbarHeight: PetCareTitle.toolbarHeight(context),
               busy: deleting,
               progress:
                   deleting || state is WeightHistoryLoaded && state.isRefreshing
-                  ? const LinearProgressIndicator(
-                      semanticsLabel: 'Updating measurements',
+                  ? LinearProgressIndicator(
+                      semanticsLabel: AppLocalizations.of(
+                        context,
+                      ).updatingMeasurements,
                     )
                   : null,
             ),
@@ -91,8 +99,8 @@ class WeightHistoryPage extends StatelessWidget {
                   ? () => _openForm(context)
                   : null,
               icon: const Icon(Icons.add),
-              tooltip: 'Add measurement',
-              label: const Text('Add measurement'),
+              tooltip: AppLocalizations.of(context).addMeasurement,
+              label: Text(AppLocalizations.of(context).addMeasurement),
             ),
             body: SafeArea(
               child: Center(
@@ -110,15 +118,21 @@ class WeightHistoryPage extends StatelessWidget {
                           if (deleteError != null && deletionEntry != null)
                             Flexible(
                               child: AppErrorFeedback(
-                                message: deleteError,
-                                retryLabel: 'Retry deletion',
+                                message: AppLocalizations.of(
+                                  context,
+                                ).measurementDeleteFailed,
+                                retryLabel: AppLocalizations.of(
+                                  context,
+                                ).retryDeletion,
                                 onRetry: () => _delete(context, deletionEntry),
                               ),
                             )
                           else if (refreshError != null)
                             Flexible(
                               child: AppErrorFeedback(
-                                message: refreshError,
+                                message: AppLocalizations.of(
+                                  context,
+                                ).weightLoadFailed,
                                 onRetry: () => context
                                     .read<WeightHistoryCubit>()
                                     .loadWeightHistory(petId),
@@ -150,15 +164,19 @@ class WeightHistoryPage extends StatelessWidget {
                                             ),
                                             VerticalGap.md,
                                             Text(
-                                              'No measurements yet',
+                                              AppLocalizations.of(
+                                                context,
+                                              ).noMeasurements,
                                               textAlign: TextAlign.center,
                                               style: Theme.of(
                                                 context,
                                               ).textTheme.titleLarge,
                                             ),
                                             VerticalGap.sm,
-                                            const Text(
-                                              'Add a weight measurement to start the history.',
+                                            Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              ).measurementsEmpty,
                                               textAlign: TextAlign.center,
                                             ),
                                           ],
@@ -182,8 +200,10 @@ class WeightHistoryPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                    WeightHistoryError(:final message) => ErrorView(
-                      message: message,
+                    WeightHistoryError(:final failure) => ErrorView(
+                      message: failure is NotFoundFailure
+                          ? AppLocalizations.of(context).measurementNotFound
+                          : AppLocalizations.of(context).weightLoadFailed,
                       onRetry: () => context
                           .read<WeightHistoryCubit>()
                           .loadWeightHistory(petId),
@@ -235,12 +255,12 @@ class _Measurements extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Latest weight',
+                          AppLocalizations.of(context).latestWeight,
                           style: theme.textTheme.titleMedium,
                         ),
                         VerticalGap.sm,
                         Text(
-                          '${formatWeight(latest.weight)} kg',
+                          '${localizedWeight(latest.weight, Localizations.localeOf(context))} kg',
                           style: theme.textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -259,13 +279,13 @@ class _Measurements extends StatelessWidget {
                   ),
                 ),
                 VerticalGap.lg,
-                const AppSectionHeading(
-                  title: 'Measurements',
+                AppSectionHeading(
+                  title: AppLocalizations.of(context).measurements,
                   icon: Icons.monitor_weight_outlined,
                 ),
                 VerticalGap.xs,
                 Text(
-                  'Newest first. Select a measurement to edit it.',
+                  AppLocalizations.of(context).measurementsOrderHint,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -292,20 +312,30 @@ class _Measurements extends StatelessWidget {
                     end: AppSpacing.sm,
                   ),
                   minVerticalPadding: AppSpacing.md,
-                  title: Text('${formatWeight(entry.weight)} kg'),
+                  title: Text(
+                    '${localizedWeight(entry.weight, Localizations.localeOf(context))} kg',
+                  ),
                   subtitle: Text(date),
                   onTap: onEdit == null ? null : () => onEdit!(entry),
                   trailing: deletingEntryId == entry.id
-                      ? const SizedBox.square(
+                      ? SizedBox.square(
                           dimension: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            semanticsLabel: 'Deleting measurement',
+                            semanticsLabel: AppLocalizations.of(
+                              context,
+                            ).deletingMeasurement,
                           ),
                         )
                       : IconButton(
-                          tooltip:
-                              'Delete ${formatWeight(entry.weight)} kg measurement from $date',
+                          tooltip: AppLocalizations.of(context)
+                              .deleteMeasurementTooltip(
+                                localizedWeight(
+                                  entry.weight,
+                                  Localizations.localeOf(context),
+                                ),
+                                date,
+                              ),
                           icon: const Icon(Icons.delete_outline),
                           onPressed: onDelete == null
                               ? null

@@ -41,7 +41,7 @@ final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
       case Error<List<WeightEntry>>():
         emit(
           previous == null
-              ? WeightHistoryError(result.failure.message)
+              ? WeightHistoryError(result.failure)
               : WeightHistoryLoaded(
                   previous.entries,
                   refreshError: result.failure.message,
@@ -69,7 +69,7 @@ final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
       case Success<void>():
         emit(const WeightEntryCreated());
       case Error<void>():
-        emit(WeightHistoryError(result.failure.message));
+        emit(WeightHistoryError(result.failure));
     }
   }
 
@@ -92,7 +92,7 @@ final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
       case Success<void>():
         emit(const WeightEntryUpdated());
       case Error<void>():
-        emit(WeightHistoryError(result.failure.message));
+        emit(WeightHistoryError(result.failure));
     }
   }
 

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/theme/app_spacing.dart';
 
 /// Wrap in Flexible beside Expanded content to keep recovery reachable when
 /// long errors need to scroll on short screens with enlarged text.
 class AppErrorFeedback extends StatelessWidget {
   final String message;
-  final String retryLabel;
+  final String? retryLabel;
   final VoidCallback? onRetry;
   final EdgeInsets padding;
 
   const AppErrorFeedback({
     super.key,
     required this.message,
-    this.retryLabel = 'Retry',
+    this.retryLabel,
     this.onRetry,
     this.padding = const EdgeInsets.symmetric(
       horizontal: AppSpacing.lg,
@@ -53,7 +54,7 @@ class AppErrorFeedback extends StatelessWidget {
                     alignment: AlignmentDirectional.centerStart,
                   ),
                   onPressed: onRetry,
-                  child: Text(retryLabel),
+                  child: Text(retryLabel ?? AppLocalizations.of(context).retry),
                 ),
               ),
           ],

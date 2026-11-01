@@ -1,14 +1,50 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petlytics/core/widgets/app_related_records_section.dart';
 
 void main() {
+  testWidgets(
+    'translating a heading preserves expansion without loading again',
+    (tester) async {
+      final title = ValueNotifier('Linked records');
+      addTearDown(title.dispose);
+      var loads = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: Scaffold(
+            body: ValueListenableBuilder<String>(
+              valueListenable: title,
+              builder: (context, heading, _) => AppRelatedRecordsSection(
+                key: const ValueKey(('pet', 'record')),
+                title: heading,
+                icon: Icons.link,
+                onLoad: () => loads++,
+                child: const Text('Loaded record'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Linked records'));
+      await tester.pumpAndSettle();
+      title.value = 'Bağlı kayıtlar';
+      await tester.pumpAndSettle();
+      expect(find.text('Bağlı kayıtlar'), findsOneWidget);
+      expect(find.text('Loaded record').hitTestable(), findsOneWidget);
+      expect(loads, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final direction in TextDirection.values) {
     testWidgets(
       'plain related content stretches to the logical start in $direction',
       (tester) async {
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: Directionality(
               textDirection: direction,
               child: Scaffold(
@@ -35,6 +71,7 @@ void main() {
     'loaded or failed child scroll does not read the expansion boolean',
     (tester) async {
       Widget page(Widget child) => MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Scaffold(
           body: AppRelatedRecordsSection(
             key: const ValueKey('record'),
@@ -68,6 +105,7 @@ void main() {
       final bucket = PageStorageBucket();
       var loads = 0;
       Widget page() => MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Scaffold(
           body: PageStorage(
             bucket: bucket,

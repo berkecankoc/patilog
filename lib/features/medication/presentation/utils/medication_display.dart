@@ -1,3 +1,5 @@
+import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
@@ -12,11 +14,27 @@ int? parseDoseTime(String text) {
   return int.parse(value.substring(0, 2)) * 60 + int.parse(value.substring(3));
 }
 
-String medicationFrequency(MedicationPeriod period) =>
-    period.intervalDays == 1 ? 'Daily' : 'Every ${period.intervalDays} days';
+String medicationFrequency(AppLocalizations strings, MedicationPeriod period) =>
+    period.intervalDays == 1
+    ? strings.daily
+    : strings.medicationEveryDays(period.intervalDays);
 
-String medicationSchedule(MedicationPeriod period) =>
-    '${medicationFrequency(period)} · ${period.doseTimes.map(formatDoseTime).join(', ')}';
+String medicationSchedule(AppLocalizations strings, MedicationPeriod period) =>
+    strings.medicationScheduleSummary(
+      medicationFrequency(strings, period),
+      period.doseTimes.map(formatDoseTime).join(', '),
+    );
+
+String medicationActionError(
+  AppLocalizations strings,
+  MedicationAction? action,
+) => switch (action) {
+  DeleteMedicationAction() => strings.medicationDeleteFailed,
+  DeleteMedicationPeriodAction() => strings.scheduleDeleteFailed,
+  ClearMedicationDoseAction() => strings.doseClearFailed,
+  SaveMedicationDoseAction() => strings.doseSaveFailed,
+  null => strings.medicationsLoadFailed,
+};
 
 extension MedicationDisplay on Medication {
   MedicationPeriod? pendingPeriod(DateTime now) => periods
@@ -53,5 +71,10 @@ String medicationDateRange(
   if (end != null && DateUtils.isSameDay(period.startDate, end)) {
     return dates.formatShortDate(period.startDate);
   }
-  return '${dates.formatShortDate(period.startDate)} – ${end == null ? 'No end date' : dates.formatShortDate(end)}';
+  return AppLocalizations.of(context).dateRange(
+    dates.formatShortDate(period.startDate),
+    end == null
+        ? AppLocalizations.of(context).noEndDate
+        : dates.formatShortDate(end),
+  );
 }

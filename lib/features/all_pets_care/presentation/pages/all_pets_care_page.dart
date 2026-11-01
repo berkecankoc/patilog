@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
@@ -25,22 +26,10 @@ import 'package:petlytics/features/pet/presentation/pages/pet_list_page.dart';
 import 'package:petlytics/features/vaccination/presentation/widgets/vaccination_status_badge.dart';
 
 const _destinations = [
-  (label: 'My pets', icon: Icons.pets_outlined, path: AppRoutes.pets),
-  (
-    label: 'Vet visits',
-    icon: Icons.event_note_outlined,
-    path: AppRoutes.allVetVisits,
-  ),
-  (
-    label: 'Vaccinations',
-    icon: Icons.vaccines_outlined,
-    path: AppRoutes.allVaccinations,
-  ),
-  (
-    label: 'Medications',
-    icon: Icons.medication_outlined,
-    path: AppRoutes.allMedications,
-  ),
+  (icon: Icons.pets_outlined, path: AppRoutes.pets),
+  (icon: Icons.event_note_outlined, path: AppRoutes.allVetVisits),
+  (icon: Icons.vaccines_outlined, path: AppRoutes.allVaccinations),
+  (icon: Icons.medication_outlined, path: AppRoutes.allMedications),
 ];
 
 class AllPetsCarePage extends StatefulWidget {
@@ -183,25 +172,30 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     if (action is! SaveGlobalDose) {
       final pet = _cubit.state.petsById[action.petId];
       if (pet == null) return;
-      final title = switch (action) {
-        DeleteGlobalVetVisit() => 'Delete vet visit?',
-        DeleteGlobalVaccination() => 'Delete vaccination?',
-        _ => 'Clear dose record?',
-      };
-      final message = switch (action) {
-        DeleteGlobalVetVisit() =>
-          'Remove this visit for ${pet.name}? Linked vaccinations and medication schedules will be kept without this link.',
-        DeleteGlobalVaccination() =>
-          'Remove this vaccination for ${pet.name}? This cannot be undone.',
-        _ =>
-          'This dose will return to No record. The scheduled dose stays in the plan.',
-      };
       final confirmed = await showDialog<bool>(
         context: context,
-        builder: (_) => AppConfirmationDialog(
-          title: title,
-          message: message,
-          confirmLabel: action is ClearGlobalDose ? 'Clear record' : 'Delete',
+        builder: (context) => AppConfirmationDialog(
+          title: switch (action) {
+            DeleteGlobalVetVisit() => AppLocalizations.of(
+              context,
+            ).deleteVetVisitTitle,
+            DeleteGlobalVaccination() => AppLocalizations.of(
+              context,
+            ).deleteVaccinationTitle,
+            _ => AppLocalizations.of(context).clearDoseRecordTitle,
+          },
+          message: switch (action) {
+            DeleteGlobalVetVisit() => AppLocalizations.of(
+              context,
+            ).deleteGlobalVisitMessage(pet.name),
+            DeleteGlobalVaccination() => AppLocalizations.of(
+              context,
+            ).deleteGlobalVaccinationMessage(pet.name),
+            _ => AppLocalizations.of(context).clearDoseRecordMessage,
+          },
+          confirmLabel: action is ClearGlobalDose
+              ? AppLocalizations.of(context).clearRecord
+              : AppLocalizations.of(context).deleteAction,
         ),
       );
       if (!mounted || confirmed != true) return;
@@ -238,12 +232,12 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                 children: [
                   Expanded(
                     child: Text(
-                      'Choose a pet',
+                      AppLocalizations.of(sheetContext).choosePet,
                       style: Theme.of(sheetContext).textTheme.titleLarge,
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: AppLocalizations.of(sheetContext).close,
                     onPressed: () => Navigator.of(sheetContext).pop(),
                     icon: const Icon(Icons.close),
                   ),
@@ -259,7 +253,9 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                   return ListTile(
                     leading: PetAvatar(pet: pet, size: 40, iconSize: 24),
                     title: Text(pet.name),
-                    subtitle: Text(pet.speciesAndBreed),
+                    subtitle: Text(
+                      pet.speciesAndBreed(AppLocalizations.of(sheetContext)),
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(sheetContext).pop(pet),
                   );
@@ -369,14 +365,19 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
             isExpanded: true,
             menuMaxHeight: 320,
             borderRadius: BorderRadius.circular(16),
-            decoration: const InputDecoration(labelText: 'Pet'),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).petStep,
+            ),
             items: [
-              const DropdownMenuItem(value: '', child: Text('All pets')),
+              DropdownMenuItem(
+                value: '',
+                child: Text(AppLocalizations.of(context).allPets),
+              ),
               for (final pet in state.pets.records)
                 DropdownMenuItem(
                   value: pet.id,
                   child: Text(
-                    '${pet.name} · ${pet.species.label}',
+                    '${pet.name} · ${pet.species.label(AppLocalizations.of(context))}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -415,10 +416,26 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
 
   Widget _vaccines(AllPetsCareState state) {
     final groups = [
-      ('Overdue', state.overdueVaccinations, Icons.event_busy_outlined),
-      ('Today', state.todayVaccinations, Icons.today_outlined),
-      ('Upcoming', state.upcomingVaccinations, Icons.event_outlined),
-      ('History', state.administeredVaccinations, Icons.history),
+      (
+        AppLocalizations.of(context).overdue,
+        state.overdueVaccinations,
+        Icons.event_busy_outlined,
+      ),
+      (
+        AppLocalizations.of(context).today,
+        state.todayVaccinations,
+        Icons.today_outlined,
+      ),
+      (
+        AppLocalizations.of(context).upcoming,
+        state.upcomingVaccinations,
+        Icons.event_outlined,
+      ),
+      (
+        AppLocalizations.of(context).history,
+        state.administeredVaccinations,
+        Icons.history,
+      ),
     ];
     return CustomScrollView(
       key: const PageStorageKey('global-vaccines'),
@@ -427,13 +444,12 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
           child: _filter(state, AllPetsCareSection.vaccinations),
         ),
         if (state.visibleVaccinations.isEmpty)
-          const SliverFillRemaining(
+          SliverFillRemaining(
             hasScrollBody: false,
             child: CareEmptyView(
               icon: Icons.vaccines_outlined,
-              title: 'No vaccinations yet',
-              message:
-                  'Record an administered vaccine or plan an upcoming dose.',
+              title: AppLocalizations.of(context).noVaccinations,
+              message: AppLocalizations.of(context).vaccinationsEmpty,
             ),
           ),
         for (final (label, rows, icon) in groups)
@@ -480,7 +496,9 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                               ),
                               vaccination.petId,
                             ),
-                      deleteLabel: 'Delete ${vaccination.vaccineName}',
+                      deleteLabel: AppLocalizations.of(
+                        context,
+                      ).deleteNamedRecord(vaccination.vaccineName),
                       deleting:
                           state.pendingAction ==
                           DeleteGlobalVaccination(
@@ -518,7 +536,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Previous day',
+            tooltip: AppLocalizations.of(context).previousDay,
             onPressed: busy || date.year <= 2000
                 ? null
                 : () => _cubit.loadDoses(
@@ -540,13 +558,19 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                       if (picked != null && mounted) _cubit.loadDoses(picked);
                     },
               child: Text(
-                '${today ? 'Today · ' : ''}${MaterialLocalizations.of(context).formatMediumDate(date)}',
+                today
+                    ? AppLocalizations.of(context).todayWithDate(
+                        MaterialLocalizations.of(
+                          context,
+                        ).formatMediumDate(date),
+                      )
+                    : MaterialLocalizations.of(context).formatMediumDate(date),
                 textAlign: TextAlign.center,
               ),
             ),
           ),
           IconButton(
-            tooltip: 'Next day',
+            tooltip: AppLocalizations.of(context).nextDay,
             onPressed: busy || date.year >= 2100
                 ? null
                 : () => _cubit.loadDoses(
@@ -571,7 +595,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
             runSpacing: 8,
             children: [
               ChoiceChip(
-                label: const Text('Doses'),
+                label: Text(AppLocalizations.of(context).doses),
                 selected: !_catalog,
                 showCheckmark: false,
                 onSelected: state.isBusy
@@ -579,7 +603,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                     : (_) => setState(() => _catalog = false),
               ),
               ChoiceChip(
-                label: const Text('Medications'),
+                label: Text(AppLocalizations.of(context).medications),
                 selected: _catalog,
                 showCheckmark: false,
                 onSelected: state.isBusy
@@ -596,7 +620,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
               onPressed: state.isBusy
                   ? null
                   : () => _cubit.loadDoses(_cubit.now()),
-              child: const Text('Back to today'),
+              child: Text(AppLocalizations.of(context).backToToday),
             ),
         ],
       ],
@@ -629,11 +653,10 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
               );
             },
             header: header,
-            empty: const CareEmptyView(
+            empty: CareEmptyView(
               icon: Icons.schedule_outlined,
-              title: 'No doses scheduled',
-              message:
-                  'There are no scheduled doses for this day. View Medications to manage schedules.',
+              title: AppLocalizations.of(context).noDoses,
+              message: AppLocalizations.of(context).allPetsNoDayDoses,
             ),
           );
   }
@@ -653,13 +676,12 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       slivers: [
         SliverToBoxAdapter(child: header),
         if (state.visibleMedications.isEmpty)
-          const SliverFillRemaining(
+          SliverFillRemaining(
             hasScrollBody: false,
             child: CareEmptyView(
               icon: Icons.medication_outlined,
-              title: 'No medications yet',
-              message:
-                  'Add a medication and its schedule to start dose tracking.',
+              title: AppLocalizations.of(context).noMedications,
+              message: AppLocalizations.of(context).medicationsEmpty,
             ),
           ),
         for (final (status, rows) in groups)
@@ -669,9 +691,15 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
               sliver: SliverToBoxAdapter(
                 child: AppSectionHeading(
                   title: switch (status) {
-                    MedicationStatus.active => 'Active',
-                    MedicationStatus.upcoming => 'Upcoming',
-                    MedicationStatus.completed => 'History',
+                    MedicationStatus.active => AppLocalizations.of(
+                      context,
+                    ).active,
+                    MedicationStatus.upcoming => AppLocalizations.of(
+                      context,
+                    ).upcoming,
+                    MedicationStatus.completed => AppLocalizations.of(
+                      context,
+                    ).history,
                   },
                   icon: status == MedicationStatus.active
                       ? Icons.medication_outlined
@@ -696,7 +724,12 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                       pet: state.petsById[medication.petId],
                       title: medication.name,
                       icon: Icons.medication_outlined,
-                      details: Text(medicationSchedule(period)),
+                      details: Text(
+                        medicationSchedule(
+                          AppLocalizations.of(context),
+                          period,
+                        ),
+                      ),
                       onOpen:
                           state.isBusy ||
                               !state.petsById.containsKey(medication.petId)
@@ -719,28 +752,44 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     );
   }
 
+  String _loadErrorMessage(AllPetsCareSection section) => switch (section) {
+    AllPetsCareSection.pets => AppLocalizations.of(context).petsLoadFailed,
+    AllPetsCareSection.vetVisits => AppLocalizations.of(
+      context,
+    ).visitsLoadFailed,
+    AllPetsCareSection.vaccinations => AppLocalizations.of(
+      context,
+    ).vaccinationsLoadFailed,
+    AllPetsCareSection.medications => AppLocalizations.of(
+      context,
+    ).medicationsLoadFailed,
+  };
+
   Widget _content(AllPetsCareSection section, AllPetsCareState state) {
     final data = _records(state, section);
     if (!data.hasLoaded) {
       return data.error != null
-          ? ErrorView(message: data.error!, onRetry: _cubit.refreshActive)
+          ? ErrorView(
+              message: _loadErrorMessage(section),
+              onRetry: _cubit.refreshActive,
+            )
           : const Center(child: CircularProgressIndicator());
     }
     if (section != AllPetsCareSection.pets &&
         state.pets.hasLoaded &&
         state.pets.records.isEmpty) {
-      return const CareEmptyView(
+      return CareEmptyView(
         icon: Icons.pets_outlined,
-        title: 'No pets yet',
-        message: 'Add your first pet to start tracking health and care.',
+        title: AppLocalizations.of(context).noPetsYet,
+        message: AppLocalizations.of(context).petsEmptyDescription,
       );
     }
     if (section == AllPetsCareSection.pets) {
       if (state.pets.records.isEmpty) {
-        return const CareEmptyView(
+        return CareEmptyView(
           icon: Icons.pets_outlined,
-          title: 'No pets yet',
-          message: 'Add your first pet to start tracking health and care.',
+          title: AppLocalizations.of(context).noPetsYet,
+          message: AppLocalizations.of(context).petsEmptyDescription,
         );
       }
       return PetListPage.fromRecords(
@@ -781,7 +830,9 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                     AppRoutes.vetVisitDetail(visit.petId, visit.id),
                     visit.petId,
                   ),
-            deleteLabel: 'Delete ${visit.reason}',
+            deleteLabel: AppLocalizations.of(
+              context,
+            ).deleteNamedRecord(visit.reason),
             deleting:
                 state.pendingAction ==
                 DeleteGlobalVetVisit(visit.petId, visit.id),
@@ -794,10 +845,10 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
           );
         },
         header: _filter(state, section),
-        empty: const CareEmptyView(
+        empty: CareEmptyView(
           icon: Icons.event_note_outlined,
-          title: 'No vet visits yet',
-          message: 'Keep a record of checkups and treatment for your pets.',
+          title: AppLocalizations.of(context).noVetVisits,
+          message: AppLocalizations.of(context).allVisitsEmpty,
         ),
       );
     }
@@ -812,15 +863,22 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     if (!_started) return const SizedBox.shrink();
     return BlocBuilder<AllPetsCareCubit, AllPetsCareState>(
       builder: (context, state) {
+        final strings = AppLocalizations.of(context);
+        final labels = [
+          strings.myPets,
+          strings.vetVisits,
+          strings.vaccinations,
+          strings.medications,
+        ];
         final section = widget.section;
         final data = _records(state, section);
         final noPets = state.pets.hasLoaded && state.pets.records.isEmpty;
         final addLabel = section == AllPetsCareSection.pets || noPets
-            ? 'Add pet'
+            ? strings.addPet
             : switch (section) {
-                AllPetsCareSection.vetVisits => 'Add visit',
-                AllPetsCareSection.vaccinations => 'Add vaccination',
-                _ => 'Add medication',
+                AllPetsCareSection.vetVisits => strings.addVisit,
+                AllPetsCareSection.vaccinations => strings.addVaccination,
+                _ => strings.addMedication,
               };
         final loading =
             data.isLoading ||
@@ -840,11 +898,11 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
             appBar: AppBar(
               automaticallyImplyLeading: false,
               scrolledUnderElevation: 0,
-              title: Text(_destinations[section.index].label),
+              title: Text(labels[section.index]),
               actions: [
                 if (section == AllPetsCareSection.pets)
                   IconButton(
-                    tooltip: 'Settings',
+                    tooltip: strings.settingsTitle,
                     icon: const Icon(Icons.settings_outlined),
                     onPressed: state.isBusy
                         ? null
@@ -881,10 +939,13 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                         }
                       },
                 destinations: [
-                  for (final destination in _destinations)
+                  for (final (index, destination) in _destinations.indexed)
                     NavigationDestination(
                       icon: Icon(destination.icon),
-                      label: destination.label,
+                      label: index == AllPetsCareSection.vetVisits.index
+                          ? strings.vetVisitsNavigation
+                          : labels[index],
+                      tooltip: labels[index],
                     ),
                 ],
               ),
@@ -918,20 +979,35 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                               section != AllPetsCareSection.pets)
                             Flexible(
                               child: AppErrorFeedback(
-                                message:
-                                    'Pet names could not be refreshed. ${state.pets.error}',
-                                retryLabel: 'Retry pets',
+                                message: AppLocalizations.of(
+                                  context,
+                                ).petNamesRefreshFailed,
+                                retryLabel: AppLocalizations.of(
+                                  context,
+                                ).retryPets,
                                 onRetry: state.isBusy ? null : _cubit.loadPets,
                               ),
                             ),
                           if (state.actionError != null)
                             Flexible(
                               child: AppErrorFeedback(
-                                message: state.actionError!,
+                                message: switch (state.failedAction) {
+                                  DeleteGlobalVetVisit() =>
+                                    strings.visitDeleteFailed,
+                                  DeleteGlobalVaccination() =>
+                                    strings.vaccinationDeleteFailed,
+                                  ClearGlobalDose() => strings.doseClearFailed,
+                                  SaveGlobalDose() => strings.doseSaveFailed,
+                                  _ => strings.somethingWentWrong,
+                                },
                                 retryLabel:
                                     state.failedAction is GlobalDoseAction
-                                    ? 'Retry dose record'
-                                    : 'Retry deletion',
+                                    ? AppLocalizations.of(
+                                        context,
+                                      ).retryDoseRecord
+                                    : AppLocalizations.of(
+                                        context,
+                                      ).retryDeletion,
                                 onRetry: state.isBusy
                                     ? null
                                     : () {
@@ -944,7 +1020,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                           if (data.hasLoaded && data.error != null)
                             Flexible(
                               child: AppErrorFeedback(
-                                message: data.error!,
+                                message: _loadErrorMessage(section),
                                 onRetry: state.isBusy
                                     ? null
                                     : _cubit.refreshActive,
@@ -955,8 +1031,10 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                               state.doses.error != null)
                             Flexible(
                               child: AppErrorFeedback(
-                                message: state.doses.error!,
-                                retryLabel: 'Retry dose records',
+                                message: strings.doseLoadFailed,
+                                retryLabel: AppLocalizations.of(
+                                  context,
+                                ).retryDoseRecords,
                                 onRetry: state.isBusy
                                     ? null
                                     : () => _cubit.loadDoses(state.doseDate),
@@ -994,11 +1072,13 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                     ),
                   ),
                   if (loading)
-                    const Align(
+                    Align(
                       alignment: Alignment.topCenter,
                       child: LinearProgressIndicator(
                         minHeight: 2,
-                        semanticsLabel: 'Updating care records',
+                        semanticsLabel: AppLocalizations.of(
+                          context,
+                        ).updatingCareRecords,
                       ),
                     ),
                 ],

@@ -40,7 +40,7 @@ class MedicationVisitsCubit extends Cubit<Map<String, VetVisitState>> {
                   previous.visit,
                   refreshError: result.failure.message,
                 )
-              : VetVisitError(result.failure.message),
+              : VetVisitError(result.failure),
       },
     });
   }

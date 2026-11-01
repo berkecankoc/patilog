@@ -1,3 +1,4 @@
+import 'package:petlytics/core/error/failure.dart';
 import 'package:equatable/equatable.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 
@@ -88,10 +89,10 @@ final class VaccinationDeleted extends VaccinationState {
 }
 
 final class VaccinationError extends VaccinationState {
-  final String message;
+  final Failure failure;
 
-  const VaccinationError(this.message);
+  const VaccinationError(this.failure);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [failure];
 }
