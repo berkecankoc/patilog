@@ -854,6 +854,78 @@ abstract class AppLocalizations {
   /// **'Latest weight'**
   String get latestWeight;
 
+  /// Heading above the pet's weight history chart.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight trend'**
+  String get weightTrend;
+
+  /// No description provided for @weightChartOneMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'1 month'**
+  String get weightChartOneMonth;
+
+  /// No description provided for @weightChartThreeMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'3 months'**
+  String get weightChartThreeMonths;
+
+  /// No description provided for @weightChartSixMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'6 months'**
+  String get weightChartSixMonths;
+
+  /// Compact month range on weight chart controls. The full month wording is supplied separately for tooltips and accessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'{months} mo'**
+  String weightChartMonthsShort(int months);
+
+  /// No description provided for @weightChartAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get weightChartAll;
+
+  /// No description provided for @weightChartEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No measurements in this period.'**
+  String get weightChartEmpty;
+
+  /// No description provided for @weightChartShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all history'**
+  String get weightChartShowAll;
+
+  /// Difference between the last and first plotted daily measurements; no health judgement is implied.
+  ///
+  /// In en, this message translates to:
+  /// **'Change in this period: {change} kg'**
+  String weightChartChange(String change);
+
+  /// No description provided for @weightChartSinglePoint.
+  ///
+  /// In en, this message translates to:
+  /// **'One day recorded. Add a measurement on another day to see the trend.'**
+  String get weightChartSinglePoint;
+
+  /// No description provided for @weightChartDailyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest measurement per day. Touch a point for its date and weight.'**
+  String get weightChartDailyHint;
+
+  /// No description provided for @weightChartSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight by date in kilograms. Exact measurements are listed below.'**
+  String get weightChartSemantics;
+
   /// weight_history_page.dart: title: 'Measurements'
   ///
   /// In en, this message translates to:

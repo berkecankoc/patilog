@@ -406,6 +406,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get latestWeight => 'Latest weight';
 
   @override
+  String get weightTrend => 'Weight trend';
+
+  @override
+  String get weightChartOneMonth => '1 month';
+
+  @override
+  String get weightChartThreeMonths => '3 months';
+
+  @override
+  String get weightChartSixMonths => '6 months';
+
+  @override
+  String weightChartMonthsShort(int months) {
+    return '$months mo';
+  }
+
+  @override
+  String get weightChartAll => 'All';
+
+  @override
+  String get weightChartEmpty => 'No measurements in this period.';
+
+  @override
+  String get weightChartShowAll => 'Show all history';
+
+  @override
+  String weightChartChange(String change) {
+    return 'Change in this period: $change kg';
+  }
+
+  @override
+  String get weightChartSinglePoint =>
+      'One day recorded. Add a measurement on another day to see the trend.';
+
+  @override
+  String get weightChartDailyHint =>
+      'Latest measurement per day. Touch a point for its date and weight.';
+
+  @override
+  String get weightChartSemantics =>
+      'Weight by date in kilograms. Exact measurements are listed below.';
+
+  @override
   String get measurements => 'Measurements';
 
   @override
