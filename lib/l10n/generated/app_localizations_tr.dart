@@ -405,6 +405,49 @@ class AppLocalizationsTr extends AppLocalizations {
   String get latestWeight => 'Son kilo';
 
   @override
+  String get weightTrend => 'Kilo değişimi';
+
+  @override
+  String get weightChartOneMonth => '1 ay';
+
+  @override
+  String get weightChartThreeMonths => '3 ay';
+
+  @override
+  String get weightChartSixMonths => '6 ay';
+
+  @override
+  String weightChartMonthsShort(int months) {
+    return '$months ay';
+  }
+
+  @override
+  String get weightChartAll => 'Tümü';
+
+  @override
+  String get weightChartEmpty => 'Bu dönemde ölçüm yok.';
+
+  @override
+  String get weightChartShowAll => 'Tüm geçmişi göster';
+
+  @override
+  String weightChartChange(String change) {
+    return 'Bu dönemdeki değişim: $change kg';
+  }
+
+  @override
+  String get weightChartSinglePoint =>
+      'Bir güne ait ölçüm var. Değişimi görmek için başka bir güne ölçüm ekleyin.';
+
+  @override
+  String get weightChartDailyHint =>
+      'Her günün son ölçümü gösterilir. Tarih ve kilo için bir noktaya dokunun.';
+
+  @override
+  String get weightChartSemantics =>
+      'Tarihe göre kilogram cinsinden kilo grafiği. Ölçümler aşağıda listelenmiştir.';
+
+  @override
   String get measurements => 'Ölçümler';
 
   @override

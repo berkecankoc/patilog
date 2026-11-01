@@ -31,6 +31,8 @@ import 'package:petlytics/features/weight_history/domain/repositories/weight_his
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:petlytics/features/weight_history/presentation/pages/weight_entry_form_page.dart';
 import 'package:petlytics/features/weight_history/presentation/pages/weight_history_page.dart';
+import 'package:petlytics/features/weight_history/presentation/utils/weight_chart_data.dart';
+import 'package:petlytics/features/weight_history/presentation/widgets/weight_history_chart.dart';
 
 class MockWeightRepository extends Mock implements WeightHistoryRepository {}
 
@@ -142,6 +144,25 @@ void main() {
 
   Future<void> save(WidgetTester tester) => submitForm(tester);
 
+  Future<void> scrollToMeasurement(WidgetTester tester, String weight) async {
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, weight),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(CustomScrollView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openMeasurement(WidgetTester tester, String weight) async {
+    await scrollToMeasurement(tester, weight);
+    await tester.tap(find.widgetWithText(ListTile, weight));
+  }
+
   for (final mismatch in ['context', 'record']) {
     testWidgets(
       'measurement form rejects mismatched $mismatch ownership in extras',
@@ -183,7 +204,7 @@ void main() {
       (tester) async {
         await pumpRouter(tester);
         if (editing) {
-          await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+          await openMeasurement(tester, '4.5 kg');
           await tester.pumpAndSettle();
         } else {
           await openAddForm(tester);
@@ -216,7 +237,7 @@ void main() {
       (tester) async {
         await pumpRouter(tester);
         if (editing) {
-          await tester.tap(find.text('4.5 kg').last);
+          await openMeasurement(tester, '4.5 kg');
           await tester.pumpAndSettle();
         } else {
           await openAddForm(tester);
@@ -280,7 +301,7 @@ void main() {
     expect(saveButton.bottom, lessThanOrEqualTo(720));
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await openMeasurement(tester, '4.5 kg');
     await tester.pumpAndSettle();
     expect(appBarName.hitTestable(), findsOneWidget);
     expect(
@@ -578,7 +599,7 @@ void main() {
         ).thenAnswer((_) async => const Success(null));
         await pumpRouter(tester);
         if (editing) {
-          await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+          await openMeasurement(tester, '4.5 kg');
           await tester.pumpAndSettle();
         } else {
           await openAddForm(tester);
@@ -672,6 +693,7 @@ void main() {
         ];
         await pumpRouter(tester, brightness: brightness);
         expect(find.text('$text kg'), findsNWidgets(2));
+        await scrollToMeasurement(tester, '$text kg');
         await tester.tap(
           find.byTooltip('Delete $text kg measurement from Jan 12, 2025'),
         );
@@ -683,7 +705,7 @@ void main() {
         await tester.tap(find.text('Cancel'));
         await tester.pumpAndSettle();
         verifyNever(() => repository.deleteWeightEntry(any()));
-        await tester.tap(find.widgetWithText(ListTile, '$text kg'));
+        await openMeasurement(tester, '$text kg');
         await tester.pumpAndSettle();
         expect(
           tester
@@ -728,7 +750,15 @@ void main() {
     await save(tester);
 
     expect(find.byType(WeightHistoryPage), findsOneWidget);
-    expect(find.text('4.8 kg'), findsNWidgets(2));
+    expect(
+      find.descendant(
+        of: find.widgetWithText(Card, 'Latest weight'),
+        matching: find.text('4.8 kg'),
+      ),
+      findsOneWidget,
+    );
+    await scrollToMeasurement(tester, '4.8 kg');
+    expect(find.widgetWithText(ListTile, '4.8 kg'), findsOneWidget);
     final created =
         verify(() => repository.createWeightEntry(captureAny())).captured.single
             as WeightEntry;
@@ -755,7 +785,7 @@ void main() {
       return const Success(null);
     });
     await pumpRouter(tester);
-    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await openMeasurement(tester, '4.5 kg');
     await tester.pumpAndSettle();
     await enterFormText(
       tester,
@@ -794,7 +824,7 @@ void main() {
       return const Success(null);
     });
     await pumpRouter(tester);
-    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await openMeasurement(tester, '4.5 kg');
     await tester.pumpAndSettle();
     await tapFormControl(
       tester,
@@ -823,7 +853,7 @@ void main() {
       return const Success(null);
     });
     await pumpRouter(tester);
-    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await openMeasurement(tester, '4.5 kg');
     await tester.pumpAndSettle();
     await tapFormControl(
       tester,
@@ -857,7 +887,7 @@ void main() {
     await revealFormField(tester, find.text('Weight history'));
     await tester.tap(find.text('Weight history'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await openMeasurement(tester, '4.5 kg');
     await tester.pumpAndSettle();
     await enterFormText(
       tester,
@@ -897,6 +927,7 @@ void main() {
           return const Success(null);
         });
         await pumpRouter(tester);
+        await scrollToMeasurement(tester, '4.5 kg');
         await tester.tap(find.byIcon(Icons.delete_outline));
         await tester.pumpAndSettle();
         expect(find.text('Delete measurement?'), findsOneWidget);
@@ -963,6 +994,7 @@ void main() {
       return const Success(null);
     });
     await pumpRouter(tester);
+    await scrollToMeasurement(tester, '4.5 kg');
     expect(find.text('Jan 12, 2025'), findsNWidgets(2));
     expect(find.text('Jan 12, 2024'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.delete_outline).first);
@@ -988,17 +1020,19 @@ void main() {
         return const Success(null);
       });
       await pumpRouter(tester);
+      await scrollToMeasurement(tester, '4.5 kg');
       await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
       expect(find.text('Failed to delete measurement'), findsOneWidget);
-      expect(find.text('4.5 kg'), findsNWidgets(2));
+      await scrollToMeasurement(tester, '4.5 kg');
+      expect(find.widgetWithText(ListTile, '4.5 kg'), findsOneWidget);
       await tester.tap(find.text('Retry deletion'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
-      expect(find.text('4.5 kg'), findsNWidgets(2));
+      expect(find.widgetWithText(ListTile, '4.5 kg'), findsOneWidget);
       verify(() => repository.deleteWeightEntry(entry.id)).called(1);
       await tester.tap(find.text('Retry deletion'));
       await tester.pumpAndSettle();
@@ -1020,6 +1054,49 @@ void main() {
     await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
     await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
   });
+
+  testWidgets(
+    'chart range survives form return and deletion without extra reads',
+    (tester) async {
+      final today = DateTime.now();
+      entries = [
+        WeightEntry(id: 'new', petId: pet.id, weight: 5, measuredAt: today),
+        entry,
+      ];
+      when(() => repository.deleteWeightEntry('new')).thenAnswer((_) async {
+        entries = [entry];
+        return const Success(null);
+      });
+      await pumpRouter(tester);
+      final all = find.byKey(const ValueKey(WeightChartRange.all));
+      await tester.ensureVisible(all);
+      await tester.tap(all);
+      await tester.pumpAndSettle();
+      await openAddForm(tester);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(tester.widget<ChoiceChip>(all).selected, isTrue);
+      await scrollToMeasurement(tester, '5 kg');
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(ListTile, '5 kg'),
+          matching: find.byType(IconButton),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<ChoiceChip>(all).selected, isTrue);
+      expect(
+        tester
+            .widget<WeightHistoryChart>(find.byType(WeightHistoryChart))
+            .entries,
+        [entry],
+      );
+      verify(() => repository.getWeightEntries(pet.id)).called(1);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('duplicate submissions and back during save are safe', (
     tester,
@@ -1091,7 +1168,7 @@ void main() {
         (tester) async {
           await pumpRouter(tester);
           if (editing) {
-            await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+            await openMeasurement(tester, '4.5 kg');
             await tester.pumpAndSettle();
           } else {
             await openAddForm(tester);
@@ -1135,7 +1212,7 @@ void main() {
     'unchanged edit closes without confirmation and cannot be saved',
     (tester) async {
       await pumpRouter(tester);
-      await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+      await openMeasurement(tester, '4.5 kg');
       await tester.pumpAndSettle();
       expect(
         tester
@@ -1155,7 +1232,7 @@ void main() {
 
   testWidgets('date-only edit is protected before leaving', (tester) async {
     await pumpRouter(tester);
-    await tester.tap(find.widgetWithText(ListTile, '4.5 kg'));
+    await openMeasurement(tester, '4.5 kg');
     await tester.pumpAndSettle();
     await tapFormControl(
       tester,
@@ -1229,6 +1306,7 @@ void main() {
       await revealFormField(tester, find.text('Weight history'));
       await tester.tap(find.text('Weight history'));
       await tester.pumpAndSettle();
+      await scrollToMeasurement(tester, '4.5 kg');
       await tester.tap(find.byIcon(Icons.delete_outline).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
@@ -1289,7 +1367,14 @@ void main() {
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -1000));
       await tester.pumpAndSettle();
       final scroll = tester
-          .state<ScrollableState>(find.byType(Scrollable).first)
+          .state<ScrollableState>(
+            find
+                .descendant(
+                  of: find.byType(CustomScrollView),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          )
           .position;
       final offset = scroll.pixels;
       expect(offset, greaterThan(0));
@@ -1380,10 +1465,12 @@ void main() {
           await tester.scrollUntilVisible(
             delete,
             150,
-            scrollable: find.descendant(
-              of: find.byType(CustomScrollView),
-              matching: find.byType(Scrollable),
-            ),
+            scrollable: find
+                .descendant(
+                  of: find.byType(CustomScrollView),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
           );
           await tester.pumpAndSettle();
           await tester.tap(delete);

@@ -19,6 +19,7 @@ import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
+import 'package:petlytics/features/weight_history/presentation/widgets/weight_history_chart.dart';
 
 class WeightHistoryPage extends StatelessWidget {
   final String petId;
@@ -277,6 +278,11 @@ class _Measurements extends StatelessWidget {
                       ],
                     ),
                   ),
+                ),
+                VerticalGap.lg,
+                WeightHistoryChart(
+                  key: ValueKey(latest.petId),
+                  entries: entries,
                 ),
                 VerticalGap.lg,
                 AppSectionHeading(
