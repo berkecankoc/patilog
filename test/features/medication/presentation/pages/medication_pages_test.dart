@@ -424,57 +424,94 @@ void main() {
     },
   );
 
-  testWidgets(
-    'dose calendar stays in detail and opens mixed day records without a list round trip',
-    (tester) async {
-      app.medications = [app.sample()];
-      final past = DateTime(app.today.year, app.today.month, app.today.day - 1);
-      app.logs.addAll([
-        MedicationDoseLog(
-          periodId: 'period',
-          scheduledDate: past,
-          scheduledMinute: 480,
-          status: MedicationDoseStatus.given,
-          givenAt: DateTime(past.year, past.month, past.day, 8, 5),
-        ),
-        MedicationDoseLog(
-          periodId: 'period',
-          scheduledDate: past,
-          scheduledMinute: 1200,
-          status: MedicationDoseStatus.skipped,
-        ),
-      ]);
-      final router = await app.pump(
-        tester,
-        location: AppRoutes.medicationDetail('pet', 'med'),
-      );
-      final button = find.widgetWithText(FilledButton, 'Dose calendar');
-      await tester.ensureVisible(button);
-      await tester.tap(button);
-      await tester.pumpAndSettle();
-      expect(find.byType(MedicationDoseCalendar), findsOneWidget);
-      final day = find.byKey(ValueKey(('dose-calendar-day', past)));
-      await Scrollable.ensureVisible(tester.element(day), alignment: 0.4);
-      await tester.pumpAndSettle();
-      await tester.tap(day);
-      await tester.pumpAndSettle();
-      final given = find.text('Given at 08:05 · Edit');
-      await tester.ensureVisible(given);
-      await tester.pumpAndSettle();
-      expect(given, findsOneWidget);
-      expect(find.text('Skipped · Edit'), findsOneWidget);
-      expect(router.state.uri.path, AppRoutes.medicationDetail('pet', 'med'));
-      verify(
-        () => app.repository.getDoseLogs(
-          'pet',
-          medicationId: 'med',
-          fromDate: DateTime(app.today.year, app.today.month),
-          toDate: DateTime(app.today.year, app.today.month + 1, 0),
-        ),
-      ).called(1);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  for (final (scenario, today) in [
+    ('same month', DateTime(2026, 11, 15)),
+    ('previous month', DateTime(2026, 11, 1)),
+    ('previous year', DateTime(2026, 1, 1)),
+  ]) {
+    testWidgets(
+      'dose calendar stays in detail and opens mixed day records without a list round trip ($scenario)',
+      (tester) async {
+        app.clock = DateTime(today.year, today.month, today.day, 12, 15);
+        final past = DateTime(today.year, today.month, today.day - 1);
+        app.medications = [
+          app.sample(
+            periods: [
+              MedicationPeriod(
+                id: 'period',
+                medicationId: 'med',
+                startDate: DateTime(today.year, today.month, today.day - 2),
+                intervalDays: 1,
+                doseTimes: [480, 1200],
+              ),
+            ],
+          ),
+        ];
+        app.logs.addAll([
+          MedicationDoseLog(
+            periodId: 'period',
+            scheduledDate: past,
+            scheduledMinute: 480,
+            status: MedicationDoseStatus.given,
+            givenAt: DateTime(past.year, past.month, past.day, 8, 5),
+          ),
+          MedicationDoseLog(
+            periodId: 'period',
+            scheduledDate: past,
+            scheduledMinute: 1200,
+            status: MedicationDoseStatus.skipped,
+          ),
+        ]);
+        final router = await app.pump(
+          tester,
+          location: AppRoutes.medicationDetail('pet', 'med'),
+        );
+        final button = find.widgetWithText(FilledButton, 'Dose calendar');
+        await tester.ensureVisible(button);
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(find.byType(MedicationDoseCalendar), findsOneWidget);
+        final changesMonth =
+            past.year != today.year || past.month != today.month;
+        if (changesMonth) {
+          final previous = find.byTooltip('Previous month');
+          await tester.ensureVisible(previous);
+          await tester.tap(previous);
+          await tester.pumpAndSettle();
+        }
+        final day = find.byKey(ValueKey(('dose-calendar-day', past)));
+        await Scrollable.ensureVisible(tester.element(day), alignment: 0.4);
+        await tester.pumpAndSettle();
+        await tester.tap(day);
+        await tester.pumpAndSettle();
+        final given = find.text('Given at 08:05 · Edit');
+        await tester.ensureVisible(given);
+        await tester.pumpAndSettle();
+        expect(given, findsOneWidget);
+        expect(find.text('Skipped · Edit'), findsOneWidget);
+        expect(router.state.uri.path, AppRoutes.medicationDetail('pet', 'med'));
+        verify(
+          () => app.repository.getDoseLogs(
+            'pet',
+            medicationId: 'med',
+            fromDate: DateTime(today.year, today.month),
+            toDate: DateTime(today.year, today.month + 1, 0),
+          ),
+        ).called(1);
+        if (changesMonth) {
+          verify(
+            () => app.repository.getDoseLogs(
+              'pet',
+              medicationId: 'med',
+              fromDate: DateTime(past.year, past.month),
+              toDate: DateTime(past.year, past.month + 1, 0),
+            ),
+          ).called(1);
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets(
     'create validates steps and saves once from Review, preserving blank optional fields',
