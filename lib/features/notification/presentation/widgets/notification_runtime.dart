@@ -73,6 +73,10 @@ class _NotificationRuntimeState extends State<NotificationRuntime>
       unawaited(
         _cubit.removeDeleted(petId: petId, medicationId: change.deletedId),
       );
+    } else if (change.tab == PetCareTab.feeding &&
+        change.deletedId != null &&
+        petId != null) {
+      unawaited(_cubit.removeFeedingEntry(petId, change.deletedId!));
     } else if (change.tab != PetCareTab.weightHistory &&
         !(change.tab == PetCareTab.vetVisits && change.deletedId != null)) {
       unawaited(_cubit.refresh());

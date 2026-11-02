@@ -1,5 +1,7 @@
 import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'dart:async';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -40,6 +42,8 @@ class _NotificationNavigationState extends State<NotificationNavigation>
   NotificationTarget? _deferred;
   AllPetsCareCubit? _global;
   StreamSubscription<AllPetsCareState>? _globalWrites;
+  FeedingCubit? _feeding;
+  StreamSubscription<FeedingState>? _feedingWrites;
   NotificationCubit get _cubit => context.read<NotificationCubit>();
 
   @override
@@ -71,6 +75,19 @@ class _NotificationNavigationState extends State<NotificationNavigation>
         final global = route is ModalRoute
             ? route.subtreeContext?.read<AllPetsCareCubit?>()
             : null;
+        final feeding = path == AppRoutes.allFeeding && route is ModalRoute
+            ? route.subtreeContext?.read<FeedingCubit?>()
+            : null;
+        if (feeding != null &&
+            feeding.state is FeedingLoaded &&
+            (feeding.state as FeedingLoaded).pendingAction != null) {
+          if (_feeding != feeding) {
+            _feedingWrites?.cancel();
+            _feeding = feeding;
+            _feedingWrites = feeding.stream.listen((_) => _schedule());
+          }
+          return true;
+        }
         if (global != null && _global != global && global.state.isBusy) {
           _globalWrites?.cancel();
           _global = global;
@@ -81,6 +98,7 @@ class _NotificationNavigationState extends State<NotificationNavigation>
               AppRoutes.allVetVisits,
               AppRoutes.allVaccinations,
               AppRoutes.allMedications,
+              AppRoutes.allFeeding,
             ].contains(path) &&
             global != null &&
             !global.state.isBusy) {
@@ -129,6 +147,9 @@ class _NotificationNavigationState extends State<NotificationNavigation>
       if (!mounted || _cubit.state.pendingTarget != target || _blocked) return;
       _cubit.acknowledgeTarget();
       _globalWrites?.cancel();
+      _feedingWrites?.cancel();
+      _feedingWrites = null;
+      _feeding = null;
       _globalWrites = null;
       _global = null;
       _deferred = null;
@@ -152,6 +173,20 @@ class _NotificationNavigationState extends State<NotificationNavigation>
           );
         case Success():
           switch (target) {
+            case FeedingMealNotificationTarget():
+              final location = AppRoutes.feeding(target.petId);
+              final extra = FeedingRouteExtra(
+                petId: target.petId,
+                petName: result.data.name,
+                date: target.scheduledDate,
+              );
+              final current = widget.router.state.uri.path;
+              if (current == AppRoutes.petDetail(target.petId) ||
+                  current.startsWith('${AppRoutes.petDetail(target.petId)}/')) {
+                widget.router.go(location, extra: extra);
+              } else {
+                unawaited(widget.router.push<void>(location, extra: extra));
+              }
             case VaccinationNotificationTarget():
               unawaited(
                 widget.router.push<void>(
@@ -187,6 +222,7 @@ class _NotificationNavigationState extends State<NotificationNavigation>
 
   @override
   void dispose() {
+    _feedingWrites?.cancel();
     _globalWrites?.cancel();
     widget.routeChanges.removeListener(_schedule);
     widget.router.routerDelegate.removeListener(_schedule);

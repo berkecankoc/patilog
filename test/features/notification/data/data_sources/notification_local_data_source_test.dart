@@ -525,12 +525,15 @@ void main() {
       expect(channels.map((c) => c.id), [
         'medication_reminders',
         'vaccination_reminders',
+        'feeding_reminders',
         'medication_reminders',
         'vaccination_reminders',
+        'feeding_reminders',
       ]);
-      expect(channels[2].name, 'İlaç hatırlatmaları');
-      expect(channels[3].name, 'Aşı hatırlatmaları');
-      expect(channels[3].description, translated.vaccinationDescription);
+      expect(channels[3].name, 'İlaç hatırlatmaları');
+      expect(channels[4].name, 'Aşı hatırlatmaları');
+      expect(channels[4].description, translated.vaccinationDescription);
+      expect(channels[5].name, 'Beslenme hatırlatmaları');
       expect(channels.map((c) => c.importance), everyElement(Importance.high));
       verifyNever(
         () => android.deleteNotificationChannel(
@@ -561,6 +564,48 @@ void main() {
       verifyZeroInteractions(plugin);
       verifyZeroInteractions(android);
       verifyZeroInteractions(ios);
+    },
+  );
+
+  test(
+    'feeding uses its own channel and typed payload with private visibility',
+    () async {
+      final reminder = NotificationReminder(
+        target: FeedingMealNotificationTarget(
+          petId: 'pet1',
+          planId: 'plan',
+          mealId: 'meal',
+          scheduledDate: DateTime(2035, 7, 2),
+          scheduledMinute: 720,
+        ),
+        scheduledDate: DateTime(2035, 7, 2),
+        scheduledMinute: 720,
+        title: 'Meal',
+        body: '40 g',
+      );
+      await source.refreshTimeZone();
+      await source.scheduleReminder(
+        15,
+        reminder,
+        exact: true,
+        channels: englishNotificationContent.channels,
+      );
+      final details =
+          verify(
+                () => plugin.zonedSchedule(
+                  id: 15,
+                  scheduledDate: any(named: 'scheduledDate'),
+                  notificationDetails: captureAny(named: 'notificationDetails'),
+                  androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+                  title: reminder.title,
+                  body: reminder.body,
+                  payload: NotificationTargetCodec.encode(reminder.target),
+                ),
+              ).captured.single
+              as NotificationDetails;
+      expect(details.android!.channelId, 'feeding_reminders');
+      expect(details.android!.channelName, 'Feeding reminders');
+      expect(details.android!.visibility, NotificationVisibility.private);
     },
   );
 

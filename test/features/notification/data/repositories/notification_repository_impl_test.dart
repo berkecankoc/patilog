@@ -86,6 +86,59 @@ void main() {
     registerFallbackValue(vaccine());
     registerFallbackValue(englishNotificationContent.channels);
   });
+
+  for (final exact in [true, false]) {
+    test(
+      'feeding uses ${exact ? 'exact' : 'normal'} scheduling with the available permission',
+      () async {
+        when(notifications.getPermissionStatus).thenAnswer(
+          (_) async => NotificationPermissionStatus(
+            canShowNotifications: true,
+            canScheduleExactAlarms: exact,
+            requiresExactAlarmPermission: true,
+          ),
+        );
+        final reminder = NotificationReminder(
+          target: FeedingMealNotificationTarget(
+            petId: 'pet1',
+            planId: 'plan',
+            mealId: 'meal',
+            scheduledDate: DateTime(2030, 1, 2),
+            scheduledMinute: 720,
+          ),
+          scheduledDate: DateTime(2030, 1, 2),
+          scheduledMinute: 720,
+          title: 'Meal',
+          body: '40 g',
+        );
+        expect(await synchronize([reminder]), isA<Success<void>>());
+        expect(scheduled.single.$3, exact);
+        verifyNever(notifications.requestNotificationPermission);
+        verifyNever(notifications.requestExactAlarmPermission);
+      },
+    );
+  }
+
+  test(
+    'rejects feeding reminder time mismatches before native mutations',
+    () async {
+      final reminder = NotificationReminder(
+        target: FeedingMealNotificationTarget(
+          petId: 'pet1',
+          planId: 'plan',
+          mealId: 'meal',
+          scheduledDate: DateTime(2030, 1, 2),
+          scheduledMinute: 720,
+        ),
+        scheduledDate: DateTime(2030, 1, 2),
+        scheduledMinute: 721,
+        title: 'Meal',
+        body: '40 g',
+      );
+      expect(await synchronize([reminder]), isA<Error<void>>());
+      verifyZeroInteractions(notifications);
+    },
+  );
   setUp(() {
     notifications = MockNotifications();
     preferences = MockPreferences();

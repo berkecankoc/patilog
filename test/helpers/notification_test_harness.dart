@@ -1,6 +1,10 @@
 import 'dart:async';
 
 import 'package:mocktail/mocktail.dart';
+import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:petlytics/features/feeding/domain/entities/feeding_meal.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
@@ -28,6 +32,8 @@ class MockNotificationRepository extends Mock
 
 class MockNotificationPets extends Mock implements PetRepository {}
 
+class MockNotificationFeeding extends Mock implements FeedingRepository {}
+
 class MockNotificationMedications extends Mock
     implements MedicationRepository {}
 
@@ -41,6 +47,7 @@ class NotificationTestHarness {
   final pets = MockNotificationPets();
   final medications = MockNotificationMedications();
   final vaccinations = MockNotificationVaccinations();
+  final feeding = MockNotificationFeeding();
   final taps = StreamController<NotificationTarget>.broadcast();
   DateTime clock = DateTime(2030, 1, 1, 10);
   NotificationPreferences preferences = NotificationPreferences();
@@ -68,6 +75,8 @@ class NotificationTestHarness {
   final medicines = <Medication>[];
   final vaccines = <Vaccination>[];
   final logs = <MedicationDoseLog>[];
+  final feedingPlans = <FeedingPlan>[];
+  final feedingEntries = <FeedingEntry>[];
   final submissions = <List<NotificationReminder>>[];
   final channelSubmissions = <NotificationChannelLabels>[];
   final cancellations = <String>[];
@@ -81,9 +90,11 @@ class NotificationTestHarness {
     medications: medicines,
     vaccinations: vaccines,
     logs: logs,
+    feedingPlans: feedingPlans,
+    feedingEntries: feedingEntries,
   );
   LoadNotificationData get loader =>
-      LoadNotificationData(pets, medications, vaccinations);
+      LoadNotificationData(pets, medications, vaccinations, feeding);
 
   Medication medication({
     String id = 'med1',
@@ -124,6 +135,29 @@ class NotificationTestHarness {
     vaccineName: 'Vaccine $id',
     status: status,
     date: date ?? DateTime(2030, 1, 4),
+  );
+
+  FeedingPlan feedingPlan({
+    String id = 'feed1',
+    String petId = 'pet1',
+    DateTime? start,
+    DateTime? end,
+    List<int> times = const [720],
+    double amount = 50,
+  }) => FeedingPlan(
+    id: id,
+    petId: petId,
+    startDate: start ?? DateTime(2030, 1, 1),
+    endDate: end,
+    meals: [
+      for (final minute in times)
+        FeedingMeal(
+          id: '$id-$minute',
+          planId: id,
+          scheduledMinute: minute,
+          amountGrams: amount,
+        ),
+    ],
   );
 
   NotificationTestHarness() {
@@ -199,6 +233,22 @@ class NotificationTestHarness {
     when(
       vaccinations.getAllVaccinations,
     ).thenAnswer((_) async => Success(List.of(vaccines)));
+    when(
+      feeding.getAllFeedingPlans,
+    ).thenAnswer((_) async => Success(List.of(feedingPlans)));
+    when(() => feeding.getFeedingPlans(any())).thenAnswer(
+      (call) async => Success(
+        feedingPlans
+            .where((p) => p.petId == call.positionalArguments.single)
+            .toList(),
+      ),
+    );
+    when(
+      () => feeding.getAllPlannedFeedingEntries(
+        fromDate: any(named: 'fromDate'),
+        toDate: any(named: 'toDate'),
+      ),
+    ).thenAnswer((_) async => Success(List.of(feedingEntries)));
   }
 
   NotificationCubit createCubit() {

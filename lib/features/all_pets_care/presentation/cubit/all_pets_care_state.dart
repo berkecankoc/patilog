@@ -7,7 +7,7 @@ import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 
-enum AllPetsCareSection { pets, vetVisits, vaccinations, medications }
+enum AllPetsCareSection { pets, vetVisits, vaccinations, medications, feeding }
 
 final class CareRecords<T> extends Equatable {
   final List<T> records;

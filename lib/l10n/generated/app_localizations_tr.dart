@@ -1091,7 +1091,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get inexactRemindersHint =>
-      'İlaç hatırlatmaları standart zamanlamayı kullanıyor ve gecikebilir.';
+      'Kesin zamanlama kapalıyken öğün ve ilaç hatırlatmaları gecikebilir.';
 
   @override
   String get allowNotifications => 'Bildirimlere izin ver';
@@ -1110,7 +1110,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get noUpcomingReminders =>
-      'Yaklaşan hatırlatma yok. Bir aşı veya ilaç kullanım planı ekleyin.';
+      'Yaklaşan hatırlatma yok. Aşı, ilaç kullanım planı veya günlük beslenme planı ekle.';
 
   @override
   String get reminderQueueRefreshHint =>
@@ -1500,4 +1500,225 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get reminderOpenFailed => 'Hatırlatma açılamadı';
+
+  @override
+  String get feeding => 'Beslenme';
+
+  @override
+  String get addFeeding => 'Mama kaydet';
+
+  @override
+  String get editFeeding => 'Beslenme kaydını düzenle';
+
+  @override
+  String get feedingRecord => 'Beslenme kaydı';
+
+  @override
+  String get feedingPlan => 'Günlük plan';
+
+  @override
+  String get dailyMeals => 'Öğünler';
+
+  @override
+  String get feedingTrend => 'Günlük verilen mama';
+
+  @override
+  String get foodOptional => 'Mama adı (isteğe bağlı)';
+
+  @override
+  String get foodNameLimit => 'Mama adı en fazla 50 karakter olabilir';
+
+  @override
+  String get feedingAmountInvalid => 'Sıfırdan büyük bir gram miktarı gir';
+
+  @override
+  String get feedingPrecision => 'En fazla bir ondalık basamak kullan';
+
+  @override
+  String get feedingNoMeals => 'Planlanmış öğün yok';
+
+  @override
+  String get feedingNoMealsDescription =>
+      'Mama verdiğinde kaydet veya bir günlük plan oluştur.';
+
+  @override
+  String get feedingNoRecords => 'Beslenme kaydı yok';
+
+  @override
+  String get feedingNoRecordsDescription =>
+      'Kaydettiğin mama miktarları burada görünecek.';
+
+  @override
+  String get feedingLoadFailed => 'Beslenme kayıtları yüklenemedi';
+
+  @override
+  String get feedingSaveFailed => 'Beslenme kaydı kaydedilemedi';
+
+  @override
+  String get feedingDeleteFailed => 'Beslenme kaydı silinemedi';
+
+  @override
+  String get feedingPlanSaveFailed => 'Beslenme planı kaydedilemedi';
+
+  @override
+  String get feedingPlanCancelFailed => 'Beslenme planı iptal edilemedi';
+
+  @override
+  String get feedingRecordNotFound => 'Bu beslenme kaydına artık ulaşılamıyor.';
+
+  @override
+  String get feedingPlanNotFound => 'Bu beslenme planına artık ulaşılamıyor.';
+
+  @override
+  String get feedingDeleteTitle => 'Beslenme kaydı silinsin mi?';
+
+  @override
+  String get feedingDeleteMessage =>
+      'Kaydedilen miktar silinecek. Bağlı bir öğün varsa yeniden kayıtsız görünecek.';
+
+  @override
+  String get feedingCancelPlanTitle => 'Planlanan beslenme iptal edilsin mi?';
+
+  @override
+  String get feedingCancelPlanMessage =>
+      'Önceki plan kendi bitiş tarihine kadar devam edebilir. Beslenme kayıtları değişmez.';
+
+  @override
+  String get feedingCancelFirstPlanMessage =>
+      'Bu öğünler plandan kaldırılacak. Beslenme kayıtları değişmez.';
+
+  @override
+  String get feedingFirstPlanHint =>
+      'İlk planın bugün veya sonrasında başlayabilir.';
+
+  @override
+  String get feedingChangesHint =>
+      'Değişiklikler en erken yarın başlar. Önceki beslenme kayıtları değişmez.';
+
+  @override
+  String get feedingPlanEmptyMessage =>
+      'Plan oluşturmak isteğe bağlı. Daha hızlı takip için öğün saatlerini ve miktarlarını ekle.';
+
+  @override
+  String get createFeedingPlan => 'Plan oluştur';
+
+  @override
+  String get editFeedingPlan => 'Planı düzenle';
+
+  @override
+  String get endFeedingPlan => 'Bitiş tarihi belirle';
+
+  @override
+  String get feedingPlanEndHint =>
+      'Bu plan başladı. Öğünler değişmeden kalır; bitiş tarihini düzenleyebilirsin.';
+
+  @override
+  String get feedingGiven => 'Verildi';
+
+  @override
+  String get feedingChartSelectPet =>
+      'Günlük beslenme grafiği için yukarıdan bir dost seç.';
+
+  @override
+  String get addMeal => 'Öğün ekle';
+
+  @override
+  String get feedingDuplicateTime => 'Her öğünün saati farklı olmalı';
+
+  @override
+  String get feedingEndBeforeStart => 'Bitiş tarihi başlangıçtan önce olamaz';
+
+  @override
+  String get feedingMealTime => 'Öğün saati';
+
+  @override
+  String get feedingDate => 'Mama verilme tarihi';
+
+  @override
+  String get feedingTime => 'Mama verilme saati';
+
+  @override
+  String get feedingNotes => 'Mama ve notlar (isteğe bağlı)';
+
+  @override
+  String get feedingPlanLoading => 'Plan yükleniyor…';
+
+  @override
+  String get feedingPlanReview =>
+      'Kaydetmeden önce öğün saatlerini ve miktarlarını kontrol et.';
+
+  @override
+  String get feedingRecordReview =>
+      'Miktarı ve mama verilme zamanını kontrol et.';
+
+  @override
+  String get feedingPlanDateRequired => 'Geçerli bir başlangıç tarihi seç';
+
+  @override
+  String get feedingChartHint =>
+      'Yenen değil, verilen miktarlar gösterilir. Kayıtsız günlerde çubuk görünmez.';
+
+  @override
+  String feedingGrams(String amount) {
+    return '$amount g';
+  }
+
+  @override
+  String get recordMeal => 'Öğün kaydet';
+
+  @override
+  String feedingMealNumber(int number) {
+    return 'Öğün $number';
+  }
+
+  @override
+  String removeFeedingMeal(int number) {
+    return 'Öğün $number öğesini kaldır';
+  }
+
+  @override
+  String feedingDays(int count) {
+    return '$count gün';
+  }
+
+  @override
+  String get feedingPlans => 'Planlar';
+
+  @override
+  String get feedingAmount => 'Miktar';
+
+  @override
+  String get feedingEditEndDate => 'Bitiş tarihini düzenle';
+
+  @override
+  String get feedingExtraRecords => 'Diğer beslenme kayıtları';
+
+  @override
+  String feedingRecordsCount(int count) {
+    return '$count kayıt';
+  }
+
+  @override
+  String get feedingReminders => 'Beslenme hatırlatmaları';
+
+  @override
+  String get feedingReminderHint => 'Günlük plandaki öğün saatlerinde.';
+
+  @override
+  String get feedingChannelDescription => 'Planlanan öğün saatleri';
+
+  @override
+  String notificationFeedingBody(String amount, String time) {
+    return '$time saatinde $amount g mama ver.';
+  }
+
+  @override
+  String notificationFeedingFoodBody(String amount, String food, String time) {
+    return '$time saatinde $amount g $food ver.';
+  }
+
+  @override
+  String feedingEntrySummary(String date, String amount) {
+    return '$date · $amount g';
+  }
 }

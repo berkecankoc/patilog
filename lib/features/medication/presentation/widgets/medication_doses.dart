@@ -113,6 +113,15 @@ class MedicationDoseTile extends StatelessWidget {
     final time = Text(formatDoseTime(dose.scheduledMinute), style: style);
     final name = Text(dose.medication.name, style: style);
     void record() {
+      final current = actions.read();
+      if (!current.known ||
+          current.busy ||
+          current.dose == null ||
+          DateUtils.dateOnly(
+            dose.scheduledDate,
+          ).isAfter(DateUtils.dateOnly(actions.now()))) {
+        return;
+      }
       if (onRecord != null) {
         onRecord!();
       } else {
@@ -131,122 +140,130 @@ class MedicationDoseTile extends StatelessWidget {
     );
     return Card(
       margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (petIdentity != null) ...[
-              petIdentity!,
-              const SizedBox(height: 12),
-            ],
-            LayoutBuilder(
-              builder: (context, constraints) {
-                if (MediaQuery.textScalerOf(context).scale(16) > 24 &&
-                    constraints.maxWidth < 320) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [time, const SizedBox(height: 8), name],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: !known || loading || busy || future ? null : record,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (petIdentity != null) ...[
+                petIdentity!,
+                const SizedBox(height: 12),
+              ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (MediaQuery.textScalerOf(context).scale(16) > 24 &&
+                      constraints.maxWidth < 320) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [time, const SizedBox(height: 8), name],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      time,
+                      const SizedBox(width: 12),
+                      Expanded(child: name),
+                    ],
                   );
-                }
-                return Row(
-                  children: [
-                    time,
-                    const SizedBox(width: 12),
-                    Expanded(child: name),
-                  ],
-                );
-              },
-            ),
-            if (dose.period.dosageInstructions != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(dose.period.dosageInstructions!),
+                },
               ),
-            const SizedBox(height: 8),
-            ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48),
-              child: Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: !known
-                    ? Text(
-                        loading
-                            ? AppLocalizations.of(context).loadingDoseRecord
-                            : AppLocalizations.of(
-                                context,
-                              ).doseRecordUnavailable,
-                      )
-                    : future
-                    ? Text(AppLocalizations.of(context).scheduled)
-                    : log != null
-                    ? TextButton.icon(
-                        onPressed: busy ? null : record,
-                        icon: Icon(
-                          log.status == MedicationDoseStatus.given
-                              ? Icons.check_circle_outline
-                              : Icons.remove_circle_outline,
-                          size: 20,
-                        ),
-                        label: Text(
-                          log.status == MedicationDoseStatus.given
-                              ? AppLocalizations.of(context).givenAtEdit(
-                                  formatDoseTime(
-                                    log.givenAt!.toLocal().hour * 60 +
-                                        log.givenAt!.toLocal().minute,
-                                  ),
-                                )
-                              : AppLocalizations.of(context).skippedEdit,
-                        ),
-                      )
-                    : today
-                    ? Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        children: [
-                          TextButton(
-                            onPressed: busy
-                                ? null
-                                : () => save(MedicationDoseStatus.skipped),
-                            child: Text(AppLocalizations.of(context).skipDose),
+              if (dose.period.dosageInstructions != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(dose.period.dosageInstructions!),
+                ),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: !known
+                      ? Text(
+                          loading
+                              ? AppLocalizations.of(context).loadingDoseRecord
+                              : AppLocalizations.of(
+                                  context,
+                                ).doseRecordUnavailable,
+                        )
+                      : future
+                      ? Text(AppLocalizations.of(context).scheduled)
+                      : log != null
+                      ? TextButton.icon(
+                          onPressed: busy ? null : record,
+                          icon: Icon(
+                            log.status == MedicationDoseStatus.given
+                                ? Icons.check_circle_outline
+                                : Icons.remove_circle_outline,
+                            size: 20,
                           ),
-                          FilledButton(
-                            onPressed: busy
-                                ? null
-                                : () {
-                                    final instant = actions.now();
-                                    if (!DateUtils.isSameDay(
-                                      dose.scheduledDate,
-                                      instant,
-                                    )) {
-                                      record();
-                                      return;
-                                    }
-                                    save(
-                                      MedicationDoseStatus.given,
-                                      givenAt: instant,
-                                    );
-                                  },
-                            child: Text(AppLocalizations.of(context).doseGiven),
+                          label: Text(
+                            log.status == MedicationDoseStatus.given
+                                ? AppLocalizations.of(context).givenAtEdit(
+                                    formatDoseTime(
+                                      log.givenAt!.toLocal().hour * 60 +
+                                          log.givenAt!.toLocal().minute,
+                                    ),
+                                  )
+                                : AppLocalizations.of(context).skippedEdit,
                           ),
-                        ],
-                      )
-                    : Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(AppLocalizations.of(context).noDoseRecord),
-                          TextButton(
-                            onPressed: busy ? null : record,
-                            child: Text(
-                              AppLocalizations.of(context).recordDose,
+                        )
+                      : today
+                      ? Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 8,
+                          children: [
+                            TextButton(
+                              onPressed: busy
+                                  ? null
+                                  : () => save(MedicationDoseStatus.skipped),
+                              child: Text(
+                                AppLocalizations.of(context).skipDose,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            FilledButton(
+                              onPressed: busy
+                                  ? null
+                                  : () {
+                                      final instant = actions.now();
+                                      if (!DateUtils.isSameDay(
+                                        dose.scheduledDate,
+                                        instant,
+                                      )) {
+                                        record();
+                                        return;
+                                      }
+                                      save(
+                                        MedicationDoseStatus.given,
+                                        givenAt: instant,
+                                      );
+                                    },
+                              child: Text(
+                                AppLocalizations.of(context).doseGiven,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(AppLocalizations.of(context).noDoseRecord),
+                            TextButton(
+                              onPressed: busy ? null : record,
+                              child: Text(
+                                AppLocalizations.of(context).recordDose,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -259,6 +276,7 @@ Future<void> showMedicationDoseSheet(
   MedicationDoseEditor? editor,
   Widget? petIdentity,
 }) async {
+  if (ModalRoute.of(context)?.isCurrent == false) return;
   await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -326,7 +344,7 @@ class _DoseSheetState extends State<_DoseSheet> {
   Future<void> _close() async {
     if (_working || _confirming || _allowPop) return;
     if (_dirty) {
-      _confirming = true;
+      setState(() => _confirming = true);
       final discard = await showDialog<bool>(
         context: context,
         builder: (context) => AppConfirmationDialog(
@@ -336,8 +354,9 @@ class _DoseSheetState extends State<_DoseSheet> {
           confirmLabel: AppLocalizations.of(context).discardChanges,
         ),
       );
-      _confirming = false;
-      if (!mounted || discard != true) return;
+      if (!mounted) return;
+      setState(() => _confirming = false);
+      if (discard != true) return;
     }
     _leave();
   }

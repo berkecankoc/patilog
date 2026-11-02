@@ -58,3 +58,32 @@ final class VaccinationNotificationTarget extends NotificationTarget {
   @override
   List<Object?> get props => [petId, vaccinationId, daysBefore];
 }
+
+final class FeedingMealNotificationTarget extends NotificationTarget {
+  final String planId;
+  final String mealId;
+  final DateTime scheduledDate;
+  final int scheduledMinute;
+
+  const FeedingMealNotificationTarget({
+    required super.petId,
+    required this.planId,
+    required this.mealId,
+    required this.scheduledDate,
+    required this.scheduledMinute,
+  });
+
+  @override
+  String get identityKey => jsonEncode(['feeding', ...props]);
+
+  @override
+  List<Object?> get props => [
+    petId,
+    planId,
+    mealId,
+    scheduledDate.year,
+    scheduledDate.month,
+    scheduledDate.day,
+    scheduledMinute,
+  ];
+}

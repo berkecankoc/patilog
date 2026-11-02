@@ -1,4 +1,5 @@
 import 'package:petlytics/core/error/failure.dart';
+import 'package:petlytics/core/widgets/app_view_selector.dart';
 import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/widgets/pet_care_tabs.dart';
 import 'package:petlytics/core/router/pet_care_changes.dart';
@@ -396,61 +397,23 @@ class _MedicationListPageState extends State<MedicationListPage> {
                               ),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child:
-                                    MediaQuery.textScalerOf(context).scale(14) >
-                                        21
-                                    ? Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        alignment: WrapAlignment.center,
-                                        children: [
-                                          for (final (index, title) in [
-                                            AppLocalizations.of(context).doses,
-                                            AppLocalizations.of(
-                                              context,
-                                            ).medications,
-                                          ].indexed)
-                                            ChoiceChip(
-                                              label: Text(title),
-                                              selected: _tab == index,
-                                              showCheckmark: false,
-                                              onSelected: busy
-                                                  ? null
-                                                  : (_) => setState(
-                                                      () => _tab = index,
-                                                    ),
-                                            ),
-                                        ],
-                                      )
-                                    : SegmentedButton<int>(
-                                        segments: [
-                                          ButtonSegment(
-                                            value: 0,
-                                            label: Text(
-                                              AppLocalizations.of(
-                                                context,
-                                              ).doses,
-                                            ),
-                                          ),
-                                          ButtonSegment(
-                                            value: 1,
-                                            label: Text(
-                                              AppLocalizations.of(
-                                                context,
-                                              ).medications,
-                                            ),
-                                          ),
-                                        ],
-                                        selected: {_tab},
-                                        showSelectedIcon: false,
-                                        onSelectionChanged: busy
-                                            ? null
-                                            : (value) => setState(
-                                                () => _tab = value.single,
-                                              ),
-                                      ),
+                              child: AppViewSelector(
+                                labels: [
+                                  AppLocalizations.of(context).doses,
+                                  AppLocalizations.of(context).medications,
+                                ],
+                                selectedIndex: _tab,
+                                onSelected: busy
+                                    ? null
+                                    : (index) {
+                                        final current = context
+                                            .read<MedicationCubit>()
+                                            .state;
+                                        if (current is MedicationsLoaded &&
+                                            current.pendingAction == null) {
+                                          setState(() => _tab = index);
+                                        }
+                                      },
                               ),
                             ),
                             Expanded(

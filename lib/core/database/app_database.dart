@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' show join;
 
 const _databaseName = 'petlytics.db';
-const _databaseVersion = 5;
+const _databaseVersion = 6;
 
 Future<Database> openAppDatabase() async {
   final dbPath = await getDatabasesPath();
@@ -43,6 +43,7 @@ Future<Database> openAppDatabase() async {
       await _createVetVisitsTable(db);
       await _createVaccinationsTable(db);
       await _createMedicationTables(db);
+      await _createFeedingTables(db);
     },
     onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) await _createVetVisitsTable(db);
@@ -55,8 +56,61 @@ Future<Database> openAppDatabase() async {
           ADD COLUMN reminder_settings TEXT
         ''');
       }
+      if (oldVersion < 6) await _createFeedingTables(db);
     },
   );
+}
+
+Future<void> _createFeedingTables(Database db) async {
+  await db.execute('''
+    CREATE TABLE ${DatabaseTables.feedingPlans} (
+      id TEXT PRIMARY KEY,
+      pet_id TEXT NOT NULL REFERENCES ${DatabaseTables.pets}(id) ON DELETE CASCADE,
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      UNIQUE (pet_id, start_date),
+      CHECK (end_date IS NULL OR end_date >= start_date)
+    )
+  ''');
+  await db.execute('''
+    CREATE TABLE ${DatabaseTables.feedingMeals} (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL REFERENCES ${DatabaseTables.feedingPlans}(id) ON DELETE CASCADE,
+      scheduled_minute INTEGER NOT NULL CHECK (
+        typeof(scheduled_minute) = 'integer' AND scheduled_minute BETWEEN 0 AND 1439
+      ),
+      amount_grams REAL NOT NULL CHECK (amount_grams > 0),
+      food_name TEXT,
+      UNIQUE (plan_id, scheduled_minute)
+    )
+  ''');
+  await db.execute('''
+    CREATE TABLE ${DatabaseTables.feedingEntries} (
+      id TEXT PRIMARY KEY,
+      pet_id TEXT NOT NULL REFERENCES ${DatabaseTables.pets}(id) ON DELETE CASCADE,
+      amount_grams REAL NOT NULL CHECK (amount_grams > 0),
+      given_at TEXT NOT NULL,
+      food_name TEXT,
+      notes TEXT,
+      meal_id TEXT REFERENCES ${DatabaseTables.feedingMeals}(id) ON DELETE NO ACTION,
+      scheduled_date TEXT,
+      UNIQUE (meal_id, scheduled_date),
+      CHECK ((meal_id IS NULL AND scheduled_date IS NULL) OR
+             (meal_id IS NOT NULL AND scheduled_date IS NOT NULL))
+    )
+  ''');
+  await db.execute('''
+    CREATE INDEX feeding_entries_pet_given_at
+    ON ${DatabaseTables.feedingEntries}(pet_id, given_at DESC)
+  ''');
+  await db.execute('''
+    CREATE INDEX feeding_entries_given_at
+    ON ${DatabaseTables.feedingEntries}(given_at DESC)
+  ''');
+  await db.execute('''
+    CREATE INDEX feeding_entries_scheduled_date
+    ON ${DatabaseTables.feedingEntries}(scheduled_date, pet_id)
+  ''');
 }
 
 Future<void> _createVetVisitsTable(Database db) async {

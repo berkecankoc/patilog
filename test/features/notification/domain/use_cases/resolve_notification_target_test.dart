@@ -11,6 +11,13 @@ import '../../../../helpers/notification_test_harness.dart';
 void main() {
   late NotificationTestHarness h;
   late ResolveNotificationTarget resolve;
+  final meal = FeedingMealNotificationTarget(
+    petId: 'pet1',
+    planId: 'feed1',
+    mealId: 'feed1-720',
+    scheduledDate: DateTime(2030, 1, 2),
+    scheduledMinute: 720,
+  );
   const vaccine = VaccinationNotificationTarget(
     petId: 'pet1',
     vaccinationId: 'vax1',
@@ -25,7 +32,12 @@ void main() {
   );
   setUp(() {
     h = NotificationTestHarness();
-    resolve = ResolveNotificationTarget(h.pets, h.medications, h.vaccinations);
+    resolve = ResolveNotificationTarget(
+      h.pets,
+      h.medications,
+      h.vaccinations,
+      h.feeding,
+    );
     when(
       () => h.pets.getPetById('pet1'),
     ).thenAnswer((_) async => Success(h.directory.first));
@@ -36,6 +48,30 @@ void main() {
       () => h.medications.getMedicationById('pet1', 'med1'),
     ).thenAnswer((_) async => Success(h.medication()));
   });
+
+  test(
+    'feeding validates the pet, exact meal and effective plan on the requested day',
+    () async {
+      h.feedingPlans.add(h.feedingPlan());
+      expect(await resolve(meal), isA<Success<Pet>>());
+      h.feedingPlans.add(h.feedingPlan(id: 'new', start: DateTime(2030, 1, 2)));
+      expect(await resolve(meal), isA<Error<Pet>>());
+      h.feedingPlans.clear();
+      expect(await resolve(meal), isA<Error<Pet>>());
+      verifyZeroInteractions(h.medications);
+      verifyZeroInteractions(h.vaccinations);
+    },
+  );
+
+  test(
+    'feeding rejects another pet plan even if a repository returns it',
+    () async {
+      when(
+        () => h.feeding.getFeedingPlans('pet1'),
+      ).thenAnswer((_) async => Success([h.feedingPlan(petId: 'pet2')]));
+      expect(await resolve(meal), isA<Error<Pet>>());
+    },
+  );
   tearDown(() => h.dispose());
 
   for (final target in [vaccine, dose]) {

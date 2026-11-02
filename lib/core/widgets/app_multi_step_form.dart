@@ -284,17 +284,19 @@ class _AppMultiStepFormState extends State<AppMultiStepForm> {
 
 class AppFormReviewSection extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final IconData? icon;
+  final Widget? leading;
   final Widget child;
   final VoidCallback onEdit;
 
   const AppFormReviewSection({
     super.key,
     required this.title,
-    required this.icon,
+    this.icon,
+    this.leading,
     required this.child,
     required this.onEdit,
-  });
+  }) : assert(icon != null || leading != null);
 
   @override
   Widget build(BuildContext context) => Card(
@@ -306,7 +308,11 @@ class AppFormReviewSection extends StatelessWidget {
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
-              final heading = AppSectionHeading(title: title, icon: icon);
+              final heading = AppSectionHeading(
+                title: title,
+                icon: icon,
+                leading: leading,
+              );
               final edit = TextButton(
                 onPressed: onEdit,
                 child: Text(AppLocalizations.of(context).edit),

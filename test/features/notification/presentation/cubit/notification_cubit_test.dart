@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/core/error/failure.dart';
@@ -22,6 +23,61 @@ void main() {
     cubit = h.createCubit();
   });
   tearDown(() => h.dispose());
+
+  test(
+    'enabling feeding explicitly requests permissions and retains normal scheduling after exact denial',
+    () async {
+      h.permission = const NotificationPermissionStatus(
+        canShowNotifications: true,
+        canScheduleExactAlarms: false,
+        requiresExactAlarmPermission: true,
+      );
+      h.feedingPlans.add(h.feedingPlan());
+      await cubit.initialize();
+      verifyNever(h.repository.requestExactAlarmPermission);
+      await cubit.setPreferences(
+        NotificationPreferences(feedingRemindersEnabled: true),
+      );
+      expect(cubit.state.preferences!.feedingRemindersEnabled, isTrue);
+      expect(cubit.state.plan!.reminders, isNotEmpty);
+      verify(h.repository.requestExactAlarmPermission).called(1);
+      await cubit.refresh();
+      verifyNever(h.repository.requestExactAlarmPermission);
+    },
+  );
+
+  test(
+    'known feeding deletion restores the future meal from the snapshot without clinical reads',
+    () async {
+      final plan = h.feedingPlan();
+      h.feedingPlans.add(plan);
+      h.feedingEntries.add(
+        FeedingEntry(
+          id: 'entry',
+          petId: 'pet1',
+          amountGrams: 40,
+          givenAt: h.clock,
+          mealId: plan.meals.single.id,
+          scheduledDate: DateTime(2030, 1, 1),
+        ),
+      );
+      h.preferences = NotificationPreferences(feedingRemindersEnabled: true);
+      await cubit.initialize();
+      expect(
+        cubit.state.plan!.reminders.first.scheduledDate,
+        DateTime(2030, 1, 2),
+      );
+      clearInteractions(h.feeding);
+      clearInteractions(h.pets);
+      await cubit.removeFeedingEntry('pet1', 'entry');
+      expect(
+        cubit.state.plan!.reminders.first.scheduledDate,
+        DateTime(2030, 1, 1),
+      );
+      verifyZeroInteractions(h.feeding);
+      verifyZeroInteractions(h.pets);
+    },
+  );
 
   test(
     'an earlier cancellation completing without a snapshot does not unlock a pending save',

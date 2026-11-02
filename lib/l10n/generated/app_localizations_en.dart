@@ -1091,7 +1091,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inexactRemindersHint =>
-      'Medication reminders use normal scheduling and may arrive late.';
+      'Meal and medication reminders may arrive late without precise timing.';
 
   @override
   String get allowNotifications => 'Allow notifications';
@@ -1110,7 +1110,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noUpcomingReminders =>
-      'No upcoming reminders. Add a planned vaccination or a medication schedule.';
+      'No upcoming reminders. Add a vaccination, medication schedule or daily feeding plan.';
 
   @override
   String get reminderQueueRefreshHint =>
@@ -1537,4 +1537,239 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reminderOpenFailed => 'Failed to open reminder';
+
+  @override
+  String get feeding => 'Feeding';
+
+  @override
+  String get addFeeding => 'Log feeding';
+
+  @override
+  String get editFeeding => 'Edit feeding';
+
+  @override
+  String get feedingRecord => 'Feeding record';
+
+  @override
+  String get feedingPlan => 'Daily plan';
+
+  @override
+  String get dailyMeals => 'Meals';
+
+  @override
+  String get feedingTrend => 'Daily food offered';
+
+  @override
+  String get foodOptional => 'Food name (optional)';
+
+  @override
+  String get foodNameLimit => 'Keep the food name within 50 characters';
+
+  @override
+  String get feedingAmountInvalid => 'Enter a gram amount greater than zero';
+
+  @override
+  String get feedingPrecision => 'Use at most one decimal place';
+
+  @override
+  String get feedingNoMeals => 'No meals planned';
+
+  @override
+  String get feedingNoMealsDescription =>
+      'Log food whenever you offer it, or set up a daily plan.';
+
+  @override
+  String get feedingNoRecords => 'No feeding records';
+
+  @override
+  String get feedingNoRecordsDescription =>
+      'Recorded food amounts will appear here.';
+
+  @override
+  String get feedingLoadFailed => 'Failed to load feeding records';
+
+  @override
+  String get feedingSaveFailed => 'Failed to save feeding record';
+
+  @override
+  String get feedingDeleteFailed => 'Failed to delete feeding record';
+
+  @override
+  String get feedingPlanSaveFailed => 'Failed to save feeding plan';
+
+  @override
+  String get feedingPlanCancelFailed => 'Failed to cancel feeding plan';
+
+  @override
+  String get feedingRecordNotFound =>
+      'This feeding record is no longer available.';
+
+  @override
+  String get feedingPlanNotFound => 'This feeding plan is no longer available.';
+
+  @override
+  String get feedingDeleteTitle => 'Delete feeding record?';
+
+  @override
+  String get feedingDeleteMessage =>
+      'This removes the recorded amount. A linked meal will return to No record.';
+
+  @override
+  String get feedingCancelPlanTitle => 'Cancel scheduled plan?';
+
+  @override
+  String get feedingCancelPlanMessage =>
+      'The previous plan may continue until its end date. Recorded feedings stay unchanged.';
+
+  @override
+  String get feedingCancelFirstPlanMessage =>
+      'These meals will be removed from the plan. Recorded feedings stay unchanged.';
+
+  @override
+  String get feedingFirstPlanHint =>
+      'Your first plan can start today or later.';
+
+  @override
+  String get feedingChangesHint =>
+      'Changes start tomorrow or later. Earlier feeding records stay unchanged.';
+
+  @override
+  String get feedingPlanEmptyMessage =>
+      'A plan is optional. Add meal times and amounts for quicker daily tracking.';
+
+  @override
+  String get createFeedingPlan => 'Create plan';
+
+  @override
+  String get editFeedingPlan => 'Edit plan';
+
+  @override
+  String get endFeedingPlan => 'Set end date';
+
+  @override
+  String get feedingPlanEndHint =>
+      'This plan has started. Keep its meals unchanged and choose an end date.';
+
+  @override
+  String get feedingGiven => 'Given';
+
+  @override
+  String get feedingChartSelectPet =>
+      'Select a pet above to see its daily feeding chart.';
+
+  @override
+  String get addMeal => 'Add meal';
+
+  @override
+  String get feedingDuplicateTime => 'Each meal needs a different time';
+
+  @override
+  String get feedingEndBeforeStart =>
+      'End date cannot be before the start date';
+
+  @override
+  String get feedingMealTime => 'Meal time';
+
+  @override
+  String get feedingDate => 'Feeding date';
+
+  @override
+  String get feedingTime => 'Feeding time';
+
+  @override
+  String get feedingNotes => 'Food & notes (optional)';
+
+  @override
+  String get feedingPlanLoading => 'Loading plan…';
+
+  @override
+  String get feedingPlanReview =>
+      'Review the meal times and amounts before saving.';
+
+  @override
+  String get feedingRecordReview =>
+      'Review the amount and actual feeding time.';
+
+  @override
+  String get feedingPlanDateRequired => 'Choose a valid start date';
+
+  @override
+  String get feedingChartHint =>
+      'Amounts offered, not amounts eaten. Days without a record have no bar.';
+
+  @override
+  String feedingGrams(String amount) {
+    return '$amount g';
+  }
+
+  @override
+  String get recordMeal => 'Record meal';
+
+  @override
+  String feedingMealNumber(int number) {
+    return 'Meal $number';
+  }
+
+  @override
+  String removeFeedingMeal(int number) {
+    return 'Remove meal $number';
+  }
+
+  @override
+  String feedingDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '$count day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get feedingPlans => 'Plans';
+
+  @override
+  String get feedingAmount => 'Amount';
+
+  @override
+  String get feedingEditEndDate => 'Edit end date';
+
+  @override
+  String get feedingExtraRecords => 'Other feedings';
+
+  @override
+  String feedingRecordsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count records',
+      one: '$count record',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get feedingReminders => 'Feeding reminders';
+
+  @override
+  String get feedingReminderHint => 'At the meal times in each daily plan.';
+
+  @override
+  String get feedingChannelDescription => 'Scheduled feeding times';
+
+  @override
+  String notificationFeedingBody(String amount, String time) {
+    return 'Offer $amount g at $time.';
+  }
+
+  @override
+  String notificationFeedingFoodBody(String amount, String food, String time) {
+    return 'Offer $amount g of $food at $time.';
+  }
+
+  @override
+  String feedingEntrySummary(String date, String amount) {
+    return '$date · $amount g';
+  }
 }

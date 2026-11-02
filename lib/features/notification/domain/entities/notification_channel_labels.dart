@@ -3,4 +3,6 @@ typedef NotificationChannelLabels = ({
   String medicationDescription,
   String vaccinationName,
   String vaccinationDescription,
+  String feedingName,
+  String feedingDescription,
 });

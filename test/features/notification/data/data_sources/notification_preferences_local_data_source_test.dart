@@ -20,6 +20,7 @@ void main() {
   final custom = NotificationPreferences(
     medicationRemindersEnabled: true,
     vaccinationRemindersEnabled: true,
+    feedingRemindersEnabled: true,
     vaccinationSchedule: VaccinationReminderSchedule(
       daysBefore: [7, 3, 0],
       minuteOfDay: 18 * 60 + 30,
@@ -44,6 +45,25 @@ void main() {
     verify(() => preferences.getAll(allowList: {key})).called(1);
     verifyNoMoreInteractions(preferences);
   });
+
+  test(
+    'existing preferences retain their timing and default feeding to off',
+    () async {
+      values[key] = jsonEncode({
+        'medication_reminders_enabled': true,
+        'vaccination_reminders_enabled': true,
+        'vaccination_schedule': {
+          'days_before': [3, 1, 0],
+          'minute_of_day': 540,
+        },
+      });
+      final loaded = await source.getPreferences();
+      expect(loaded.feedingRemindersEnabled, isFalse);
+      expect(loaded.medicationRemindersEnabled, isTrue);
+      expect(loaded.vaccinationSchedule.minuteOfDay, 540);
+      verifyNever(() => preferences.setString(any(), any()));
+    },
+  );
 
   test(
     'round-trips defaults and custom settings in one isolated value',

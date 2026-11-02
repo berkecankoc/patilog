@@ -1,4 +1,11 @@
 import 'package:get_it/get_it.dart';
+import 'package:petlytics/features/feeding/data/data_sources/feeding_local_data_source.dart';
+import 'package:petlytics/features/feeding/data/repositories/feeding_repository_impl.dart';
+import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:petlytics/features/feeding/domain/use_cases/calculate_feeding_meals.dart';
+import 'package:petlytics/features/feeding/domain/use_cases/calculate_feeding_totals.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_cubit.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
@@ -166,6 +173,30 @@ Future<void> setupDependencies() async {
     () => const CalculateMedicationDoses(),
   );
 
+  getIt.registerLazySingleton<FeedingLocalDataSource>(
+    () => FeedingLocalDataSourceImpl(getIt<Database>()),
+  );
+  getIt.registerLazySingleton<FeedingRepository>(
+    () => FeedingRepositoryImpl(getIt<FeedingLocalDataSource>()),
+  );
+  getIt.registerLazySingleton<CalculateFeedingMeals>(
+    () => const CalculateFeedingMeals(),
+  );
+  getIt.registerLazySingleton<CalculateFeedingTotals>(
+    () => const CalculateFeedingTotals(),
+  );
+  getIt.registerFactory<FeedingCubit>(
+    () => FeedingCubit(
+      getIt<FeedingRepository>(),
+      getIt<IdGenerator>(),
+      getIt<CalculateFeedingMeals>(),
+      getIt<CalculateFeedingTotals>(),
+    ),
+  );
+  getIt.registerFactory<FeedingFormCubit>(
+    () => FeedingFormCubit(getIt<FeedingRepository>(), getIt<IdGenerator>()),
+  );
+
   getIt.registerFactory<SettingsCubit>(
     () => SettingsCubit(getIt<SettingsRepository>()),
   );
@@ -174,6 +205,7 @@ Future<void> setupDependencies() async {
       getIt<PetRepository>(),
       getIt<MedicationRepository>(),
       getIt<VaccinationRepository>(),
+      getIt<FeedingRepository>(),
     ),
   );
   getIt.registerLazySingleton<PlanNotificationReminders>(
@@ -184,6 +216,7 @@ Future<void> setupDependencies() async {
       getIt<PetRepository>(),
       getIt<MedicationRepository>(),
       getIt<VaccinationRepository>(),
+      getIt<FeedingRepository>(),
     ),
   );
   getIt.registerFactory<NotificationCubit>(

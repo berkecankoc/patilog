@@ -1,4 +1,10 @@
 import 'dart:io';
+import 'package:petlytics/features/feeding/data/data_sources/feeding_local_data_source.dart';
+import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_cubit.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_state.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -71,6 +77,72 @@ void main() {
     await getIt.reset();
     await directory.delete(recursive: true);
   });
+
+  test(
+    'feeding factories retain independent state backed by shared storage',
+    () async {
+      final source = getIt<FeedingLocalDataSource>();
+      final repository = getIt<FeedingRepository>();
+      expect(getIt<FeedingLocalDataSource>(), same(source));
+      expect(getIt<FeedingRepository>(), same(repository));
+      await getIt<Database>().insert(DatabaseTables.pets, {
+        'id': 'feeding-pet',
+        'name': 'Milo',
+        'species': 'cat',
+        'sex': 'male',
+        'reproductive_status': 'intact',
+      });
+      final form = getIt<FeedingFormCubit>();
+      final otherForm = getIt<FeedingFormCubit>();
+      final list = getIt<FeedingCubit>();
+      final global = getIt<FeedingCubit>();
+      for (final cubit in [form, otherForm, list, global]) {
+        addTearDown(cubit.close);
+      }
+      expect(form, isNot(same(otherForm)));
+      expect(list, isNot(same(global)));
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      await form.savePlan(
+        petId: 'feeding-pet',
+        startDate: today,
+        meals: const [
+          FeedingMealDraft(
+            scheduledMinute: 540,
+            amountGrams: 30.5,
+            foodName: ' Food ',
+          ),
+        ],
+      );
+      expect(form.state.isSaved, isTrue);
+      expect(otherForm.state, const FeedingFormState());
+      await list.load(petId: 'feeding-pet');
+      final loaded = list.state as FeedingLoaded;
+      expect(loaded.plans.single.id, isNotEmpty);
+      expect(loaded.meals.single.meal.id, isNot(loaded.plans.single.id));
+      expect(loaded.meals.single.entry, isNull);
+      await list.recordMeal(loaded.meals.single);
+      expect(
+        (list.state as FeedingLoaded).meals.single.entry!.amountGrams,
+        30.5,
+      );
+      expect(list.totalsFor('feeding-pet').last.amountGrams, 30.5);
+      expect(global.state, const FeedingInitial());
+      await global.load();
+      expect(
+        (global.state as FeedingLoaded).meals.single.entry!.foodName,
+        'Food',
+      );
+      final saved = (list.state as FeedingLoaded).entries.single;
+      await list.performAction(DeleteFeedingEntryAction(saved.petId, saved.id));
+      expect((list.state as FeedingLoaded).entries, isEmpty);
+      expect(
+        (await getIt<Database>().query(DatabaseTables.feedingEntries)),
+        isEmpty,
+      );
+      expect((global.state as FeedingLoaded).entries, hasLength(1));
+    },
+  );
 
   test(
     'notification repository reuses preferences without initializing the native adapter',

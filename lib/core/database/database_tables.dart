@@ -6,4 +6,7 @@ abstract final class DatabaseTables {
   static const medications = 'medications';
   static const medicationPeriods = 'medication_periods';
   static const medicationDoseLogs = 'medication_dose_logs';
+  static const feedingPlans = 'feeding_plans';
+  static const feedingMeals = 'feeding_meals';
+  static const feedingEntries = 'feeding_entries';
 }

@@ -170,7 +170,7 @@ void main() {
       find
           .descendant(
             of: find.byType(NavigationBar),
-            matching: find.text(label),
+            matching: find.byTooltip(label),
           )
           .last,
     );
@@ -501,16 +501,36 @@ void main() {
     final offset = position.pixels;
     expect(offset, greaterThan(0));
     await destination(tester, 'Medications');
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Medications'));
+    final petFilter = find.byType(DropdownButtonFormField<String>);
+    final views = find.byType(SegmentedButton<int>);
+    expect(
+      tester.getRect(petFilter).bottom,
+      lessThan(tester.getRect(views).top),
+    );
+    await filter(tester, 'Buddy · Dog');
+    expect(find.text('Medicine a'), findsNothing);
+    await tester.tap(find.widgetWithText(SegmentedButton<int>, 'Medications'));
     await tester.pumpAndSettle();
+    expect(
+      tester.getRect(petFilter).bottom,
+      lessThan(tester.getRect(views).top),
+    );
+    expect(find.text('Medicine a'), findsNothing);
+    expect(find.text('Medicine b'), findsOneWidget);
     await destination(tester, 'Vet visits');
     expect(position.pixels, offset);
     await destination(tester, 'Medications');
     expect(
       tester
-          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Medications'))
+          .widget<SegmentedButton<int>>(
+            find.widgetWithText(SegmentedButton<int>, 'Medications'),
+          )
           .selected,
-      isTrue,
+      {1},
+    );
+    expect(
+      tester.widget<DropdownButtonFormField<String>>(petFilter).initialValue,
+      'other',
     );
     verify(app.visits.getAllVetVisits).called(1);
   });
@@ -529,7 +549,9 @@ void main() {
     'hidden global medication root does no clock reads and catches up on Back',
     (tester) async {
       final router = await app.pump(tester, location: AppRoutes.allMedications);
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Medications'));
+      await tester.tap(
+        find.widgetWithText(SegmentedButton<int>, 'Medications'),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Medicine a'));
       await tester.pumpAndSettle();
@@ -558,7 +580,9 @@ void main() {
     'a known-name detail can change to the same pet profile without losing profile data',
     (tester) async {
       final router = await app.pump(tester, location: AppRoutes.allMedications);
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Medications'));
+      await tester.tap(
+        find.widgetWithText(SegmentedButton<int>, 'Medications'),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Medicine a'));
       await tester.pumpAndSettle();

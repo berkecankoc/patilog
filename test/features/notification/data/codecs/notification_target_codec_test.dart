@@ -21,6 +21,13 @@ void main() {
           vaccinationId: 'vax1',
           daysBefore: 0,
         ),
+        FeedingMealNotificationTarget(
+          petId: 'pet1',
+          planId: 'plan1',
+          mealId: 'meal1',
+          scheduledDate: DateTime(2030, 1, 2),
+          scheduledMinute: 720,
+        ),
       ]) {
         final encoded = NotificationTargetCodec.encode(target);
         expect(NotificationTargetCodec.isOwned(encoded), isTrue);
@@ -34,6 +41,9 @@ void main() {
     {},
     [],
     ['unknown', 'pet1'],
+    ['feeding', 'pet1', 'plan1', 'meal1', 2030, 2, 29, 720],
+    ['feeding', 'pet1', 'plan1', '', 2030, 1, 1, 720],
+    ['feeding', 'pet1', 'plan1', 'meal1', 2030, 1, 1, 1440],
     ['vaccination', 'pet1', 'vax1', -1],
     ['vaccination', '', 'vax1', 0],
     ['vaccination', 'pet1', '  ', 0],

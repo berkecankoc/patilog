@@ -48,6 +48,42 @@ void main() {
     app.register();
   });
 
+  testWidgets(
+    'dose body opens a single editor and Close stays usable after keeping its draft',
+    (tester) async {
+      app.medications = [app.sample()];
+      await app.pump(tester);
+      final openDose = tester
+          .widget<InkWell>(
+            find
+                .ancestor(
+                  of: find.text('08:00').first,
+                  matching: find.byType(InkWell),
+                )
+                .first,
+          )
+          .onTap!;
+      await tester.tap(find.text('08:00').first);
+      openDose();
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Given at'),
+        '1100',
+      );
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Keep editing'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Discard changes'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      verifyNever(() => app.repository.saveDoseLog(any(), any(), any()));
+    },
+  );
+
   Future<void> tap(WidgetTester tester, String label) async {
     await tester.tap(find.widgetWithText(ElevatedButton, label));
     await tester.pumpAndSettle();
