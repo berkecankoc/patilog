@@ -173,6 +173,7 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
     if (_needsLoad(AllPetsCareSection.pets, state.pets)) tasks.add(loadPets());
     switch (section) {
       case AllPetsCareSection.pets:
+      case AllPetsCareSection.feeding:
         break;
       case AllPetsCareSection.vetVisits:
         if (_needsLoad(section, state.visits)) tasks.add(loadVisits());
@@ -202,6 +203,8 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
         await loadVaccinations();
       case AllPetsCareSection.medications:
         await loadMedications();
+      case AllPetsCareSection.feeding:
+        await loadPets();
     }
     if (!isClosed) await refreshForClockChange();
   }
@@ -249,6 +252,8 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
             doses: state.doses.copyWith(isLoading: false, hasLoaded: false),
           ),
         );
+      case AllPetsCareSection.feeding:
+        break;
     }
   }
 

@@ -25,11 +25,42 @@ final class FeedingMealDraft {
 final class FeedingFormCubit extends Cubit<FeedingFormState> {
   final FeedingRepository _repository;
   final IdGenerator _ids;
+  int _plansRequest = 0;
 
   FeedingFormCubit(this._repository, this._ids)
     : super(const FeedingFormState());
 
   bool get _canSave => !isClosed && !state.isSaving && !state.isSaved;
+
+  Future<void> loadPlans(String petId) async {
+    if (!_canSave) return;
+    final request = ++_plansRequest;
+    emit(
+      state.copyWith(
+        plansPetId: petId,
+        plans: const [],
+        hasLoadedPlans: false,
+        isLoadingPlans: true,
+        clearPlansFailure: true,
+      ),
+    );
+    final result = await _repository.getFeedingPlans(petId);
+    if (isClosed || state.isSaved || request != _plansRequest) return;
+    switch (result) {
+      case Success<List<FeedingPlan>>():
+        emit(
+          state.copyWith(
+            plans: List.unmodifiable(result.data),
+            hasLoadedPlans: true,
+            isLoadingPlans: false,
+          ),
+        );
+      case Error<List<FeedingPlan>>():
+        emit(
+          state.copyWith(isLoadingPlans: false, plansFailure: result.failure),
+        );
+    }
+  }
 
   Future<void> savePlan({
     required String petId,
@@ -120,14 +151,22 @@ final class FeedingFormCubit extends Cubit<FeedingFormState> {
     FeedingPlan? plan,
     FeedingEntry? entry,
   }) async {
-    emit(const FeedingFormState(isSaving: true));
+    emit(state.copyWith(isSaving: true, clearSaveFailure: true));
     final result = await write();
     if (isClosed) return;
     switch (result) {
       case Success<void>():
-        emit(FeedingFormState(savedPlan: plan, savedEntry: entry));
+        ++_plansRequest;
+        emit(
+          state.copyWith(
+            isSaving: false,
+            savedPlan: plan,
+            savedEntry: entry,
+            isLoadingPlans: false,
+          ),
+        );
       case Error<void>():
-        emit(FeedingFormState(saveFailure: result.failure));
+        emit(state.copyWith(isSaving: false, saveFailure: result.failure));
     }
   }
 

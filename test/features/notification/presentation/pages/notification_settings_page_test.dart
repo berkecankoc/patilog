@@ -27,6 +27,29 @@ void main() {
     scale: scale,
   );
   Finder toggle(String label) => find.widgetWithText(SwitchListTile, label);
+
+  testWidgets(
+    'feeding has an independent explicit toggle preserved by other category changes',
+    (tester) async {
+      app.notifications.feedingPlans.add(app.notifications.feedingPlan());
+      await open(tester);
+      expect(
+        tester.widget<SwitchListTile>(toggle('Feeding reminders')).value,
+        isFalse,
+      );
+      verifyNever(app.notifications.repository.requestNotificationPermission);
+      await tester.ensureVisible(toggle('Feeding reminders'));
+      await tester.tap(toggle('Feeding reminders'));
+      await tester.pumpAndSettle();
+      expect(app.notifications.preferences.feedingRemindersEnabled, isTrue);
+      expect(app.notifications.submissions.last, isNotEmpty);
+      await tester.ensureVisible(toggle('Vaccination reminders'));
+      await tester.tap(toggle('Vaccination reminders'));
+      await tester.pumpAndSettle();
+      expect(app.notifications.preferences.feedingRemindersEnabled, isTrue);
+      expect(app.notifications.preferences.vaccinationRemindersEnabled, isTrue);
+    },
+  );
   Future<void> edit(WidgetTester tester) async {
     await tester.scrollUntilVisible(
       find.text('Days & time'),

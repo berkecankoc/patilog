@@ -19,6 +19,7 @@ final class PlanNotificationReminders {
     DateTime now, {
     required MedicationReminderText medicationText,
     required VaccinationReminderText vaccinationText,
+    required FeedingReminderText feedingText,
   }) {
     const limit = NotificationRepository.maxPendingReminders;
     final lastDay = calendarDayNumber(DateTime(9999, 12, 31));
@@ -128,6 +129,70 @@ final class PlanNotificationReminders {
               body: text.body,
             ),
           );
+        }
+      }
+    }
+    if (preferences.feedingRemindersEnabled) {
+      final recorded = {
+        for (final entry in data.feedingEntries)
+          if (entry.mealId != null && entry.scheduledDate != null)
+            (
+              entry.petId,
+              entry.mealId,
+              calendarDayNumber(entry.scheduledDate!),
+            ),
+      };
+      for (final petId in pets.keys) {
+        final plans = data.feedingPlans.where((p) => p.petId == petId).toList()
+          ..sort((a, b) => a.startDate.compareTo(b.startDate));
+        for (final (index, plan) in plans.indexed) {
+          final start = math.max(
+            calendarDayNumber(now),
+            calendarDayNumber(plan.startDate),
+          );
+          var end = plan.endDate == null
+              ? lastDay
+              : calendarDayNumber(plan.endDate!);
+          if (index + 1 < plans.length) {
+            end = math.min(
+              end,
+              calendarDayNumber(plans[index + 1].startDate) - 1,
+            );
+          }
+          final upcoming = <NotificationReminder>[];
+          for (var day = start; day <= end && upcoming.length <= limit; day++) {
+            final date = _day(day);
+            for (final meal in plan.meals) {
+              if (!_time(date, meal.scheduledMinute).isAfter(now) ||
+                  recorded.contains((petId, meal.id, day))) {
+                continue;
+              }
+              final text = feedingText(
+                pets[petId]!,
+                meal.scheduledMinute,
+                meal.amountGrams,
+                meal.foodName,
+              );
+              upcoming.add(
+                NotificationReminder(
+                  target: FeedingMealNotificationTarget(
+                    petId: petId,
+                    planId: plan.id,
+                    mealId: meal.id,
+                    scheduledDate: date,
+                    scheduledMinute: meal.scheduledMinute,
+                  ),
+                  scheduledDate: date,
+                  scheduledMinute: meal.scheduledMinute,
+                  title: text.title,
+                  body: text.body,
+                ),
+              );
+            }
+            if (plan.meals.isEmpty) break;
+          }
+          upcoming.sort(_compare);
+          candidates.addAll(upcoming.take(limit + 1));
         }
       }
     }

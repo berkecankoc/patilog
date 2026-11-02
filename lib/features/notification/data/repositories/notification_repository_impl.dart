@@ -135,7 +135,7 @@ final class NotificationRepositoryImpl implements NotificationRepository {
           id,
           reminder,
           channels: channels,
-          exact: exact && reminder.target is MedicationDoseNotificationTarget,
+          exact: exact && reminder.target is! VaccinationNotificationTarget,
         );
       }
     }, 'Failed to synchronize reminders');
@@ -170,6 +170,14 @@ final class NotificationRepositoryImpl implements NotificationRepository {
             target.scheduledDate.day != date.day ||
             target.scheduledMinute != reminder.scheduledMinute) {
           throw const FormatException('Reminder does not match its dose');
+        }
+      }
+      if (reminder.target case FeedingMealNotificationTarget target) {
+        if (target.scheduledDate.year != date.year ||
+            target.scheduledDate.month != date.month ||
+            target.scheduledDate.day != date.day ||
+            target.scheduledMinute != reminder.scheduledMinute) {
+          throw const FormatException('Reminder does not match its meal');
         }
       }
     }

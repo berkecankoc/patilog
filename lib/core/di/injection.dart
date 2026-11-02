@@ -205,6 +205,7 @@ Future<void> setupDependencies() async {
       getIt<PetRepository>(),
       getIt<MedicationRepository>(),
       getIt<VaccinationRepository>(),
+      getIt<FeedingRepository>(),
     ),
   );
   getIt.registerLazySingleton<PlanNotificationReminders>(
@@ -215,6 +216,7 @@ Future<void> setupDependencies() async {
       getIt<PetRepository>(),
       getIt<MedicationRepository>(),
       getIt<VaccinationRepository>(),
+      getIt<FeedingRepository>(),
     ),
   );
   getIt.registerFactory<NotificationCubit>(

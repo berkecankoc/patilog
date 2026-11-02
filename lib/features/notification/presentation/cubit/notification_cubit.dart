@@ -79,6 +79,7 @@ final class NotificationCubit extends Cubit<NotificationState> {
     now(),
     medicationText: _content.medication,
     vaccinationText: _content.vaccination,
+    feedingText: _content.feeding,
   );
 
   Future<void> initialize() {
@@ -137,7 +138,8 @@ final class NotificationCubit extends Cubit<NotificationState> {
     emit(state.copyWith(isBusy: true));
     final preferences = state.preferences!;
     if (!preferences.medicationRemindersEnabled &&
-        !preferences.vaccinationRemindersEnabled) {
+        !preferences.vaccinationRemindersEnabled &&
+        !preferences.feedingRemindersEnabled) {
       _data = NotificationData();
       _dataDay = calendarDayNumber(now());
       await _synchronize(
@@ -207,6 +209,22 @@ final class NotificationCubit extends Cubit<NotificationState> {
     }
   }
 
+  Future<void> removeFeedingEntry(String petId, String entryId) {
+    if (_stopped) return Future.value();
+    final revision = ++_revision;
+    return _enqueue(() async {
+      _data = _data?.without(petId: petId, feedingEntryId: entryId);
+      if (_dataDay != null && _dataDay != calendarDayNumber(now())) {
+        await _refresh(revision);
+        return;
+      }
+      if (_data != null && state.preferences != null) {
+        emit(state.copyWith(isBusy: true));
+        await _synchronize(_plan(_data!, state.preferences!), revision);
+      }
+    });
+  }
+
   Future<void> removeDeleted({
     required String petId,
     bool petDeleted = false,
@@ -262,7 +280,9 @@ final class NotificationCubit extends Cubit<NotificationState> {
       final vaccinationOn =
           value.vaccinationRemindersEnabled &&
           !previous.vaccinationRemindersEnabled;
-      if (medicationOn || vaccinationOn) {
+      final feedingOn =
+          value.feedingRemindersEnabled && !previous.feedingRemindersEnabled;
+      if (medicationOn || vaccinationOn || feedingOn) {
         var permission = await repository.getPermissionStatus();
         if (_stopped) return;
         if (permission case Success<NotificationPermissionStatus>(
@@ -273,7 +293,7 @@ final class NotificationCubit extends Cubit<NotificationState> {
         }
         if (permission
             case Success<NotificationPermissionStatus>(data: final status)
-            when medicationOn &&
+            when (medicationOn || feedingOn) &&
                 status.canShowNotifications &&
                 status.requiresExactAlarmPermission &&
                 !status.canScheduleExactAlarms) {

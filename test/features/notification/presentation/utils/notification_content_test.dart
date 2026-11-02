@@ -18,6 +18,21 @@ void main() {
   );
 
   test(
+    'feeding text localizes grams, keeps the 24-hour time and user food name',
+    () {
+      expect(
+        english.feeding('İnci', 785, 12.5, null).body,
+        'Offer 12.5 g at 13:05.',
+      );
+      expect(
+        turkish.feeding('İnci', 785, 12.5, 'Mama {adı}').body,
+        '13:05 saatinde 12,5 g Mama {adı} ver.',
+      );
+      expect(turkish.channels.feedingName, 'Beslenme hatırlatmaları');
+    },
+  );
+
+  test(
     'localizes notification text and channels, keeping names and instructions verbatim',
     () {
       expect(turkish.medication('İnci 🐾', 'İlaç {adı}', 5, null), (
@@ -86,6 +101,7 @@ void main() {
             h.clock,
             medicationText: content.medication,
             vaccinationText: content.vaccination,
+            feedingText: content.feeding,
           ),
       ];
       expect(plans.first.reminders, hasLength(64));

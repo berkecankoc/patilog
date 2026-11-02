@@ -49,6 +49,29 @@ abstract final class NotificationTargetCodec {
             vaccinationId: vaccination,
             daysBefore: days,
           ),
+        [
+          'feeding',
+          String pet,
+          String plan,
+          String meal,
+          int year,
+          int month,
+          int day,
+          int minute,
+        ]
+            when _id(pet) &&
+                _id(plan) &&
+                _id(meal) &&
+                _date(year, month, day) &&
+                minute >= 0 &&
+                minute < 1440 =>
+          FeedingMealNotificationTarget(
+            petId: pet,
+            planId: plan,
+            mealId: meal,
+            scheduledDate: DateTime(year, month, day),
+            scheduledMinute: minute,
+          ),
         _ => null,
       };
     } on FormatException {

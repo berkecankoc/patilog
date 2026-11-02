@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
 import 'package:flutter/material.dart';
 import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -52,6 +54,15 @@ class _PetCarePageState extends State<PetCarePage>
   Pet? _pet;
   bool _queued = false;
 
+  void _exit() {
+    if (_busy) return;
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.pets);
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -82,6 +93,7 @@ class _PetCarePageState extends State<PetCarePage>
     PetCareTab.vetVisits => context.read<VetVisitCubit>(),
     PetCareTab.vaccinations => context.read<VaccinationCubit>(),
     PetCareTab.medications => context.read<MedicationCubit>(),
+    PetCareTab.feeding => context.read<FeedingCubit>(),
     PetCareTab.weightHistory => context.read<WeightHistoryCubit>(),
   };
 
@@ -91,6 +103,7 @@ class _PetCarePageState extends State<PetCarePage>
     VaccinationsLoaded(:final isDeleting) => isDeleting,
     WeightHistoryLoaded(:final isDeleting) => isDeleting,
     MedicationsLoaded(:final pendingAction) => pendingAction != null,
+    FeedingLoaded(:final pendingAction) => pendingAction != null,
     _ => false,
   };
 
@@ -136,6 +149,8 @@ class _PetCarePageState extends State<PetCarePage>
             context.read<VaccinationCubit>().removeDeletedVaccination(id);
           case PetCareTab.medications:
             context.read<MedicationCubit>().removeDeletedMedication(id);
+          case PetCareTab.feeding:
+            context.read<FeedingCubit>().removeDeletedEntry(widget.petId, id);
           case PetCareTab.profile || PetCareTab.weightHistory:
             break;
         }
@@ -150,6 +165,16 @@ class _PetCarePageState extends State<PetCarePage>
             context.read<VaccinationCubit>().loadVaccinations(widget.petId);
           case PetCareTab.medications:
             context.read<MedicationCubit>().loadMedications(widget.petId);
+          case PetCareTab.feeding:
+            final cubit = context.read<FeedingCubit>();
+            final current = cubit.state;
+            cubit.load(
+              petId: widget.petId,
+              historyDays: current is FeedingLoaded ? current.historyDays : 7,
+              date: current is FeedingLoaded && !current.followsToday
+                  ? current.date
+                  : null,
+            );
           case PetCareTab.weightHistory:
             context.read<WeightHistoryCubit>().loadWeightHistory(widget.petId);
         }
@@ -177,9 +202,7 @@ class _PetCarePageState extends State<PetCarePage>
       return PetCareTabs(
         active: widget.tab,
         onSelect: _select,
-        onExit: () {
-          if (!_busy) context.go(AppRoutes.pets);
-        },
+        onExit: _exit,
         child: BlocBuilder<Cubit<Object>, Object>(
           bloc: _activeCubit,
           builder: (context, activeState) {
@@ -191,6 +214,7 @@ class _PetCarePageState extends State<PetCarePage>
               WeightHistoryLoaded(:final isRefreshing) => isRefreshing,
               MedicationsLoaded(:final isRefreshing, :final doses) =>
                 isRefreshing || doses.isLoading,
+              FeedingLoaded(:final isRefreshing) => isRefreshing,
               _ => false,
             };
             return Scaffold(
@@ -207,11 +231,7 @@ class _PetCarePageState extends State<PetCarePage>
                         onPressed: null,
                         icon: const BackButtonIcon(),
                       )
-                    : BackButton(
-                        onPressed: () {
-                          if (!_busy) context.go(AppRoutes.pets);
-                        },
-                      ),
+                    : BackButton(onPressed: _exit),
                 actions: [
                   if (widget.tab == PetCareTab.profile && state is PetLoaded)
                     IconButton(

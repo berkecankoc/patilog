@@ -15,6 +15,13 @@ typedef VaccinationReminderText =
       String vaccineName,
       DateTime date,
     );
+typedef FeedingReminderText =
+    NotificationText Function(
+      String petName,
+      int minute,
+      double amountGrams,
+      String? foodName,
+    );
 
 final class NotificationReminder extends Equatable {
   final NotificationTarget target;

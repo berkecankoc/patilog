@@ -17,7 +17,51 @@ void main() {
     verifyZeroInteractions(h.pets);
     verifyZeroInteractions(h.medications);
     verifyZeroInteractions(h.vaccinations);
+    verifyZeroInteractions(h.feeding);
   });
+
+  test(
+    'feeding-only reads plans and today planned results, not actual history',
+    () async {
+      h.feedingPlans.add(h.feedingPlan());
+      final result = await h.loader(
+        NotificationPreferences(feedingRemindersEnabled: true),
+        h.clock,
+      );
+      expect(
+        (result as Success<NotificationData>).data.feedingPlans,
+        h.feedingPlans,
+      );
+      verify(h.feeding.getAllFeedingPlans).called(1);
+      verify(
+        () => h.feeding.getAllPlannedFeedingEntries(
+          fromDate: DateTime(2030, 1, 1),
+          toDate: DateTime(2030, 1, 1),
+        ),
+      ).called(1);
+      verifyNoMoreInteractions(h.feeding);
+      verifyZeroInteractions(h.medications);
+      verifyZeroInteractions(h.vaccinations);
+    },
+  );
+
+  test(
+    'failed feeding result read cannot be treated as an unrecorded meal',
+    () async {
+      const failure = LocalDatabaseFailure('Results unavailable');
+      when(
+        () => h.feeding.getAllPlannedFeedingEntries(
+          fromDate: any(named: 'fromDate'),
+          toDate: any(named: 'toDate'),
+        ),
+      ).thenAnswer((_) async => const Error(failure));
+      final result = await h.loader(
+        NotificationPreferences(feedingRemindersEnabled: true),
+        h.clock,
+      );
+      expect((result as Error<NotificationData>).failure, failure);
+    },
+  );
 
   test(
     'loads only enabled categories, with today-only logs in a single bulk read',

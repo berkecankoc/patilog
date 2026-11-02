@@ -147,6 +147,13 @@ final class RecordFeedingMealAction extends FeedingAction {
   List<Object?> get props => [entry];
 }
 
+final class UpdateFeedingMealAction extends FeedingAction {
+  final FeedingEntry entry;
+  UpdateFeedingMealAction(this.entry) : super(entry.petId);
+  @override
+  List<Object?> get props => [entry];
+}
+
 final class DeleteFeedingEntryAction extends FeedingAction {
   final String entryId;
   const DeleteFeedingEntryAction(super.petId, this.entryId);

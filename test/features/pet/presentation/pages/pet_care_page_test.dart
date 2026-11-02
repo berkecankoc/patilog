@@ -19,6 +19,7 @@ import 'package:petlytics/features/all_pets_care/presentation/pages/all_pets_car
 import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
 import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
 import '../../../../helpers/pet_care_test_harness.dart';
+import '../../../../helpers/feeding_test_harness.dart';
 import '../../../../helpers/multi_step_form_helpers.dart';
 
 void main() {
@@ -51,7 +52,7 @@ void main() {
     );
   });
   setUp(() {
-    app = PetCareTestHarness();
+    app = FeedingTestHarness();
     app.register();
   });
 

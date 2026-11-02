@@ -3,15 +3,17 @@ import 'package:petlytics/core/widgets/app_gap.dart';
 
 class AppSectionHeading extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final IconData? icon;
+  final Widget? leading;
   final Widget? trailing;
 
   const AppSectionHeading({
     super.key,
     required this.title,
-    required this.icon,
+    this.icon,
+    this.leading,
     this.trailing,
-  });
+  }) : assert(icon != null || leading != null);
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +21,12 @@ class AppSectionHeading extends StatelessWidget {
     return Row(
       children: [
         ExcludeSemantics(
-          child: Icon(
-            icon,
-            size: 20,
-            color: theme.colorScheme.onSurfaceVariant,
+          child: IconTheme.merge(
+            data: IconThemeData(
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            child: leading ?? Icon(icon),
           ),
         ),
         HorizontalGap.sm,

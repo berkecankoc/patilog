@@ -284,6 +284,77 @@ void main() {
   }
 
   test(
+    'plan context loads without clinical writes and can retry a typed failure',
+    () async {
+      when(
+        () => repository.getFeedingPlans('pet'),
+      ).thenAnswer((_) async => const Error(failure));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.loadPlans('pet');
+      expect(cubit.state.plansFailure, same(failure));
+      expect(cubit.state.hasLoadedPlans, isFalse);
+      when(
+        () => repository.getFeedingPlans('pet'),
+      ).thenAnswer((_) async => Success([plan]));
+      await cubit.loadPlans('pet');
+      expect(cubit.state.plansPetId, 'pet');
+      expect(cubit.state.plans, [plan]);
+      expect(cubit.state.hasLoadedPlans, isTrue);
+      expect(cubit.state.plansFailure, isNull);
+      expect(() => cubit.state.plans.clear(), throwsUnsupportedError);
+      verify(() => repository.getFeedingPlans('pet')).called(2);
+      verifyNoMoreInteractions(repository);
+    },
+  );
+
+  test(
+    'late plan context cannot replace another pet or a terminal saved result',
+    () async {
+      final pending = Completer<Result<List<FeedingPlan>>>();
+      when(
+        () => repository.getFeedingPlans('pet'),
+      ).thenAnswer((_) => pending.future);
+      when(
+        () => repository.getFeedingPlans('other'),
+      ).thenAnswer((_) async => const Success([]));
+      when(
+        () => repository.createFeedingEntry(any()),
+      ).thenAnswer((_) async => const Success(null));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      final loading = cubit.loadPlans('pet');
+      await cubit.loadPlans('other');
+      expect(cubit.state.plansPetId, 'other');
+      await saveEntry(cubit);
+      final saved = cubit.state;
+      pending.complete(Success([plan]));
+      await loading;
+      expect(cubit.state, same(saved));
+      expect(cubit.state.isSaved, isTrue);
+      expect(cubit.state.isLoadingPlans, isFalse);
+      clearInteractions(repository);
+      await cubit.loadPlans('pet');
+      verifyZeroInteractions(repository);
+    },
+  );
+
+  test('closed plan context does not emit late responses', () async {
+    final pending = Completer<Result<List<FeedingPlan>>>();
+    when(
+      () => repository.getFeedingPlans('pet'),
+    ).thenAnswer((_) => pending.future);
+    final cubit = makeCubit();
+    final loading = cubit.loadPlans('pet');
+    await cubit.close();
+    pending.complete(Success([plan]));
+    await expectLater(loading, completes);
+    clearInteractions(repository);
+    await cubit.loadPlans('pet');
+    verifyZeroInteractions(repository);
+  });
+
+  test(
     'closing during save suppresses late emissions and all further writes',
     () async {
       final pending = Completer<Result<void>>();

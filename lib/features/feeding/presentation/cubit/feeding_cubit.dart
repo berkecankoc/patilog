@@ -26,6 +26,8 @@ final class FeedingCubit extends Cubit<FeedingState> {
   final DateTime Function() now;
   int _request = 0;
   _FeedingQuery? _failedQuery;
+  final _removedPets = <String>{};
+  final _removedEntries = <(String, String)>{};
 
   FeedingCubit(
     this._repository,
@@ -105,16 +107,23 @@ final class FeedingCubit extends Cubit<FeedingState> {
     ].whereType<Error>().firstOrNull?.failure;
     if (failure != null) {
       _failedQuery = query;
+      final retained = state;
       emit(
-        previous == null
-            ? FeedingError(failure)
-            : previous.copyWith(isRefreshing: false, refreshFailure: failure),
+        retained is FeedingLoaded
+            ? retained.copyWith(isRefreshing: false, refreshFailure: failure)
+            : FeedingError(failure),
       );
       return;
     }
-    final plans = (plansResult as Success<List<FeedingPlan>>).data;
-    final entries = (entriesResult as Success<List<FeedingEntry>>).data;
-    final planned = (plannedResult as Success<List<FeedingEntry>>).data;
+    final plans = _remainingPlans(
+      (plansResult as Success<List<FeedingPlan>>).data,
+    );
+    final entries = _remainingEntries(
+      (entriesResult as Success<List<FeedingEntry>>).data,
+    );
+    final planned = _remainingEntries(
+      (plannedResult as Success<List<FeedingEntry>>).data,
+    );
     emit(
       FeedingLoaded(
         petId: query.petId,
@@ -143,6 +152,13 @@ final class FeedingCubit extends Cubit<FeedingState> {
     if (query != null) await _load(query);
   }
 
+  void dismissActionFailure() {
+    final loaded = state;
+    if (!isClosed && loaded is FeedingLoaded && loaded.pendingAction == null) {
+      emit(loaded.copyWith(clearActionFailure: true));
+    }
+  }
+
   List<FeedingDailyTotal> totalsFor(String petId) {
     final loaded = state;
     if (loaded is! FeedingLoaded ||
@@ -168,7 +184,19 @@ final class FeedingCubit extends Cubit<FeedingState> {
         feedingDayNumber(loaded.date) != feedingDayNumber(current)) {
       return;
     }
-    final canonical = loaded.meals
+    final canonical = currentMeal(occurrence);
+    if (canonical == null || canonical.entry != null) return;
+    await saveMeal(
+      canonical,
+      amountGrams: canonical.meal.amountGrams,
+      givenAt: current,
+    );
+  }
+
+  FeedingOccurrence? currentMeal(FeedingOccurrence occurrence) {
+    final loaded = state;
+    if (loaded is! FeedingLoaded) return null;
+    return loaded.meals
         .where(
           (meal) =>
               meal.plan.petId == occurrence.plan.petId &&
@@ -176,20 +204,48 @@ final class FeedingCubit extends Cubit<FeedingState> {
               feedingDayNumber(meal.date) == feedingDayNumber(occurrence.date),
         )
         .firstOrNull;
-    if (canonical == null || canonical.entry != null) return;
-    await performAction(
-      RecordFeedingMealAction(
-        FeedingEntry(
-          id: _ids.generate(),
-          petId: canonical.plan.petId,
-          amountGrams: canonical.meal.amountGrams,
-          foodName: canonical.meal.foodName,
-          givenAt: current,
-          mealId: canonical.meal.id,
-          scheduledDate: canonical.date,
-        ),
-      ),
+  }
+
+  Future<bool> saveMeal(
+    FeedingOccurrence occurrence, {
+    required double amountGrams,
+    required DateTime givenAt,
+  }) async {
+    if (isClosed || state is! FeedingLoaded) return false;
+    final loaded = state as FeedingLoaded;
+    if (loaded.pendingAction != null ||
+        loaded.isRefreshing ||
+        loaded.refreshFailure != null) {
+      return false;
+    }
+    final canonical = currentMeal(occurrence);
+    if (canonical == null ||
+        givenAt.isAfter(now()) ||
+        canonical.entry?.id != occurrence.entry?.id ||
+        feedingDayNumber(canonical.date) > feedingDayNumber(now())) {
+      return false;
+    }
+    final existing = canonical.entry;
+    final entry = FeedingEntry(
+      id: existing?.id ?? _ids.generate(),
+      petId: canonical.plan.petId,
+      amountGrams: amountGrams,
+      foodName: existing == null ? canonical.meal.foodName : existing.foodName,
+      notes: existing?.notes,
+      givenAt: givenAt,
+      mealId: canonical.meal.id,
+      scheduledDate: canonical.date,
     );
+    if (entry == existing) return true;
+    final action = existing == null
+        ? RecordFeedingMealAction(entry)
+        : UpdateFeedingMealAction(entry);
+    await performAction(action);
+    if (isClosed) return false;
+    final after = state;
+    return after is FeedingLoaded &&
+        after.mutationRevision > loaded.mutationRevision &&
+        after.lastMutation == action;
   }
 
   Future<void> performAction(FeedingAction action) async {
@@ -205,6 +261,9 @@ final class FeedingCubit extends Cubit<FeedingState> {
     emit(loaded.copyWith(pendingAction: action, clearActionFailure: true));
     final result = await switch (action) {
       RecordFeedingMealAction(:final entry) => _repository.createFeedingEntry(
+        entry,
+      ),
+      UpdateFeedingMealAction(:final entry) => _repository.updateFeedingEntry(
         entry,
       ),
       DeleteFeedingEntryAction(:final entryId) =>
@@ -238,6 +297,31 @@ final class FeedingCubit extends Cubit<FeedingState> {
                 });
               entries = sorted.map((item) => item.$2).toList();
             }
+          case UpdateFeedingMealAction(:final entry):
+            final index = entries.indexWhere(
+              (e) => e.id == entry.id && e.petId == entry.petId,
+            );
+            if (!entry.givenAt.isBefore(loaded.fromDate) &&
+                entry.givenAt.isBefore(loaded.before)) {
+              if (index >= 0) {
+                entries[index] = entry;
+              } else {
+                entries.add(entry);
+              }
+            } else if (index >= 0) {
+              entries.removeAt(index);
+            }
+            planned.removeWhere(
+              (e) => e.id == entry.id && e.petId == entry.petId,
+            );
+            planned.add(entry);
+            // Keep existing ties stable when only amount or clock time is corrected.
+            final sorted = entries.indexed.toList()
+              ..sort((a, b) {
+                final time = b.$2.givenAt.compareTo(a.$2.givenAt);
+                return time != 0 ? time : a.$1.compareTo(b.$1);
+              });
+            entries = sorted.map((e) => e.$2).toList();
           case DeleteFeedingEntryAction(:final entryId):
             entries.removeWhere(
               (e) => e.petId == action.petId && e.id == entryId,
@@ -269,6 +353,18 @@ final class FeedingCubit extends Cubit<FeedingState> {
     if (loaded.refreshFailure != null) return false;
     if (loaded.petId != null && loaded.petId != action.petId) return false;
     switch (action) {
+      case UpdateFeedingMealAction(:final entry):
+        return !entry.givenAt.isAfter(now()) &&
+            loaded.meals.any(
+              (meal) =>
+                  meal.plan.petId == entry.petId &&
+                  meal.meal.id == entry.mealId &&
+                  meal.entry?.id == entry.id &&
+                  entry.scheduledDate != null &&
+                  feedingDayNumber(meal.date) ==
+                      feedingDayNumber(entry.scheduledDate!) &&
+                  feedingDayNumber(meal.date) <= feedingDayNumber(now()),
+            );
       case RecordFeedingMealAction(:final entry):
         return !entry.givenAt.isAfter(now()) &&
             loaded.meals.any(
@@ -321,6 +417,42 @@ final class FeedingCubit extends Cubit<FeedingState> {
       emit(loaded.copyWith(currentTime: current));
     }
   }
+
+  void removeDeletedPet(String petId) {
+    _removedPets.add(petId);
+    _removeKnown();
+  }
+
+  void removeDeletedEntry(String petId, String entryId) {
+    _removedEntries.add((petId, entryId));
+    _removeKnown();
+  }
+
+  void _removeKnown() {
+    if (isClosed || state is! FeedingLoaded) return;
+    final loaded = state as FeedingLoaded;
+    final plans = _remainingPlans(loaded.plans);
+    final entries = _remainingEntries(loaded.entries);
+    final planned = _remainingEntries(loaded.plannedEntries);
+    emit(
+      loaded.copyWith(
+        plans: plans,
+        entries: entries,
+        plannedEntries: planned,
+        meals: _meals(plans, planned, loaded.date),
+      ),
+    );
+  }
+
+  List<FeedingPlan> _remainingPlans(List<FeedingPlan> plans) =>
+      plans.where((p) => !_removedPets.contains(p.petId)).toList();
+  List<FeedingEntry> _remainingEntries(List<FeedingEntry> entries) => entries
+      .where(
+        (e) =>
+            !_removedPets.contains(e.petId) &&
+            !_removedEntries.contains((e.petId, e.id)),
+      )
+      .toList();
 
   List<FeedingOccurrence> _meals(
     List<FeedingPlan> plans,

@@ -1,4 +1,7 @@
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
 import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
@@ -13,15 +16,22 @@ final class LoadNotificationData {
   final PetRepository pets;
   final MedicationRepository medications;
   final VaccinationRepository vaccinations;
+  final FeedingRepository feeding;
 
-  const LoadNotificationData(this.pets, this.medications, this.vaccinations);
+  const LoadNotificationData(
+    this.pets,
+    this.medications,
+    this.vaccinations,
+    this.feeding,
+  );
 
   Future<Result<NotificationData>> call(
     NotificationPreferences preferences,
     DateTime now,
   ) async {
     if (!preferences.medicationRemindersEnabled &&
-        !preferences.vaccinationRemindersEnabled) {
+        !preferences.vaccinationRemindersEnabled &&
+        !preferences.feedingRemindersEnabled) {
       return Success(NotificationData());
     }
     final today = DateTime(now.year, now.month, now.day);
@@ -36,6 +46,12 @@ final class LoadNotificationData {
     final vaccinationRead = preferences.vaccinationRemindersEnabled
         ? vaccinations.getAllVaccinations()
         : Future.value(const Success<List<Vaccination>>([]));
+    final feedingRead = preferences.feedingRemindersEnabled
+        ? feeding.getAllFeedingPlans()
+        : Future.value(const Success<List<FeedingPlan>>([]));
+    final feedingEntryRead = preferences.feedingRemindersEnabled
+        ? feeding.getAllPlannedFeedingEntries(fromDate: today, toDate: today)
+        : Future.value(const Success<List<FeedingEntry>>([]));
     final (petResult, medicationResult, logResult, vaccinationResult) = (
       await petRead,
       await medicationRead,
@@ -52,12 +68,23 @@ final class LoadNotificationData {
     if (vaccinationResult is Error<List<Vaccination>>) {
       return Error(vaccinationResult.failure);
     }
+    final feedingResult = await feedingRead;
+    final feedingEntryResult = await feedingEntryRead;
+    if (feedingResult is Error<List<FeedingPlan>>) {
+      return Error(feedingResult.failure);
+    }
+    if (feedingEntryResult is Error<List<FeedingEntry>>) {
+      return Error(feedingEntryResult.failure);
+    }
     return Success(
       NotificationData(
         pets: (petResult as Success<List<Pet>>).data,
         medications: (medicationResult as Success<List<Medication>>).data,
         logs: (logResult as Success<List<MedicationDoseLog>>).data,
         vaccinations: (vaccinationResult as Success<List<Vaccination>>).data,
+        feedingPlans: (feedingResult as Success<List<FeedingPlan>>).data,
+        feedingEntries:
+            (feedingEntryResult as Success<List<FeedingEntry>>).data,
       ),
     );
   }

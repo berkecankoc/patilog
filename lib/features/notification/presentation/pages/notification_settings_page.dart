@@ -1,5 +1,6 @@
 import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:petlytics/core/widgets/app_feeding_icon.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
@@ -22,6 +23,7 @@ class NotificationSettingsPage extends StatelessWidget {
     NotificationCubit cubit, {
     bool? medication,
     bool? vaccination,
+    bool? feeding,
     VaccinationReminderSchedule? schedule,
   }) {
     final current = cubit.state.preferences!;
@@ -30,6 +32,7 @@ class NotificationSettingsPage extends StatelessWidget {
           medication ?? current.medicationRemindersEnabled,
       vaccinationRemindersEnabled:
           vaccination ?? current.vaccinationRemindersEnabled,
+      feedingRemindersEnabled: feeding ?? current.feedingRemindersEnabled,
       vaccinationSchedule: schedule ?? current.vaccinationSchedule,
     );
   }
@@ -58,6 +61,7 @@ class NotificationSettingsPage extends StatelessWidget {
     required String title,
     required String subtitle,
     required IconData icon,
+    Widget? iconWidget,
     required bool value,
     required ValueChanged<bool>? onChanged,
   }) => LayoutBuilder(
@@ -69,7 +73,7 @@ class NotificationSettingsPage extends StatelessWidget {
         return SwitchListTile(
           title: Text(title),
           subtitle: Text(subtitle),
-          secondary: Icon(icon),
+          secondary: iconWidget ?? Icon(icon),
           value: value,
           onChanged: onChanged,
         );
@@ -84,7 +88,7 @@ class NotificationSettingsPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(icon),
+                    iconWidget ?? Icon(icon),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
@@ -118,10 +122,12 @@ class NotificationSettingsPage extends StatelessWidget {
       final enabled = preferences != null && !state.isBusy;
       final anyOn =
           preferences?.medicationRemindersEnabled == true ||
-          preferences?.vaccinationRemindersEnabled == true;
+          preferences?.vaccinationRemindersEnabled == true ||
+          preferences?.feedingRemindersEnabled == true;
       final blocked = anyOn && state.permissions?.canShowNotifications == false;
       final inexact =
-          preferences?.medicationRemindersEnabled == true &&
+          (preferences?.medicationRemindersEnabled == true ||
+              preferences?.feedingRemindersEnabled == true) &&
           state.permissions?.canShowNotifications == true &&
           state.permissions?.requiresExactAlarmPermission == true &&
           state.permissions?.canScheduleExactAlarms == false;
@@ -267,6 +273,29 @@ class NotificationSettingsPage extends StatelessWidget {
                                               cubit,
                                               vaccination: value,
                                             ),
+                                          )
+                                        : null,
+                                  ),
+                                  const Divider(
+                                    height: 1,
+                                    indent: AppSpacing.md,
+                                    endIndent: AppSpacing.md,
+                                  ),
+                                  _reminderToggle(
+                                    title: AppLocalizations.of(
+                                      context,
+                                    ).feedingReminders,
+                                    subtitle: AppLocalizations.of(
+                                      context,
+                                    ).feedingReminderHint,
+                                    icon: Icons.schedule_outlined,
+                                    iconWidget: const AppFeedingIcon(),
+                                    value:
+                                        preferences?.feedingRemindersEnabled ??
+                                        false,
+                                    onChanged: enabled
+                                        ? (value) => cubit.setPreferences(
+                                            _preferences(cubit, feeding: value),
                                           )
                                         : null,
                                   ),

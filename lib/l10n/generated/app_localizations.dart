@@ -2171,7 +2171,7 @@ abstract class AppLocalizations {
   /// notification_settings_page.dart: blocked ? 'Allow notifications on this device to receive reminders.' : 'Medication reminders use normal scheduling and may arrive late.'
   ///
   /// In en, this message translates to:
-  /// **'Medication reminders use normal scheduling and may arrive late.'**
+  /// **'Meal and medication reminders may arrive late without precise timing.'**
   String get inexactRemindersHint;
 
   /// notification_settings_page.dart: blocked ? 'Allow notifications' : 'Allow precise reminders'
@@ -2207,7 +2207,7 @@ abstract class AppLocalizations {
   /// notification_settings_page.dart: state.plan!.reminders.isEmpty ? 'No upcoming reminders. Add a planned vaccination or a medication schedule.' : 'Next: ${MaterialLocalizations.of(conte
   ///
   /// In en, this message translates to:
-  /// **'No upcoming reminders. Add a planned vaccination or a medication schedule.'**
+  /// **'No upcoming reminders. Add a vaccination, medication schedule or daily feeding plan.'**
   String get noUpcomingReminders;
 
   /// notification_settings_page.dart: ('Open the app regularly to prepare later reminders.')
@@ -2797,6 +2797,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to open reminder'**
   String get reminderOpenFailed;
+
+  /// No description provided for @feeding.
+  ///
+  /// In en, this message translates to:
+  /// **'Feeding'**
+  String get feeding;
+
+  /// No description provided for @addFeeding.
+  ///
+  /// In en, this message translates to:
+  /// **'Log feeding'**
+  String get addFeeding;
+
+  /// No description provided for @editFeeding.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit feeding'**
+  String get editFeeding;
+
+  /// No description provided for @feedingRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Feeding record'**
+  String get feedingRecord;
+
+  /// No description provided for @feedingPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily plan'**
+  String get feedingPlan;
+
+  /// No description provided for @dailyMeals.
+  ///
+  /// In en, this message translates to:
+  /// **'Meals'**
+  String get dailyMeals;
+
+  /// No description provided for @feedingTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily food offered'**
+  String get feedingTrend;
+
+  /// No description provided for @foodOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Food name (optional)'**
+  String get foodOptional;
+
+  /// No description provided for @foodNameLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the food name within 50 characters'**
+  String get foodNameLimit;
+
+  /// No description provided for @feedingAmountInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a gram amount greater than zero'**
+  String get feedingAmountInvalid;
+
+  /// No description provided for @feedingPrecision.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at most one decimal place'**
+  String get feedingPrecision;
+
+  /// No description provided for @feedingNoMeals.
+  ///
+  /// In en, this message translates to:
+  /// **'No meals planned'**
+  String get feedingNoMeals;
+
+  /// No description provided for @feedingNoMealsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Log food whenever you offer it, or set up a daily plan.'**
+  String get feedingNoMealsDescription;
+
+  /// No description provided for @feedingNoRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No feeding records'**
+  String get feedingNoRecords;
+
+  /// No description provided for @feedingNoRecordsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded food amounts will appear here.'**
+  String get feedingNoRecordsDescription;
+
+  /// No description provided for @feedingLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load feeding records'**
+  String get feedingLoadFailed;
+
+  /// No description provided for @feedingSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save feeding record'**
+  String get feedingSaveFailed;
+
+  /// No description provided for @feedingDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete feeding record'**
+  String get feedingDeleteFailed;
+
+  /// No description provided for @feedingPlanSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save feeding plan'**
+  String get feedingPlanSaveFailed;
+
+  /// No description provided for @feedingPlanCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to cancel feeding plan'**
+  String get feedingPlanCancelFailed;
+
+  /// No description provided for @feedingRecordNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This feeding record is no longer available.'**
+  String get feedingRecordNotFound;
+
+  /// No description provided for @feedingPlanNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This feeding plan is no longer available.'**
+  String get feedingPlanNotFound;
+
+  /// No description provided for @feedingDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete feeding record?'**
+  String get feedingDeleteTitle;
+
+  /// No description provided for @feedingDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the recorded amount. A linked meal will return to No record.'**
+  String get feedingDeleteMessage;
+
+  /// No description provided for @feedingCancelPlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel scheduled plan?'**
+  String get feedingCancelPlanTitle;
+
+  /// No description provided for @feedingCancelPlanMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The previous plan may continue until its end date. Recorded feedings stay unchanged.'**
+  String get feedingCancelPlanMessage;
+
+  /// No description provided for @feedingCancelFirstPlanMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'These meals will be removed from the plan. Recorded feedings stay unchanged.'**
+  String get feedingCancelFirstPlanMessage;
+
+  /// No description provided for @feedingFirstPlanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your first plan can start today or later.'**
+  String get feedingFirstPlanHint;
+
+  /// No description provided for @feedingChangesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes start tomorrow or later. Earlier feeding records stay unchanged.'**
+  String get feedingChangesHint;
+
+  /// No description provided for @feedingPlanEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A plan is optional. Add meal times and amounts for quicker daily tracking.'**
+  String get feedingPlanEmptyMessage;
+
+  /// No description provided for @createFeedingPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Create plan'**
+  String get createFeedingPlan;
+
+  /// No description provided for @editFeedingPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit plan'**
+  String get editFeedingPlan;
+
+  /// No description provided for @endFeedingPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Set end date'**
+  String get endFeedingPlan;
+
+  /// No description provided for @feedingPlanEndHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This plan has started. Keep its meals unchanged and choose an end date.'**
+  String get feedingPlanEndHint;
+
+  /// No description provided for @feedingGiven.
+  ///
+  /// In en, this message translates to:
+  /// **'Given'**
+  String get feedingGiven;
+
+  /// No description provided for @feedingChartSelectPet.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a pet above to see its daily feeding chart.'**
+  String get feedingChartSelectPet;
+
+  /// No description provided for @addMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Add meal'**
+  String get addMeal;
+
+  /// No description provided for @feedingDuplicateTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Each meal needs a different time'**
+  String get feedingDuplicateTime;
+
+  /// No description provided for @feedingEndBeforeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'End date cannot be before the start date'**
+  String get feedingEndBeforeStart;
+
+  /// No description provided for @feedingMealTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal time'**
+  String get feedingMealTime;
+
+  /// No description provided for @feedingDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Feeding date'**
+  String get feedingDate;
+
+  /// No description provided for @feedingTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Feeding time'**
+  String get feedingTime;
+
+  /// No description provided for @feedingNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Food & notes (optional)'**
+  String get feedingNotes;
+
+  /// No description provided for @feedingPlanLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading plan…'**
+  String get feedingPlanLoading;
+
+  /// No description provided for @feedingPlanReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review the meal times and amounts before saving.'**
+  String get feedingPlanReview;
+
+  /// No description provided for @feedingRecordReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review the amount and actual feeding time.'**
+  String get feedingRecordReview;
+
+  /// No description provided for @feedingPlanDateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a valid start date'**
+  String get feedingPlanDateRequired;
+
+  /// No description provided for @feedingChartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Amounts offered, not amounts eaten. Days without a record have no bar.'**
+  String get feedingChartHint;
+
+  /// Feeding UI; user text and formatted values remain unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} g'**
+  String feedingGrams(String amount);
+
+  /// No description provided for @recordMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Record meal'**
+  String get recordMeal;
+
+  /// Feeding UI; user text and formatted values remain unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal {number}'**
+  String feedingMealNumber(int number);
+
+  /// Feeding UI; user text and formatted values remain unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove meal {number}'**
+  String removeFeedingMeal(int number);
+
+  /// Feeding UI; user text and formatted values remain unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} day} other{{count} days}}'**
+  String feedingDays(int count);
+
+  /// No description provided for @feedingPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans'**
+  String get feedingPlans;
+
+  /// No description provided for @feedingAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get feedingAmount;
+
+  /// No description provided for @feedingEditEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit end date'**
+  String get feedingEditEndDate;
+
+  /// No description provided for @feedingExtraRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Other feedings'**
+  String get feedingExtraRecords;
+
+  /// No description provided for @feedingRecordsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} record} other{{count} records}}'**
+  String feedingRecordsCount(int count);
+
+  /// No description provided for @feedingReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Feeding reminders'**
+  String get feedingReminders;
+
+  /// No description provided for @feedingReminderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'At the meal times in each daily plan.'**
+  String get feedingReminderHint;
+
+  /// No description provided for @feedingChannelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled feeding times'**
+  String get feedingChannelDescription;
+
+  /// No description provided for @notificationFeedingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer {amount} g at {time}.'**
+  String notificationFeedingBody(String amount, String time);
+
+  /// No description provided for @notificationFeedingFoodBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer {amount} g of {food} at {time}.'**
+  String notificationFeedingFoodBody(String amount, String food, String time);
+
+  /// Feeding UI; user text and formatted values remain unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · {amount} g'**
+  String feedingEntrySummary(String date, String amount);
 }
 
 class _AppLocalizationsDelegate

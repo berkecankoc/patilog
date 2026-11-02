@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
@@ -23,6 +24,7 @@ void main() {
     now,
     medicationText: englishNotificationContent.medication,
     vaccinationText: englishNotificationContent.vaccination,
+    feedingText: englishNotificationContent.feeding,
   );
   final both = NotificationPreferences(
     medicationRemindersEnabled: true,
@@ -34,6 +36,91 @@ void main() {
   });
   setUp(() => h = NotificationTestHarness());
   tearDown(() => h.dispose());
+
+  test(
+    'feeding joins the nearest-first bounded queue regardless of insertion order',
+    () {
+      h.feedingPlans.addAll([
+        h.feedingPlan(times: [660, 720]),
+        h.feedingPlan(id: 'other', petId: 'pet2', times: [630]),
+      ]);
+      h.medicines.add(h.medication(times: [645]));
+      final preferences = NotificationPreferences(
+        feedingRemindersEnabled: true,
+        medicationRemindersEnabled: true,
+      );
+      final planned = planner(h.data, preferences, h.clock);
+      expect(planned.reminders, hasLength(64));
+      expect(planned.hasMore, isTrue);
+      expect(planned.reminders.first.scheduledMinute, 630);
+      expect(planned.reminders[1].scheduledMinute, 645);
+      expect(
+        planned.reminders.first.target,
+        isA<FeedingMealNotificationTarget>(),
+      );
+      h.feedingPlans.setAll(0, h.feedingPlans.reversed.toList());
+      expect(
+        planner(h.data, preferences, h.clock).reminders,
+        planned.reminders,
+      );
+    },
+  );
+
+  test(
+    'recorded planned days suppress meals independently of actual feeding dates',
+    () {
+      final plan = h.feedingPlan();
+      h.feedingPlans.add(plan);
+      h.feedingEntries.add(
+        FeedingEntry(
+          id: 'entry',
+          petId: 'pet1',
+          amountGrams: 40,
+          givenAt: DateTime(2029, 12, 31, 23),
+          mealId: plan.meals.single.id,
+          scheduledDate: DateTime(2030, 1, 1),
+        ),
+      );
+      final reminders = planner(
+        h.data,
+        NotificationPreferences(feedingRemindersEnabled: true),
+        h.clock,
+      ).reminders;
+      expect(reminders.first.scheduledDate, DateTime(2030, 1, 2));
+      expect(reminders.first.body, contains('50 g'));
+    },
+  );
+
+  test(
+    'a later finite feeding plan supersedes the old plan without resuming it',
+    () {
+      h.feedingPlans.addAll([
+        h.feedingPlan(),
+        h.feedingPlan(
+          id: 'later',
+          start: DateTime(2030, 1, 2),
+          end: DateTime(2030, 1, 3),
+          times: [780],
+        ),
+      ]);
+      final reminders = planner(
+        h.data,
+        NotificationPreferences(feedingRemindersEnabled: true),
+        h.clock,
+      ).reminders;
+      expect(reminders.map((r) => r.scheduledDate), [
+        DateTime(2030, 1, 1),
+        DateTime(2030, 1, 2),
+        DateTime(2030, 1, 3),
+      ]);
+      expect(
+        reminders.map(
+          (r) => (r.target as FeedingMealNotificationTarget).planId,
+        ),
+        ['feed1', 'later', 'later'],
+      );
+    },
+  );
 
   test('bounds the combined all-pet queue and exposes its coverage', () {
     h.medicines.addAll([

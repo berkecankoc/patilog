@@ -1,7 +1,14 @@
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/l10n/generated/app_localizations.dart';
 
-enum PetCareTab { profile, vetVisits, vaccinations, medications, weightHistory }
+enum PetCareTab {
+  profile,
+  vetVisits,
+  vaccinations,
+  medications,
+  feeding,
+  weightHistory,
+}
 
 extension PetCareTabNavigation on PetCareTab {
   String label(AppLocalizations strings) => switch (this) {
@@ -9,6 +16,7 @@ extension PetCareTabNavigation on PetCareTab {
     PetCareTab.vetVisits => strings.vetVisits,
     PetCareTab.vaccinations => strings.vaccinations,
     PetCareTab.medications => strings.medications,
+    PetCareTab.feeding => strings.feeding,
     PetCareTab.weightHistory => strings.weightHistory,
   };
 
@@ -17,6 +25,7 @@ extension PetCareTabNavigation on PetCareTab {
     PetCareTab.vetVisits => AppRoutes.vetVisits(petId),
     PetCareTab.vaccinations => AppRoutes.vaccinations(petId),
     PetCareTab.medications => AppRoutes.medications(petId),
+    PetCareTab.feeding => AppRoutes.feeding(petId),
     PetCareTab.weightHistory => AppRoutes.weightHistory(petId),
   };
 }

@@ -1,4 +1,9 @@
 import 'package:flutter/widgets.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_cubit.dart';
+import 'package:petlytics/features/feeding/presentation/pages/feeding_page.dart';
+import 'package:petlytics/features/feeding/presentation/pages/feeding_entry_form_page.dart';
+import 'package:petlytics/features/feeding/presentation/pages/feeding_plan_form_page.dart';
 import 'package:petlytics/core/router/app_navigation_observer.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
@@ -108,6 +113,7 @@ Page<String> _careRootPage(GoRouterState state, PetCareTab tab) {
           create: (_) => getIt<VaccinationCubit>(),
         ),
         BlocProvider<MedicationCubit>(create: (_) => getIt<MedicationCubit>()),
+        BlocProvider<FeedingCubit>(create: (_) => getIt<FeedingCubit>()),
         BlocProvider<WeightHistoryCubit>(
           create: (_) => getIt<WeightHistoryCubit>(),
         ),
@@ -123,6 +129,15 @@ Page<String> _careRootPage(GoRouterState state, PetCareTab tab) {
               VaccinationListPage(petId: petId, petName: name),
           PetCareTab.medications: (name) =>
               MedicationListPage(petId: petId, petName: name),
+          PetCareTab.feeding: (name) => FeedingPage(
+            petId: petId,
+            petName: name,
+            reminder:
+                state.extra is FeedingRouteExtra &&
+                    (state.extra as FeedingRouteExtra).petId == petId
+                ? state.extra as FeedingRouteExtra
+                : null,
+          ),
           PetCareTab.weightHistory: (name) =>
               WeightHistoryPage(petId: petId, petName: name),
         },
@@ -148,8 +163,13 @@ final appRouter = GoRouter(
   routes: [
     ShellRoute(
       observers: [_allPetsObserver],
-      builder: (_, state, child) => BlocProvider<AllPetsCareCubit>(
-        create: (_) => getIt<AllPetsCareCubit>(),
+      builder: (_, state, child) => MultiBlocProvider(
+        providers: [
+          BlocProvider<AllPetsCareCubit>(
+            create: (_) => getIt<AllPetsCareCubit>(),
+          ),
+          BlocProvider<FeedingCubit>(create: (_) => getIt<FeedingCubit>()),
+        ],
         child: CareRecordChangeScope(child: child),
       ),
       routes: [
@@ -178,6 +198,10 @@ final appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.allMedications,
           pageBuilder: (_, _) => _allPetsPage(AllPetsCareSection.medications),
+        ),
+        GoRoute(
+          path: AppRoutes.allFeeding,
+          pageBuilder: (_, _) => _allPetsPage(AllPetsCareSection.feeding),
         ),
         GoRoute(
           path: AppRoutes.pets,
@@ -220,6 +244,81 @@ final appRouter = GoRouter(
                   path: ':petId',
                   pageBuilder: (context, state) =>
                       _careRootPage(state, PetCareTab.profile),
+                ),
+                GoRoute(
+                  path: ':petId/feeding',
+                  pageBuilder: (_, state) =>
+                      _careRootPage(state, PetCareTab.feeding),
+                  routes: [
+                    GoRoute(
+                      path: 'form',
+                      builder: (_, state) {
+                        final petId = state.pathParameters['petId']!;
+                        final extra = state.extra;
+                        final valid =
+                            extra is FeedingEntryFormExtra &&
+                                extra.petId == petId &&
+                                (extra.entry == null ||
+                                    extra.entry!.petId == petId)
+                            ? extra
+                            : null;
+                        return _petCarePage(
+                          petId: petId,
+                          extra: valid ?? state.extra,
+                          builder: (name) => BlocProvider<FeedingFormCubit>(
+                            key: ValueKey((
+                              petId,
+                              'feeding-entry',
+                              valid?.entry?.id,
+                            )),
+                            create: (_) => getIt<FeedingFormCubit>(),
+                            child: FeedingEntryFormPage(
+                              petId: petId,
+                              petName: name,
+                              entry: valid?.entry,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'plan/form',
+                      builder: (_, state) {
+                        final petId = state.pathParameters['petId']!;
+                        final extra = state.extra;
+                        final valid =
+                            extra is FeedingPlanFormExtra &&
+                                extra.petId == petId &&
+                                (extra.plan == null ||
+                                    extra.plan!.petId == petId) &&
+                                (extra.template == null ||
+                                    extra.template!.petId == petId) &&
+                                (extra.plans?.every((p) => p.petId == petId) ??
+                                    true)
+                            ? extra
+                            : null;
+                        return _petCarePage(
+                          petId: petId,
+                          extra: valid ?? state.extra,
+                          builder: (name) => BlocProvider<FeedingFormCubit>(
+                            key: ValueKey((
+                              petId,
+                              'feeding-plan',
+                              valid?.plan?.id,
+                            )),
+                            create: (_) => getIt<FeedingFormCubit>(),
+                            child: FeedingPlanFormPage(
+                              petId: petId,
+                              petName: name,
+                              plan: valid?.plan,
+                              template: valid?.template,
+                              plans: valid?.plans,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
                 GoRoute(
                   path: ':petId/medications',

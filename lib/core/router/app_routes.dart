@@ -5,6 +5,11 @@ abstract final class AppRoutes {
   static const allVetVisits = '/vet-visits';
   static const allVaccinations = '/vaccinations';
   static const allMedications = '/medications';
+  static const allFeeding = '/feeding';
+  static String feeding(String petId) => '${petDetail(petId)}/feeding';
+  static String addEditFeedingEntry(String petId) => '${feeding(petId)}/form';
+  static String addEditFeedingPlan(String petId) =>
+      '${feeding(petId)}/plan/form';
   static String medications(String petId) => '${petDetail(petId)}/medications';
   static String addEditMedication(String petId) => '${medications(petId)}/form';
   static String medicationDetail(String petId, String medicationId) =>

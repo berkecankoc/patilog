@@ -125,6 +125,134 @@ void main() {
     stubReads();
   });
 
+  test(
+    'meal correction updates both caches without changing the plan, notes or insertion ties',
+    () async {
+      final original = FeedingEntry(
+        id: recorded.id,
+        petId: recorded.petId,
+        amountGrams: recorded.amountGrams,
+        givenAt: recorded.givenAt,
+        mealId: recorded.mealId,
+        scheduledDate: recorded.scheduledDate,
+        notes: 'Keep notes',
+      );
+      stubReads(entries: [original], planned: [original]);
+      when(
+        () => repository.updateFeedingEntry(any()),
+      ).thenAnswer((_) async => const Success(null));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load(petId: 'pet');
+      final meal = (cubit.state as FeedingLoaded).meals.single;
+      clearInteractions(repository);
+      expect(
+        await cubit.saveMeal(meal, amountGrams: 40, givenAt: original.givenAt),
+        isTrue,
+      );
+      final loaded = cubit.state as FeedingLoaded;
+      final updated = loaded.meals.single.entry!;
+      expect(updated.id, original.id);
+      expect(updated.foodName, isNull);
+      expect(updated.notes, original.notes);
+      expect(updated.scheduledDate, original.scheduledDate);
+      expect(loaded.entries.single, updated);
+      expect(cubit.totalsFor('pet').last.amountGrams, 40);
+      expect(loaded.plans.single.meals.single.amountGrams, 30);
+      verify(() => repository.updateFeedingEntry(updated)).called(1);
+      verifyNoMoreInteractions(repository);
+      expect(ids.calls, 0);
+    },
+  );
+
+  test(
+    'corrections preserve planned completion when the actual instant leaves the visible history range',
+    () async {
+      stubReads(entries: [recorded], planned: [recorded]);
+      when(
+        () => repository.updateFeedingEntry(any()),
+      ).thenAnswer((_) async => const Success(null));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load(petId: 'pet');
+      final meal = (cubit.state as FeedingLoaded).meals.single;
+      await cubit.saveMeal(
+        meal,
+        amountGrams: 40,
+        givenAt: date.subtract(const Duration(days: 8)),
+      );
+      final loaded = cubit.state as FeedingLoaded;
+      expect(loaded.entries, isEmpty);
+      expect(loaded.meals.single.entry!.amountGrams, 40);
+      expect(cubit.totalsFor('pet').last.amountGrams, isNull);
+    },
+  );
+
+  test(
+    'failed corrections retain their exact intent and retry without recreating a meal',
+    () async {
+      stubReads(entries: [recorded], planned: [recorded]);
+      when(
+        () => repository.updateFeedingEntry(any()),
+      ).thenAnswer((_) async => const Error(failure));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load(petId: 'pet');
+      final meal = (cubit.state as FeedingLoaded).meals.single;
+      expect(
+        await cubit.saveMeal(meal, amountGrams: 40, givenAt: recorded.givenAt),
+        isFalse,
+      );
+      final failed = cubit.state as FeedingLoaded;
+      expect(failed.meals.single.entry, recorded);
+      expect(failed.failedAction, isA<UpdateFeedingMealAction>());
+      when(
+        () => repository.updateFeedingEntry(any()),
+      ).thenAnswer((_) async => const Success(null));
+      await cubit.performAction(failed.failedAction!);
+      expect(
+        (cubit.state as FeedingLoaded).meals.single.entry!.amountGrams,
+        40,
+      );
+      verifyNever(() => repository.createFeedingEntry(any()));
+    },
+  );
+
+  test(
+    'unchanged, stale and future meal submissions do not create or overwrite records',
+    () async {
+      stubReads(entries: [recorded], planned: [recorded]);
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load(petId: 'pet');
+      final meal = (cubit.state as FeedingLoaded).meals.single;
+      clearInteractions(repository);
+      expect(
+        await cubit.saveMeal(
+          meal,
+          amountGrams: recorded.amountGrams,
+          givenAt: recorded.givenAt,
+        ),
+        isTrue,
+      );
+      expect(
+        await cubit.saveMeal(
+          meal,
+          amountGrams: 40,
+          givenAt: clock.add(const Duration(minutes: 1)),
+        ),
+        isFalse,
+      );
+      cubit.removeDeletedEntry('pet', recorded.id);
+      expect(
+        await cubit.saveMeal(meal, amountGrams: 40, givenAt: clock),
+        isFalse,
+      );
+      verifyZeroInteractions(repository);
+      expect(ids.calls, 0);
+    },
+  );
+
   blocTest<FeedingCubit, FeedingState>(
     'scoped loading exposes known meals and seven-day totals',
     build: makeCubit,
@@ -574,6 +702,75 @@ void main() {
       expect((cubit.state as FeedingLoaded).date, DateTime(2026, 11, 2));
       expect((cubit.state as FeedingLoaded).mutationRevision, 1);
       verify(() => repository.createFeedingEntry(any())).called(1);
+    },
+  );
+
+  test(
+    'known deletion is reconciled with an in-flight refresh without rereading',
+    () async {
+      stubReads(entries: [recorded], planned: [recorded]);
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load(petId: 'pet');
+      final pending = Completer<Result<List<FeedingPlan>>>();
+      when(
+        () => repository.getFeedingPlans('pet'),
+      ).thenAnswer((_) => pending.future);
+      final loading = cubit.load(petId: 'pet');
+      clearInteractions(repository);
+      cubit.removeDeletedEntry('pet', recorded.id);
+      pending.complete(Success([plan]));
+      await loading;
+      final loaded = cubit.state as FeedingLoaded;
+      expect(loaded.entries, isEmpty);
+      expect(loaded.meals.single.entry, isNull);
+      verifyZeroInteractions(repository);
+    },
+  );
+
+  test(
+    'failed refresh cannot restore a pet removed while the read was pending',
+    () async {
+      stubReads(entries: [recorded], planned: [recorded]);
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      final pending = Completer<Result<List<FeedingPlan>>>();
+      when(repository.getAllFeedingPlans).thenAnswer((_) => pending.future);
+      final loading = cubit.load();
+      clearInteractions(repository);
+      cubit.removeDeletedPet('pet');
+      pending.complete(const Error(failure));
+      await loading;
+      final loaded = cubit.state as FeedingLoaded;
+      expect(loaded.refreshFailure, failure);
+      expect(loaded.plans, isEmpty);
+      expect(loaded.entries, isEmpty);
+      expect(loaded.plannedEntries, isEmpty);
+      expect(loaded.meals, isEmpty);
+      verifyZeroInteractions(repository);
+    },
+  );
+
+  test(
+    'pet deletion during first global load removes its plans and entries from the result',
+    () async {
+      stubReads(entries: [recorded], planned: [recorded]);
+      final pending = Completer<Result<List<FeedingPlan>>>();
+      when(repository.getAllFeedingPlans).thenAnswer((_) => pending.future);
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      final loading = cubit.load();
+      clearInteractions(repository);
+      cubit.removeDeletedPet('pet');
+      pending.complete(Success([plan]));
+      await loading;
+      final loaded = cubit.state as FeedingLoaded;
+      expect(loaded.plans, isEmpty);
+      expect(loaded.entries, isEmpty);
+      expect(loaded.plannedEntries, isEmpty);
+      expect(loaded.meals, isEmpty);
+      verifyZeroInteractions(repository);
     },
   );
 

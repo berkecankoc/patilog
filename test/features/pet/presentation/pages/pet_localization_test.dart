@@ -232,16 +232,29 @@ void main() {
                 find.byType(NavigationDestination),
               )
               .map((item) => item.label),
-          ['Dostlarım', 'Ziyaretler', 'Aşılar', 'İlaçlar'],
+          ['Dostlarım', 'Ziyaretler', 'Aşılar', 'İlaçlar', 'Beslenme'],
         );
         final visitCaption = find.descendant(
           of: find.byType(NavigationBar),
           matching: find.text('Ziyaretler'),
         );
-        expect(
-          tester.renderObject<RenderParagraph>(visitCaption).didExceedMaxLines,
-          isFalse,
-        );
+        for (final label in [
+          'Dostlarım',
+          'Ziyaretler',
+          'Aşılar',
+          'İlaçlar',
+          'Beslenme',
+        ]) {
+          final caption = find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.text(label),
+          );
+          expect(
+            tester.renderObject<RenderParagraph>(caption).didExceedMaxLines,
+            isFalse,
+            reason: label,
+          );
+        }
         expect(find.byTooltip('Veteriner ziyaretleri'), findsOneWidget);
         await tester.tap(visitCaption);
         await tester.pumpAndSettle();

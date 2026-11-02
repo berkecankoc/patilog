@@ -21,6 +21,8 @@ class NotificationContent {
     medicationDescription: strings.medicationChannelDescription,
     vaccinationName: strings.vaccinationReminders,
     vaccinationDescription: strings.vaccinationChannelDescription,
+    feedingName: strings.feedingReminders,
+    feedingDescription: strings.feedingChannelDescription,
   );
 
   NotificationText medication(
@@ -45,4 +47,24 @@ class NotificationContent {
       DateFormat.yMMMd(locale.toLanguageTag()).format(date),
     ),
   );
+
+  NotificationText feeding(
+    String petName,
+    int minute,
+    double amountGrams,
+    String? foodName,
+  ) {
+    final time =
+        '${(minute ~/ 60).toString().padLeft(2, '0')}:${(minute % 60).toString().padLeft(2, '0')}';
+    final amount = NumberFormat(
+      '0.#',
+      locale.toLanguageTag(),
+    ).format(amountGrams);
+    return (
+      title: strings.notificationTitle(petName, foodName ?? strings.feeding),
+      body: foodName == null
+          ? strings.notificationFeedingBody(amount, time)
+          : strings.notificationFeedingFoodBody(amount, foodName, time),
+    );
+  }
 }

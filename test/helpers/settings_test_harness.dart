@@ -28,7 +28,9 @@ class MockSettingsRepository extends Mock implements SettingsRepository {}
 class MockImageStorage extends Mock implements ImageStorage {}
 
 class SettingsTestHarness {
-  final care = PetCareTestHarness();
+  final PetCareTestHarness care;
+  SettingsTestHarness({PetCareTestHarness? care})
+    : care = care ?? PetCareTestHarness();
   final notifications = NotificationTestHarness();
   final repository = MockSettingsRepository();
   ThemePreference stored = ThemePreference.system;
@@ -73,6 +75,7 @@ class SettingsTestHarness {
         care.pets,
         care.repository,
         care.vaccinations,
+        notifications.feeding,
       ),
     );
     getIt.registerSingleton<ImageStorage>(MockImageStorage());

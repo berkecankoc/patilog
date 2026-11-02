@@ -37,6 +37,7 @@ final class NotificationLocalDataSourceImpl
     implements NotificationLocalDataSource {
   static const _medicationChannelId = 'medication_reminders';
   static const _vaccinationChannelId = 'vaccination_reminders';
+  static const _feedingChannelId = 'feeding_reminders';
   final FlutterLocalNotificationsPlugin plugin;
   final _opened = StreamController<NotificationTarget>.broadcast();
   Future<void>? _initialization;
@@ -190,6 +191,7 @@ final class NotificationLocalDataSourceImpl
         labels.vaccinationName,
         labels.vaccinationDescription,
       ),
+      (_feedingChannelId, labels.feedingName, labels.feedingDescription),
     ]) {
       await _androidPlugin.createNotificationChannel(
         AndroidNotificationChannel(
@@ -212,7 +214,27 @@ final class NotificationLocalDataSourceImpl
     await _ensureInitialized();
     final location = _location;
     if (location == null) throw const NotificationPlatformException();
-    final medication = reminder.target is MedicationDoseNotificationTarget;
+    final (
+      channelId,
+      channelName,
+      channelDescription,
+    ) = switch (reminder.target) {
+      MedicationDoseNotificationTarget() => (
+        _medicationChannelId,
+        channels.medicationName,
+        channels.medicationDescription,
+      ),
+      VaccinationNotificationTarget() => (
+        _vaccinationChannelId,
+        channels.vaccinationName,
+        channels.vaccinationDescription,
+      ),
+      FeedingMealNotificationTarget() => (
+        _feedingChannelId,
+        channels.feedingName,
+        channels.feedingDescription,
+      ),
+    };
     Future<void> schedule(AndroidScheduleMode mode) => plugin.zonedSchedule(
       id: id,
       title: reminder.title,
@@ -227,11 +249,9 @@ final class NotificationLocalDataSourceImpl
       ),
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
-          medication ? _medicationChannelId : _vaccinationChannelId,
-          medication ? channels.medicationName : channels.vaccinationName,
-          channelDescription: medication
-              ? channels.medicationDescription
-              : channels.vaccinationDescription,
+          channelId,
+          channelName,
+          channelDescription: channelDescription,
           importance: Importance.high,
           priority: Priority.high,
           visibility: NotificationVisibility.private,

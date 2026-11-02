@@ -1,4 +1,9 @@
 import 'dart:async';
+import 'package:petlytics/core/widgets/app_view_selector.dart';
+import 'package:petlytics/core/widgets/app_feeding_icon.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
+import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
+import 'package:petlytics/features/feeding/presentation/pages/feeding_page.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:petlytics/l10n/generated/app_localizations.dart';
@@ -30,6 +35,7 @@ const _destinations = [
   (icon: Icons.event_note_outlined, path: AppRoutes.allVetVisits),
   (icon: Icons.vaccines_outlined, path: AppRoutes.allVaccinations),
   (icon: Icons.medication_outlined, path: AppRoutes.allMedications),
+  (icon: Icons.rice_bowl_outlined, path: AppRoutes.allFeeding),
 ];
 
 class AllPetsCarePage extends StatefulWidget {
@@ -49,6 +55,13 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
   bool _queued = false;
   bool _dosePanelOpen = false;
   bool _catalog = false;
+  StreamSubscription<FeedingState>? _feedingChanges;
+  bool get _busy =>
+      _cubit.state.isBusy ||
+      widget.section == AllPetsCareSection.feeding &&
+          context.read<FeedingCubit>().state is FeedingLoaded &&
+          (context.read<FeedingCubit>().state as FeedingLoaded).pendingAction !=
+              null;
   final _visited = <AllPetsCareSection>{};
   final _buckets = <AllPetsCareSection, PageStorageBucket>{};
   AllPetsCareCubit get _cubit => context.read<AllPetsCareCubit>();
@@ -108,6 +121,12 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
         _started = true;
         _visited.add(widget.section);
       });
+      if (widget.section == AllPetsCareSection.feeding &&
+          _feedingChanges == null) {
+        _feedingChanges = context.read<FeedingCubit>().stream.listen((_) {
+          if (mounted) setState(() {});
+        });
+      }
       _cubit.activate(widget.section);
     });
   }
@@ -143,6 +162,8 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
           } else {
             _cubit.invalidate(AllPetsCareSection.medications);
           }
+        case PetCareTab.feeding:
+          break;
       }
     }
     if (_visible) _scheduleSync();
@@ -161,6 +182,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
   @override
   void dispose() {
     _timer?.cancel();
+    _feedingChanges?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _router?.routerDelegate.removeListener(_scheduleSync);
     _changes?.removeListener(_recordChanged);
@@ -352,6 +374,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     AllPetsCareSection.vetVisits => state.visits,
     AllPetsCareSection.vaccinations => state.vaccinations,
     AllPetsCareSection.medications => state.medications,
+    AllPetsCareSection.feeding => state.pets,
   };
 
   Widget _filter(AllPetsCareState state, AllPetsCareSection section) =>
@@ -584,35 +607,28 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
   }
 
   Widget _medications(AllPetsCareState state) {
+    final selector = Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+      child: AppViewSelector(
+        labels: [
+          AppLocalizations.of(context).doses,
+          AppLocalizations.of(context).medications,
+        ],
+        selectedIndex: _catalog ? 1 : 0,
+        onSelected: state.isBusy
+            ? null
+            : (index) {
+                if (!_cubit.state.isBusy) {
+                  setState(() => _catalog = index == 1);
+                }
+              },
+      ),
+    );
     final header = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _filter(state, AllPetsCareSection.medications),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ChoiceChip(
-                label: Text(AppLocalizations.of(context).doses),
-                selected: !_catalog,
-                showCheckmark: false,
-                onSelected: state.isBusy
-                    ? null
-                    : (_) => setState(() => _catalog = false),
-              ),
-              ChoiceChip(
-                label: Text(AppLocalizations.of(context).medications),
-                selected: _catalog,
-                showCheckmark: false,
-                onSelected: state.isBusy
-                    ? null
-                    : (_) => setState(() => _catalog = true),
-              ),
-            ],
-          ),
-        ),
+        selector,
         if (!_catalog) ...[
           _dateSelector(state),
           if (!DateUtils.isSameDay(state.doseDate, _cubit.now()))
@@ -763,6 +779,9 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     AllPetsCareSection.medications => AppLocalizations.of(
       context,
     ).medicationsLoadFailed,
+    AllPetsCareSection.feeding => AppLocalizations.of(
+      context,
+    ).feedingLoadFailed,
   };
 
   Widget _content(AllPetsCareSection section, AllPetsCareState state) {
@@ -774,6 +793,9 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
               onRetry: _cubit.refreshActive,
             )
           : const Center(child: CircularProgressIndicator());
+    }
+    if (section == AllPetsCareSection.feeding) {
+      return FeedingPage(pets: state.pets.records);
     }
     if (section != AllPetsCareSection.pets &&
         state.pets.hasLoaded &&
@@ -869,7 +891,32 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
           strings.vetVisits,
           strings.vaccinations,
           strings.medications,
+          strings.feeding,
         ];
+        final navigationLabels = [...labels]
+          ..[AllPetsCareSection.vetVisits.index] = strings.vetVisitsNavigation;
+        final labelStyle = Theme.of(
+          context,
+        ).textTheme.labelSmall!.copyWith(letterSpacing: 0);
+        final navigationWidth =
+            MediaQuery.sizeOf(context).width -
+            MediaQuery.paddingOf(context).horizontal;
+        var labelHeight = 0.0;
+        final labelHeights = <double>[];
+        for (final label in navigationLabels) {
+          final painter = TextPainter(
+            text: TextSpan(text: label, style: labelStyle),
+            textDirection: Directionality.of(context),
+            locale: Localizations.localeOf(context),
+            // Match NavigationBar's effective label scaling.
+            textScaler: MediaQuery.textScalerOf(
+              context,
+            ).clamp(maxScaleFactor: 1.3),
+          )..layout(maxWidth: navigationWidth / labels.length - 4);
+          labelHeight = math.max(labelHeight, painter.height);
+          labelHeights.add(painter.height);
+          painter.dispose();
+        }
         final section = widget.section;
         final data = _records(state, section);
         final noPets = state.pets.hasLoaded && state.pets.records.isEmpty;
@@ -885,11 +932,9 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
             state.isBusy ||
             section == AllPetsCareSection.medications && state.doses.isLoading;
         return PopScope(
-          canPop: !state.isBusy && section == AllPetsCareSection.pets,
+          canPop: !_busy && section == AllPetsCareSection.pets,
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop &&
-                !_cubit.state.isBusy &&
-                section != AllPetsCareSection.pets) {
+            if (!didPop && !_busy && section != AllPetsCareSection.pets) {
               context.go(AppRoutes.pets);
             }
           },
@@ -914,44 +959,44 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                   ),
               ],
             ),
-            bottomNavigationBar: DefaultTextStyle.merge(
-              maxLines: 2,
-              softWrap: true,
-              overflow: TextOverflow.ellipsis,
-              child: NavigationBar(
-                labelPadding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-                labelTextStyle: WidgetStatePropertyAll(
-                  Theme.of(context).textTheme.labelSmall?.copyWith(
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                height: math.max(
-                  80,
-                  40 + MediaQuery.textScalerOf(context).scale(12) * 2.4,
-                ),
-                selectedIndex: section.index,
-                onDestinationSelected: state.isBusy
-                    ? null
-                    : (index) {
-                        if (!_cubit.state.isBusy &&
-                            index != widget.section.index) {
-                          context.go(_destinations[index].path);
-                        }
-                      },
-                destinations: [
-                  for (final (index, destination) in _destinations.indexed)
-                    NavigationDestination(
-                      icon: Icon(destination.icon),
-                      label: index == AllPetsCareSection.vetVisits.index
-                          ? strings.vetVisitsNavigation
-                          : labels[index],
+            bottomNavigationBar: NavigationBar(
+              labelTextStyle: WidgetStatePropertyAll(
+                labelStyle.copyWith(overflow: TextOverflow.clip),
+              ),
+              height: math.max(80, 40 + labelHeight),
+              selectedIndex: section.index,
+              onDestinationSelected: _busy
+                  ? null
+                  : (index) {
+                      if (!_busy && index != widget.section.index) {
+                        context.go(_destinations[index].path);
+                      }
+                    },
+              destinations: [
+                for (final (index, destination) in _destinations.indexed)
+                  NavigationBarTheme(
+                    data: NavigationBarTheme.of(context).copyWith(
+                      // Reserve the same label slot, even when only one item wraps.
+                      labelPadding: EdgeInsets.fromLTRB(
+                        2,
+                        4,
+                        2,
+                        labelHeight - labelHeights[index],
+                      ),
+                    ),
+                    child: NavigationDestination(
+                      icon: index == AllPetsCareSection.feeding.index
+                          ? const AppFeedingIcon()
+                          : Icon(destination.icon),
+                      label: navigationLabels[index],
                       tooltip: labels[index],
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
             floatingActionButton:
-                data.hasLoaded &&
+                section != AllPetsCareSection.feeding &&
+                    data.hasLoaded &&
                     state.pets.hasLoaded &&
                     (section != AllPetsCareSection.medications ||
                         _catalog ||

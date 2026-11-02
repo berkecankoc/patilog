@@ -30,7 +30,9 @@ class PetCareChanges extends ChangeNotifier {
         _dirty.add(PetCareTab.profile);
       case PetCareTab.vetVisits:
         _dirty.addAll([PetCareTab.vaccinations, PetCareTab.medications]);
-      case PetCareTab.vaccinations || PetCareTab.medications:
+      case PetCareTab.vaccinations ||
+          PetCareTab.medications ||
+          PetCareTab.feeding:
         break;
     }
     onChanged?.call(tab, deletedId);

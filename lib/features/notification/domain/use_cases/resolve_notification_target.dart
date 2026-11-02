@@ -1,5 +1,8 @@
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
+import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:petlytics/features/feeding/domain/use_cases/calculate_feeding_meals.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
@@ -12,10 +15,12 @@ final class ResolveNotificationTarget {
   final PetRepository pets;
   final MedicationRepository medications;
   final VaccinationRepository vaccinations;
+  final FeedingRepository feeding;
   const ResolveNotificationTarget(
     this.pets,
     this.medications,
     this.vaccinations,
+    this.feeding,
   );
 
   Future<Result<Pet>> call(NotificationTarget target) async {
@@ -27,6 +32,26 @@ final class ResolveNotificationTarget {
     final pet = (owner as Success<Pet>).data;
     if (pet.id != target.petId) return missing;
     switch (target) {
+      case FeedingMealNotificationTarget():
+        final result = await feeding.getFeedingPlans(target.petId);
+        if (result case Error<List<FeedingPlan>>()) {
+          return Error(result.failure);
+        }
+        final meals = const CalculateFeedingMeals()(
+          plans: (result as Success<List<FeedingPlan>>).data,
+          entries: const [],
+          fromDate: target.scheduledDate,
+          toDate: target.scheduledDate,
+        );
+        if (!meals.any(
+          (m) =>
+              m.plan.petId == pet.id &&
+              m.plan.id == target.planId &&
+              m.meal.id == target.mealId &&
+              m.meal.scheduledMinute == target.scheduledMinute,
+        )) {
+          return missing;
+        }
       case VaccinationNotificationTarget():
         final result = await vaccinations.getVaccinationById(
           target.petId,
