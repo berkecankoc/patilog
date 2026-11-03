@@ -68,6 +68,64 @@ void main() {
   }
 
   testWidgets(
+    'tab arrows reveal more sections without changing the selected page',
+    (tester) async {
+      final router = await app.pump(
+        tester,
+        location: AppRoutes.petDetail('pet'),
+      );
+      final strip = tester.state(find.byType(TabBar));
+      final scroll = tester
+          .widget<TabBar>(find.byType(TabBar))
+          .scrollController!;
+      final next = find.byWidgetPredicate(
+        (widget) => widget is IconButton && widget.tooltip == 'More tabs',
+      );
+      final previous = find.byWidgetPredicate(
+        (widget) => widget is IconButton && widget.tooltip == 'Previous tabs',
+      );
+      final bounds = tester.getRect(find.byType(TabBar));
+      expect(tester.widget<IconButton>(previous).onPressed, isNull);
+      expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+      expect(tester.getSize(next), const Size(48, 48));
+      await tester.tap(next);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+      final midway = scroll.offset;
+      expect(midway, greaterThan(0));
+      await tester.pumpAndSettle();
+      expect(scroll.offset, greaterThan(midway));
+      expect(router.state.uri.path, AppRoutes.petDetail('pet'));
+      expect(tester.state(find.byType(TabBar)), same(strip));
+      expect(tester.getRect(find.byType(TabBar)), bounds);
+      verifyNever(
+        () => app.repository.getMedications(
+          any(),
+          vetVisitId: any(named: 'vetVisitId'),
+        ),
+      );
+      verifyNever(() => app.weights.getWeightEntries(any()));
+      for (
+        var i = 0;
+        i < PetCareTab.values.length &&
+            tester.widget<IconButton>(next).onPressed != null;
+        i++
+      ) {
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+      }
+      expect(scroll.position.extentAfter, closeTo(0, 1));
+      expect(tester.widget<IconButton>(next).onPressed, isNull);
+      await tester.drag(find.byType(TabBar), const Offset(1600, 0));
+      await tester.pumpAndSettle();
+      expect(scroll.position.extentBefore, closeTo(0, 1));
+      expect(tester.widget<IconButton>(previous).onPressed, isNull);
+      expect(tester.getRect(find.byType(TabBar)), bounds);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'one persistent tab strip preserves its position through tab changes and detail return',
     (tester) async {
       app.medications = [app.sample()];
@@ -118,6 +176,55 @@ void main() {
       expect(position.pixels, lessThan(midway));
     },
   );
+
+  for (final locale in [const Locale('en', 'US'), const Locale('tr', 'TR')]) {
+    testWidgets(
+      'tab arrow bounds update after viewport changes at large text in $locale',
+      (tester) async {
+        tester.platformDispatcher.accessibilityFeaturesTestValue =
+            FakeAccessibilityFeatures(disableAnimations: true);
+        addTearDown(
+          tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+        );
+        await app.pump(
+          tester,
+          location: AppRoutes.petDetail('pet'),
+          size: const Size(320, 568),
+          scale: 2,
+          locale: locale,
+        );
+        final bar = tester.widget<TabBar>(find.byType(TabBar));
+        final scroll = bar.scrollController!;
+        final strings = AppLocalizations.of(
+          tester.element(find.byType(TabBar)),
+        );
+        final next = find.byWidgetPredicate(
+          (w) => w is IconButton && w.tooltip == strings.moreTabs,
+        );
+        final previous = find.byWidgetPredicate(
+          (w) => w is IconButton && w.tooltip == strings.previousTabs,
+        );
+        final origin = scroll.offset;
+        final target = (origin + scroll.position.viewportDimension - 48).clamp(
+          scroll.position.minScrollExtent,
+          scroll.position.maxScrollExtent,
+        );
+        await tester.tap(next);
+        await tester.pump();
+        expect(scroll.offset, closeTo(target, 1));
+        expect(tester.getSize(next), const Size(48, 48));
+        tester.view.physicalSize = const Size(2400, 568);
+        await tester.pumpAndSettle();
+        expect(tester.widget<IconButton>(next).onPressed, isNull);
+        expect(tester.widget<IconButton>(previous).onPressed, isNull);
+        tester.view.physicalSize = const Size(320, 568);
+        await tester.pumpAndSettle();
+        expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+        expect(scroll.offset, closeTo(0, 1));
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets(
     'tabs load once and preserve catalog choice and independent scroll positions',
@@ -356,14 +463,25 @@ void main() {
       final tabs = PetCareTabs.maybeOf(
         tester.element(find.byType(MedicationListPage)),
       )!;
+      final bar = tester.widget<TabBar>(find.byType(TabBar));
+      final scroll = bar.scrollController!;
+      final next = tester.widget<IconButton>(
+        find.byWidgetPredicate(
+          (w) => w is IconButton && w.tooltip == 'More tabs',
+        ),
+      );
+      final offset = scroll.offset;
+      expect(next.onPressed, isNotNull);
       app.pendingDose = Completer();
       await tester.tap(find.widgetWithText(FilledButton, 'Given').first);
       tabs.onSelect(PetCareTab.profile);
       tabs.onExit();
+      next.onPressed?.call();
       await tester.pump();
       await tester.binding.handlePopRoute();
       await tester.pump();
       expect(router.state.uri.path, AppRoutes.medications('pet'));
+      expect(scroll.offset, offset);
       app.pendingDose!.complete(const Success(null));
       await tester.pumpAndSettle();
       await select(tester, PetCareTab.profile);

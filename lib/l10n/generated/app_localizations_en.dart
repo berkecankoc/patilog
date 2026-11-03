@@ -9,6 +9,12 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get previousTabs => 'Previous tabs';
+
+  @override
+  String get moreTabs => 'More tabs';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

@@ -9,6 +9,12 @@ class AppLocalizationsTr extends AppLocalizations {
   AppLocalizationsTr([String locale = 'tr']) : super(locale);
 
   @override
+  String get previousTabs => 'Önceki sekmeler';
+
+  @override
+  String get moreTabs => 'Diğer sekmeler';
+
+  @override
   String get settingsTitle => 'Ayarlar';
 
   @override

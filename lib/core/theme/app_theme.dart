@@ -59,6 +59,18 @@ class AppTheme {
       appBarTheme: const AppBarTheme(elevation: 0, centerTitle: true),
       buttonTheme: const ButtonThemeData(alignedDropdown: true),
 
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled) ||
+              !states.contains(WidgetState.selected)) {
+            return null;
+          }
+          return brightness == Brightness.light
+              ? colorScheme.surface
+              : colorScheme.onPrimary;
+        }),
+      ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: colors.primary,

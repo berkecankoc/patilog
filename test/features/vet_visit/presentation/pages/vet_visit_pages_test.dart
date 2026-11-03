@@ -1009,7 +1009,13 @@ void main() {
       );
       expect(find.byIcon(Icons.event_note_outlined), findsOneWidget);
       expect(find.byIcon(Icons.local_hospital_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(VetVisitListPage),
+          matching: find.byIcon(Icons.chevron_right),
+        ),
+        findsNothing,
+      );
       expect(find.byIcon(Icons.delete_outline), findsOneWidget);
       expect(
         tester.getRect(find.text(visit.reason)).top,

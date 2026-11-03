@@ -98,6 +98,18 @@ abstract class AppLocalizations {
     Locale('tr'),
   ];
 
+  /// Scrolls the pet care tab strip toward earlier sections without selecting a tab.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous tabs'**
+  String get previousTabs;
+
+  /// Scrolls the pet care tab strip to reveal further sections without selecting a tab.
+  ///
+  /// In en, this message translates to:
+  /// **'More tabs'**
+  String get moreTabs;
+
   /// Settings page app bar title.
   ///
   /// In en, this message translates to:
