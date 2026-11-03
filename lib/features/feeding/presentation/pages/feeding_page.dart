@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:petlytics/core/widgets/app_view_selector.dart';
+import 'package:petlytics/core/widgets/app_pet_filter.dart';
 import 'package:petlytics/features/feeding/presentation/widgets/feeding_meal_sheet.dart';
 import 'package:petlytics/core/widgets/app_feeding_icon.dart';
 import 'package:flutter/material.dart';
@@ -809,34 +810,12 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (_global && widget.pets.length > 1) ...[
-                  DropdownButtonFormField<String>(
-                    key: ValueKey(_filter),
-                    initialValue:
-                        _filter != null &&
-                            widget.pets.any((p) => p.id == _filter)
-                        ? _filter
-                        : '',
-                    isExpanded: true,
-                    menuMaxHeight: 320,
-                    borderRadius: BorderRadius.circular(16),
-                    decoration: InputDecoration(labelText: s.petStep),
-                    items: [
-                      DropdownMenuItem(value: '', child: Text(s.allPets)),
-                      for (final pet in widget.pets)
-                        DropdownMenuItem(
-                          value: pet.id,
-                          child: Text(
-                            pet.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
+                  AppPetFilter(
+                    pets: widget.pets,
+                    selectedPetId: _filter,
                     onChanged: busy
                         ? null
-                        : (value) => setState(
-                            () => _filter = value == '' ? null : value,
-                          ),
+                        : (value) => setState(() => _filter = value),
                   ),
                   const SizedBox(height: 16),
                 ],

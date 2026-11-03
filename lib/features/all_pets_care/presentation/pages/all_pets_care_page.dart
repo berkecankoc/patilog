@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:petlytics/core/widgets/app_view_selector.dart';
+import 'package:petlytics/core/widgets/app_pet_filter.dart';
 import 'package:petlytics/core/widgets/app_feeding_icon.dart';
 import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
 import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
@@ -382,34 +383,13 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       ? const SizedBox.shrink()
       : Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-          child: DropdownButtonFormField<String>(
+          child: AppPetFilter(
             key: ValueKey((section, state.petFilters[section])),
-            initialValue: state.petFilters[section] ?? '',
-            isExpanded: true,
-            menuMaxHeight: 320,
-            borderRadius: BorderRadius.circular(16),
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context).petStep,
-            ),
-            items: [
-              DropdownMenuItem(
-                value: '',
-                child: Text(AppLocalizations.of(context).allPets),
-              ),
-              for (final pet in state.pets.records)
-                DropdownMenuItem(
-                  value: pet.id,
-                  child: Text(
-                    '${pet.name} · ${pet.species.label(AppLocalizations.of(context))}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
+            pets: state.pets.records,
+            selectedPetId: state.petFilters[section],
             onChanged: state.isBusy
                 ? null
-                : (value) =>
-                      _cubit.selectPet(section, value == '' ? null : value),
+                : (value) => _cubit.selectPet(section, value),
           ),
         );
 

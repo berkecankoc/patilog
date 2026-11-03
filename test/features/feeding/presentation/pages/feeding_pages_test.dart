@@ -579,7 +579,8 @@ void main() {
       clearInteractions(app.feeding);
       await tester.tap(dropdown);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Simba').last);
+      expect(find.text('Buddy · Dog'), findsWidgets);
+      await tester.tap(find.text('Simba · Cat').last);
       await tester.pumpAndSettle();
       final chart = tester.widget<FeedingChart>(find.byType(FeedingChart));
       expect(chart.totals.last.amountGrams, 20.5);
