@@ -12,6 +12,29 @@ double contrast(Color a, Color b) {
 }
 
 void main() {
+  test('enabled reminder switches use a light thumb in the light theme', () {
+    final light = AppTheme.light;
+    final dark = AppTheme.dark;
+    final selected = {WidgetState.selected};
+    final lightThumb = light.switchTheme.thumbColor?.resolve(selected);
+    final darkThumb = dark.switchTheme.thumbColor?.resolve(selected);
+    expect(lightThumb, light.colorScheme.surface);
+    expect(darkThumb, dark.colorScheme.onPrimary);
+    expect(lightThumb, isNot(darkThumb));
+    expect(
+      contrast(lightThumb!, light.colorScheme.primary),
+      greaterThanOrEqualTo(3),
+    );
+    expect(light.switchTheme.thumbColor?.resolve({}), isNull);
+    expect(
+      light.switchTheme.thumbColor?.resolve({
+        WidgetState.selected,
+        WidgetState.disabled,
+      }),
+      isNull,
+    );
+  });
+
   for (final theme in [AppTheme.light, AppTheme.dark]) {
     test(
       '${theme.brightness.name} brand components and tested color pairs match the theme',

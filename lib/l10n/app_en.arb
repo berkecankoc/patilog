@@ -1,5 +1,9 @@
 {
   "@@locale": "en",
+  "previousTabs": "Previous tabs",
+  "@previousTabs": {"description": "Scrolls the pet care tab strip toward earlier sections without selecting a tab."},
+  "moreTabs": "More tabs",
+  "@moreTabs": {"description": "Scrolls the pet care tab strip to reveal further sections without selecting a tab."},
   "settingsTitle": "Settings",
   "@settingsTitle": {"description": "Settings page app bar title."},
   "notificationsTitle": "Notifications",

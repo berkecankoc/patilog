@@ -1,5 +1,7 @@
 {
   "@@locale": "tr",
+  "previousTabs": "Önceki sekmeler",
+  "moreTabs": "Diğer sekmeler",
   "settingsTitle": "Ayarlar",
   "notificationsTitle": "Bildirimler",
   "remindersTitle": "Hatırlatmalar",

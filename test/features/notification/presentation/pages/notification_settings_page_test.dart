@@ -9,6 +9,7 @@ import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
 import 'package:petlytics/features/notification/presentation/pages/notification_settings_page.dart';
 import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
 import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
 import '../../../../helpers/settings_test_harness.dart';
 
@@ -27,6 +28,50 @@ void main() {
     scale: scale,
   );
   Finder toggle(String label) => find.widgetWithText(SwitchListTile, label);
+
+  testWidgets('reminder controls follow live light and dark theme changes', (
+    tester,
+  ) async {
+    app.stored = ThemePreference.light;
+    app.notifications.preferences = NotificationPreferences(
+      medicationRemindersEnabled: true,
+    );
+    app.notifications.permission = const NotificationPermissionStatus(
+      canShowNotifications: false,
+      canScheduleExactAlarms: false,
+      requiresExactAlarmPermission: true,
+    );
+    await open(tester);
+    Color selectedThumb() {
+      final element = tester.element(toggle('Medication reminders'));
+      return SwitchTheme.of(
+        element,
+      ).thumbColor!.resolve({WidgetState.selected})!;
+    }
+
+    final lightThumb = selectedThumb();
+    expect(lightThumb, Colors.white);
+    await tester.ensureVisible(find.text('Allow notifications'));
+    await tester.pumpAndSettle();
+    final button = find.widgetWithText(FilledButton, 'Allow notifications');
+    final lightButton = tester
+        .widget<FilledButton>(button)
+        .defaultStyleOf(tester.element(button));
+    final lightBackground = lightButton.backgroundColor!.resolve({});
+    final lightForeground = lightButton.foregroundColor!.resolve({});
+    await app.cubit.setThemePreference(ThemePreference.dark);
+    await tester.pumpAndSettle();
+    expect(selectedThumb(), isNot(lightThumb));
+    final darkButton = tester
+        .widget<FilledButton>(button)
+        .defaultStyleOf(tester.element(button));
+    expect(darkButton.backgroundColor!.resolve({}), isNot(lightBackground));
+    expect(darkButton.foregroundColor!.resolve({}), isNot(lightForeground));
+    expect(app.notifications.preferences.medicationRemindersEnabled, isTrue);
+    verifyNever(app.notifications.repository.requestNotificationPermission);
+    verifyNever(() => app.notifications.repository.savePreferences(any()));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'feeding has an independent explicit toggle preserved by other category changes',

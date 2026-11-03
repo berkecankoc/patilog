@@ -53,6 +53,43 @@ class _PetCarePageState extends State<PetCarePage>
   PetCareChanges? _changes;
   Pet? _pet;
   bool _queued = false;
+  late final _tabScroll = TabBarScrollController()
+    ..addListener(_updateTabEdges);
+  bool _hasPreviousTabs = false;
+  bool _hasMoreTabs = false;
+
+  void _updateTabEdges() {
+    if (!mounted ||
+        !_tabScroll.hasClients ||
+        !_tabScroll.position.hasContentDimensions) {
+      return;
+    }
+    final previous = _tabScroll.position.extentBefore > 1;
+    final more = _tabScroll.position.extentAfter > 1;
+    if (previous == _hasPreviousTabs && more == _hasMoreTabs) return;
+    setState(() {
+      _hasPreviousTabs = previous;
+      _hasMoreTabs = more;
+    });
+  }
+
+  void _scrollTabs(int direction) {
+    if (_busy || !_tabScroll.hasClients) return;
+    final position = _tabScroll.position;
+    final target =
+        (position.pixels +
+                direction * math.max(48, position.viewportDimension - 48))
+            .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _tabScroll.jumpTo(target);
+    } else {
+      _tabScroll.animateTo(
+        target,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
 
   void _exit() {
     if (_busy) return;
@@ -184,6 +221,7 @@ class _PetCarePageState extends State<PetCarePage>
 
   @override
   void dispose() {
+    _tabScroll.dispose();
     _tabController.dispose();
     _router?.routerDelegate.removeListener(_scheduleSync);
     _changes?.removeListener(_scheduleSync);
@@ -334,21 +372,66 @@ class _PetCarePageState extends State<PetCarePage>
                   child: Stack(
                     alignment: Alignment.bottomCenter,
                     children: [
-                      IgnorePointer(
-                        ignoring: busy,
-                        child: TabBar(
-                          controller: _tabController,
-                          isScrollable: true,
-                          tabAlignment: TabAlignment.start,
-                          dividerHeight: 0,
-                          onTap: (index) {
-                            if (!_select(PetCareTab.values[index])) {
-                              _tabController.index = widget.tab.index;
-                            }
-                          },
-                          tabs: [
-                            for (final tab in PetCareTab.values)
-                              Tab(text: tab.label(strings)),
+                      SizedBox(
+                        height: 48,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 48,
+                              child: IconButton(
+                                tooltip: strings.previousTabs,
+                                onPressed: busy || !_hasPreviousTabs
+                                    ? null
+                                    : () => _scrollTabs(-1),
+                                icon: const Icon(Icons.chevron_left),
+                              ),
+                            ),
+                            Expanded(
+                              child:
+                                  NotificationListener<
+                                    ScrollMetricsNotification
+                                  >(
+                                    onNotification: (_) {
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                            if (mounted) _updateTabEdges();
+                                          });
+                                      return false;
+                                    },
+                                    child: IgnorePointer(
+                                      ignoring: busy,
+                                      child: TabBar(
+                                        controller: _tabController,
+                                        scrollController: _tabScroll,
+                                        isScrollable: true,
+                                        tabAlignment: TabAlignment.start,
+                                        dividerHeight: 0,
+                                        onTap: (index) {
+                                          if (!_select(
+                                            PetCareTab.values[index],
+                                          )) {
+                                            _tabController.index =
+                                                widget.tab.index;
+                                          }
+                                        },
+                                        tabs: [
+                                          for (final tab in PetCareTab.values)
+                                            Tab(text: tab.label(strings)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                            ),
+                            SizedBox(
+                              width: 48,
+                              child: IconButton(
+                                tooltip: strings.moreTabs,
+                                onPressed: busy || !_hasMoreTabs
+                                    ? null
+                                    : () => _scrollTabs(1),
+                                icon: const Icon(Icons.chevron_right),
+                              ),
+                            ),
                           ],
                         ),
                       ),
