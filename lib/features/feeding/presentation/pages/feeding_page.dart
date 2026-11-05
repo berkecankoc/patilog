@@ -1001,10 +1001,12 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
                   icon: const Icon(Icons.add),
                   isExtended: MediaQuery.textScalerOf(context).scale(14) <= 21,
                   tooltip: _global && widget.pets.isEmpty
-                      ? s.addPet
+                      ? s.addFirstPet
                       : s.addFeeding,
                   label: Text(
-                    _global && widget.pets.isEmpty ? s.addPet : s.addFeeding,
+                    _global && widget.pets.isEmpty
+                        ? s.addFirstPet
+                        : s.addFeeding,
                   ),
                 )
               : null,

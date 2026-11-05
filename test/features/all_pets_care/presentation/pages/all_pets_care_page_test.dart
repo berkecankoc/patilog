@@ -429,14 +429,14 @@ void main() {
     },
   );
   testWidgets(
-    'no-pet root offers Add pet without a duplicate empty-state action',
+    'no-pet root offers Add your first pet without a duplicate empty-state action',
     (tester) async {
       pets.clear();
       visits.clear();
       final router = await app.pump(tester, location: AppRoutes.allVetVisits);
       expect(find.text('No pets yet'), findsOneWidget);
-      expect(find.byTooltip('Add pet'), findsOneWidget);
-      await tester.tap(find.byTooltip('Add pet'));
+      expect(find.byTooltip('Add your first pet'), findsOneWidget);
+      await tester.tap(find.byTooltip('Add your first pet'));
       await tester.pumpAndSettle();
       expect(router.state.uri.path, AppRoutes.addEditPet);
       expect(find.byType(NavigationBar), findsNothing);

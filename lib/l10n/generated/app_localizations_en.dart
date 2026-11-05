@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -360,6 +361,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get petsEmptyDescription =>
       'Add your first pet to start tracking health and care.';
+
+  @override
+  String get petWelcomeTitle => 'Your pets’ care in one place';
+
+  @override
+  String get petWelcomeDescription =>
+      'Track health records, meals, and weight.';
+
+  @override
+  String get petWelcomePrivacy =>
+      'No account needed. Records are stored on this device.';
+
+  @override
+  String get addFirstPet => 'Add your first pet';
 
   @override
   String get choosePetOverview =>

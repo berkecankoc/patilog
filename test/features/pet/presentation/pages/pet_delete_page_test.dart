@@ -157,7 +157,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('deleting the last pet returns to the empty list', (
+  testWidgets('deleting the last pet returns to the welcome view', (
     tester,
   ) async {
     when(
@@ -168,7 +168,8 @@ void main() {
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(find.byType(AllPetsCarePage), findsOneWidget);
-    expect(find.text('No pets yet'), findsOneWidget);
+    expect(find.text('Your pets’ care in one place'), findsOneWidget);
+    expect(find.byTooltip('Add your first pet'), findsOneWidget);
     expect(find.text(pet.name), findsNothing);
     verify(() => repository.deletePet(pet.id)).called(1);
     verify(() => repository.getPets()).called(1);
