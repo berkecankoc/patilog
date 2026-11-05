@@ -21,7 +21,7 @@ final class VetVisitLoading extends VetVisitState {
 }
 
 final class VetVisitsLoaded extends VetVisitState {
-  final String petId;
+  final String? petId;
   final List<VetVisit> visits;
   final bool isRefreshing;
   final String? refreshError;
@@ -38,6 +38,25 @@ final class VetVisitsLoaded extends VetVisitState {
     this.deletionVisit,
     this.deleteError,
   });
+
+  VetVisitsLoaded copyWith({
+    List<VetVisit>? visits,
+    bool? isRefreshing,
+    String? refreshError,
+    bool clearRefreshError = false,
+    bool? isDeleting,
+    VetVisit? deletionVisit,
+    String? deleteError,
+    bool clearDeletion = false,
+  }) => VetVisitsLoaded(
+    petId,
+    visits ?? this.visits,
+    isRefreshing: isRefreshing ?? this.isRefreshing,
+    refreshError: clearRefreshError ? null : refreshError ?? this.refreshError,
+    isDeleting: isDeleting ?? this.isDeleting,
+    deletionVisit: clearDeletion ? null : deletionVisit ?? this.deletionVisit,
+    deleteError: clearDeletion ? null : deleteError ?? this.deleteError,
+  );
 
   @override
   List<Object?> get props => [

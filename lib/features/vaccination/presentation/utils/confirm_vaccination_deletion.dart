@@ -5,16 +5,20 @@ import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart'
 
 Future<bool> confirmVaccinationDeletion(
   BuildContext context,
-  Vaccination vaccination,
-) async {
+  Vaccination vaccination, {
+  String? petName,
+}) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AppConfirmationDialog(
       title: AppLocalizations.of(context).deleteVaccinationTitle,
-      message: AppLocalizations.of(context).deleteVaccinationMessage(
-        vaccination.vaccineName,
-        MaterialLocalizations.of(context).formatShortDate(vaccination.date),
-      ),
+      message: petName != null
+          ? AppLocalizations.of(context).deleteGlobalVaccinationMessage(petName)
+          : AppLocalizations.of(context).deleteVaccinationMessage(
+              vaccination.vaccineName,
+              MaterialLocalizations.of(context)
+                  .formatShortDate(vaccination.date),
+            ),
       confirmLabel: AppLocalizations.of(context).deleteAction,
     ),
   );

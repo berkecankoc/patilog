@@ -1,3 +1,4 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -11,6 +12,15 @@ import 'package:petlytics/core/widgets/care_record_card.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
 import 'package:petlytics/features/medication/presentation/widgets/medication_list_content.dart';
+import 'package:petlytics/features/medication/presentation/pages/medication_list_page.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
+import 'package:petlytics/features/vaccination/presentation/pages/vaccination_list_page.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_state.dart';
+import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_list_page.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vaccination/presentation/widgets/vaccination_list_content.dart';
@@ -141,6 +151,11 @@ void main() {
     'visit content keeps the owner and route in both navigation roots',
     (tester) async {
       final router = await app.pump(tester, location: AppRoutes.allVetVisits);
+      expect(find.byType(VetVisitListPage), findsOneWidget);
+      final globalCubit = tester
+          .element(find.byType(VetVisitListPage))
+          .read<VetVisitCubit>();
+      expect((globalCubit.state as VetVisitsLoaded).petId, isNull);
       expect(find.byType(VetVisitListContent), findsOneWidget);
       expect(find.byType(CarePetIdentity), findsNWidgets(2));
       await tester.tap(find.text('Visit B'));
@@ -158,6 +173,12 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(VetVisitListContent), findsOneWidget);
+      final scopedCubit = tester
+          .element(find.byType(VetVisitListPage))
+          .read<VetVisitCubit>();
+      expect(scopedCubit, isNot(same(globalCubit)));
+      expect((scopedCubit.state as VetVisitsLoaded).petId, 'other');
+      expect((globalCubit.state as VetVisitsLoaded).visits, hasLength(2));
       expect(find.byType(CarePetIdentity), findsNothing);
       expect(find.text('Visit B'), findsOneWidget);
       expect(find.text('Visit A'), findsNothing);
@@ -173,6 +194,10 @@ void main() {
         tester,
         location: AppRoutes.allVaccinations,
       );
+      final globalCubit = tester
+          .element(find.byType(VaccinationListPage))
+          .read<VaccinationCubit>();
+      expect((globalCubit.state as VaccinationsLoaded).petId, isNull);
       expect(find.byType(VaccinationListContent), findsOneWidget);
       for (final heading in ['Overdue', 'Today', 'Upcoming']) {
         final title = find.widgetWithText(AppSectionHeading, heading);
@@ -186,6 +211,15 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(VaccinationListContent), findsOneWidget);
+      final scopedCubit = tester
+          .element(find.byType(VaccinationListPage))
+          .read<VaccinationCubit>();
+      expect(scopedCubit, isNot(same(globalCubit)));
+      expect((scopedCubit.state as VaccinationsLoaded).petId, 'other');
+      expect(
+        (globalCubit.state as VaccinationsLoaded).vaccinations,
+        hasLength(3),
+      );
       expect(find.widgetWithText(AppSectionHeading, 'Planned'), findsOneWidget);
       expect(find.widgetWithText(AppSectionHeading, 'Overdue'), findsNothing);
       expect(find.text('Late vaccine'), findsOneWidget);
@@ -200,6 +234,10 @@ void main() {
     'medication content keeps global identities and pet-only doses and catalog',
     (tester) async {
       final router = await app.pump(tester, location: AppRoutes.allMedications);
+      final globalCubit = tester
+          .element(find.byType(MedicationListPage))
+          .read<MedicationCubit>();
+      expect((globalCubit.state as MedicationsLoaded).petId, isNull);
       expect(find.byType(MedicationDateSelector), findsOneWidget);
       expect(find.byType(MedicationDoseListContent), findsOneWidget);
       expect(find.byType(CarePetIdentity), findsNWidgets(2));
@@ -216,6 +254,15 @@ void main() {
         extra: const PetCareRouteExtra(petId: 'other', petName: 'Buddy'),
       );
       await tester.pumpAndSettle();
+      final scopedCubit = tester
+          .element(find.byType(MedicationListPage))
+          .read<MedicationCubit>();
+      expect(scopedCubit, isNot(same(globalCubit)));
+      expect((scopedCubit.state as MedicationsLoaded).petId, 'other');
+      expect(
+        (globalCubit.state as MedicationsLoaded).medications,
+        hasLength(2),
+      );
       expect(find.byType(MedicationDoseListContent), findsOneWidget);
       expect(find.text('Medicine b'), findsOneWidget);
       expect(find.text('Medicine a'), findsNothing);

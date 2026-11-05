@@ -8,8 +8,42 @@ import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.
 final class VetVisitCubit extends Cubit<VetVisitState> {
   final VetVisitRepository repository;
   int _loadRequest = 0;
+  bool _dirty = false;
+  Set<String> _petIds = {};
+  String? _selectedPetId;
+  final _removedPets = <String>{};
+  final _removedRecords = <(String, String)>{};
 
   VetVisitCubit(this.repository) : super(const VetVisitInitial());
+
+  bool get needsReload => _dirty || state is VetVisitInitial;
+
+  void setPetContext(Iterable<String> petIds, {String? selectedPetId}) {
+    _petIds = petIds.toSet();
+    _selectedPetId = _petIds.contains(selectedPetId) ? selectedPetId : null;
+  }
+
+  void dismissDeletionError() {
+    final current = state;
+    if (!isClosed && current is VetVisitsLoaded && !current.isDeleting) {
+      emit(current.copyWith(clearDeletion: true));
+    }
+  }
+
+  bool _owns(VetVisitsLoaded loaded, VetVisit record) =>
+      (loaded.petId == null
+          ? _petIds.contains(record.petId) &&
+                (_selectedPetId == null || _selectedPetId == record.petId)
+          : loaded.petId == record.petId) &&
+      !_removedPets.contains(record.petId);
+
+  List<VetVisit> _remaining(Iterable<VetVisit> records) => List.unmodifiable(
+    records.where(
+      (record) =>
+          !_removedPets.contains(record.petId) &&
+          !_removedRecords.contains((record.petId, record.id)),
+    ),
+  );
 
   bool get _canLoad =>
       !isClosed &&
@@ -20,8 +54,23 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
         _ => true,
       };
 
-  Future<void> loadVetVisits(String petId) async {
+  void invalidateList() {
+    if (isClosed) return;
+    _dirty = true;
+    ++_loadRequest;
+    final current = state;
+    if (current is VetVisitsLoaded && current.isRefreshing) {
+      emit(current.copyWith(isRefreshing: false));
+    }
+  }
+
+  Future<void> loadVetVisits(String petId) => _loadList(petId);
+
+  Future<void> loadAllVetVisits() => _loadList(null);
+
+  Future<void> _loadList(String? petId) async {
     if (!_canLoad) return;
+    _dirty = false;
     final request = ++_loadRequest;
     final current = state;
     final previous = current is VetVisitsLoaded && current.petId == petId
@@ -30,21 +79,29 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
     emit(
       previous == null
           ? const VetVisitLoading()
-          : VetVisitsLoaded(petId, previous.visits, isRefreshing: true),
+          : previous.copyWith(
+              isRefreshing: true,
+              clearRefreshError: true,
+              clearDeletion: true,
+            ),
     );
-    final result = await repository.getVetVisits(petId);
+    final result = petId == null
+        ? await repository.getAllVetVisits()
+        : await repository.getVetVisits(petId);
     if (isClosed || request != _loadRequest) return;
-
+    final latest = state;
+    final retained = latest is VetVisitsLoaded && latest.petId == petId
+        ? latest
+        : previous;
     switch (result) {
       case Success<List<VetVisit>>():
-        emit(VetVisitsLoaded(petId, result.data));
+        emit(VetVisitsLoaded(petId, _remaining(result.data)));
       case Error<List<VetVisit>>():
         emit(
-          previous == null
+          retained == null
               ? VetVisitError(result.failure)
-              : VetVisitsLoaded(
-                  petId,
-                  previous.visits,
+              : retained.copyWith(
+                  isRefreshing: false,
                   refreshError: result.failure.message,
                 ),
         );
@@ -102,42 +159,46 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
     }
   }
 
-  Future<void> deleteListedVisit(VetVisit visit) async {
+  Future<void> deleteListedVisit(VetVisit record) async {
     final current = state;
     if (isClosed ||
         current is! VetVisitsLoaded ||
         current.isDeleting ||
-        current.isRefreshing) {
+        current.isRefreshing ||
+        !_owns(current, record)) {
       return;
     }
-    final index = current.visits.indexWhere((item) => item.id == visit.id);
-    if (index < 0 || current.petId != visit.petId) return;
-    final target = current.visits[index];
+    final target = current.visits
+        .where((item) => item.id == record.id && item.petId == record.petId)
+        .firstOrNull;
+    if (target == null) return;
     ++_loadRequest;
     emit(
-      VetVisitsLoaded(
-        current.petId,
-        current.visits,
+      current.copyWith(
         isDeleting: true,
         deletionVisit: target,
+        clearRefreshError: true,
       ),
     );
-    final result = await repository.deleteVetVisit(current.petId, target.id);
+    final result = await repository.deleteVetVisit(target.petId, target.id);
     if (isClosed) return;
-
+    final latest = state is VetVisitsLoaded
+        ? state as VetVisitsLoaded
+        : current;
     switch (result) {
       case Success<void>():
+        _removedRecords.add((target.petId, target.id));
         emit(
-          VetVisitsLoaded(
-            current.petId,
-            current.visits.where((item) => item.id != target.id).toList(),
+          latest.copyWith(
+            visits: _remaining(latest.visits),
+            isDeleting: false,
+            clearDeletion: true,
           ),
         );
       case Error<void>():
         emit(
-          VetVisitsLoaded(
-            current.petId,
-            current.visits,
+          latest.copyWith(
+            isDeleting: false,
             deletionVisit: target,
             deleteError: result.failure.message,
           ),
@@ -145,16 +206,47 @@ final class VetVisitCubit extends Cubit<VetVisitState> {
     }
   }
 
-  /// Applies a deletion confirmed by the detail route without another read.
-  void removeDeletedVisit(String visitId) {
+  /// Known deletions also reconcile a read that is already in flight.
+  void removeDeletedVisit(String id, {String? petId}) {
+    if (isClosed) return;
     final current = state;
-    if (isClosed || current is! VetVisitsLoaded || current.isDeleting) return;
-    ++_loadRequest;
-    emit(
-      VetVisitsLoaded(
-        current.petId,
-        current.visits.where((visit) => visit.id != visitId).toList(),
-      ),
-    );
+    final owner =
+        petId ??
+        (current is VetVisitsLoaded
+            ? current.visits
+                      .where((item) => item.id == id)
+                      .firstOrNull
+                      ?.petId ??
+                  current.petId
+            : null);
+    if (owner == null) return;
+    _removedRecords.add((owner, id));
+    if (current is VetVisitsLoaded) {
+      if (current.petId != null) ++_loadRequest;
+      emit(
+        current.copyWith(
+          visits: _remaining(current.visits),
+          isRefreshing: current.petId == null ? null : false,
+          clearRefreshError: current.petId != null,
+          clearDeletion:
+              current.deletionVisit?.id == id &&
+              current.deletionVisit?.petId == owner,
+        ),
+      );
+    }
+  }
+
+  void removeDeletedPet(String petId) {
+    if (isClosed) return;
+    _removedPets.add(petId);
+    final current = state;
+    if (current is VetVisitsLoaded) {
+      emit(
+        current.copyWith(
+          visits: _remaining(current.visits),
+          clearDeletion: current.deletionVisit?.petId == petId,
+        ),
+      );
+    }
   }
 }

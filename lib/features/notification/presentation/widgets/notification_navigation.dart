@@ -1,5 +1,7 @@
 import 'package:petlytics/l10n/generated/app_localizations.dart';
+
 import 'dart:async';
+
 import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
 import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +13,12 @@ import 'package:petlytics/core/router/app_navigation_observer.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
-import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
+import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_state.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
 import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
@@ -40,10 +47,8 @@ class _NotificationNavigationState extends State<NotificationNavigation>
   bool _scheduled = false;
   bool _opening = false;
   NotificationTarget? _deferred;
-  AllPetsCareCubit? _global;
-  StreamSubscription<AllPetsCareState>? _globalWrites;
-  FeedingCubit? _feeding;
-  StreamSubscription<FeedingState>? _feedingWrites;
+  Cubit<Object?>? _writingFeature;
+  StreamSubscription<Object?>? _pendingWrites;
   NotificationCubit get _cubit => context.read<NotificationCubit>();
 
   @override
@@ -75,23 +80,30 @@ class _NotificationNavigationState extends State<NotificationNavigation>
         final global = route is ModalRoute
             ? route.subtreeContext?.read<AllPetsCareCubit?>()
             : null;
-        final feeding = path == AppRoutes.allFeeding && route is ModalRoute
-            ? route.subtreeContext?.read<FeedingCubit?>()
-            : null;
-        if (feeding != null &&
-            feeding.state is FeedingLoaded &&
-            (feeding.state as FeedingLoaded).pendingAction != null) {
-          if (_feeding != feeding) {
-            _feedingWrites?.cancel();
-            _feeding = feeding;
-            _feedingWrites = feeding.stream.listen((_) => _schedule());
-          }
-          return true;
-        }
-        if (global != null && _global != global && global.state.isBusy) {
-          _globalWrites?.cancel();
-          _global = global;
-          _globalWrites = global.stream.listen((_) => _schedule());
+        final Cubit<Object?>? feature = route is! ModalRoute
+            ? null
+            : switch (path) {
+                AppRoutes.allVetVisits =>
+                  route.subtreeContext?.read<VetVisitCubit?>(),
+                AppRoutes.allVaccinations =>
+                  route.subtreeContext?.read<VaccinationCubit?>(),
+                AppRoutes.allMedications =>
+                  route.subtreeContext?.read<MedicationCubit?>(),
+                AppRoutes.allFeeding =>
+                  route.subtreeContext?.read<FeedingCubit?>(),
+                _ => null,
+              };
+        final busy = switch (feature?.state) {
+          VetVisitsLoaded(:final isDeleting) => isDeleting,
+          VaccinationsLoaded(:final isDeleting) => isDeleting,
+          MedicationsLoaded(:final pendingAction) => pendingAction != null,
+          FeedingLoaded(:final pendingAction) => pendingAction != null,
+          _ => false,
+        };
+        if (busy && _writingFeature != feature) {
+          _pendingWrites?.cancel();
+          _writingFeature = feature;
+          _pendingWrites = feature?.stream.listen((_) => _schedule());
         }
         if ([
               AppRoutes.pets,
@@ -101,7 +113,7 @@ class _NotificationNavigationState extends State<NotificationNavigation>
               AppRoutes.allFeeding,
             ].contains(path) &&
             global != null &&
-            !global.state.isBusy) {
+            !busy) {
           continue;
         }
         return true;
@@ -146,12 +158,9 @@ class _NotificationNavigationState extends State<NotificationNavigation>
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted || _cubit.state.pendingTarget != target || _blocked) return;
       _cubit.acknowledgeTarget();
-      _globalWrites?.cancel();
-      _feedingWrites?.cancel();
-      _feedingWrites = null;
-      _feeding = null;
-      _globalWrites = null;
-      _global = null;
+      _pendingWrites?.cancel();
+      _pendingWrites = null;
+      _writingFeature = null;
       _deferred = null;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       switch (result) {
@@ -222,8 +231,7 @@ class _NotificationNavigationState extends State<NotificationNavigation>
 
   @override
   void dispose() {
-    _feedingWrites?.cancel();
-    _globalWrites?.cancel();
+    _pendingWrites?.cancel();
     widget.routeChanges.removeListener(_schedule);
     widget.router.routerDelegate.removeListener(_schedule);
     WidgetsBinding.instance.removeObserver(this);
