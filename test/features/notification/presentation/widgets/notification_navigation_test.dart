@@ -309,9 +309,9 @@ void main() {
       await pump(tester, location: AppRoutes.allMedications);
       final global = tester
           .element(find.byType(AllPetsCarePage))
-          .read<AllPetsCareCubit>();
+          .read<MedicationCubit>();
       final saving = global.saveDose(
-        global.state.doses.records.first,
+        (global.state as MedicationsLoaded).doses.doses.first,
         MedicationDoseStatus.given,
       );
       await tester.pump();
@@ -325,7 +325,7 @@ void main() {
       await saving;
       await tester.pumpAndSettle();
       expect(find.byType(VaccinationDetailPage), findsOneWidget);
-      expect(global.state.actionError, isNotNull);
+      expect((global.state as MedicationsLoaded).actionError, isNotNull);
     },
   );
   testWidgets(

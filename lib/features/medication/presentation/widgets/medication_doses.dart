@@ -20,8 +20,7 @@ typedef DoseRecordState = ({
   String? error,
 });
 
-/// The same editor works with pet-scoped and all-pets state; each caller keeps
-/// ownership checks and writes in its own Cubit.
+/// Both scopes use the same feature Cubit for ownership checks and writes.
 class MedicationDoseEditor {
   final Stream<Object?> changes;
   final DoseRecordState Function() read;
@@ -62,7 +61,8 @@ class MedicationDoseEditor {
               state.doses.hasLoaded &&
               !state.doses.isLoading &&
               state.doses.error == null &&
-              !state.isRefreshing,
+              !state.isRefreshing &&
+              (state.petId != null || state.refreshError == null),
           busy: state.pendingAction != null,
           error: state.actionError,
         );

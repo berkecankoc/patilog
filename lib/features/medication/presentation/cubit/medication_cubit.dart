@@ -17,6 +17,64 @@ final class MedicationCubit extends Cubit<MedicationState> {
   int _dosesRequest = 0;
   int _calendarRequest = 0;
 
+  bool _dirty = false;
+  bool _active = true;
+  Set<String> _petIds = {};
+  String? _selectedPetId;
+  final _removedPets = <String>{};
+  final _removedMedications = <(String, String)>{};
+
+  bool get needsReload => _dirty || state is MedicationInitial;
+
+  void dismissActionError() {
+    final loaded = state;
+    if (!isClosed &&
+        loaded is MedicationsLoaded &&
+        loaded.pendingAction == null) {
+      emit(loaded.copyWith(clearActionError: true));
+    }
+  }
+
+  void setPetContext(
+    Iterable<String> petIds, {
+    String? selectedPetId,
+    bool active = true,
+  }) {
+    _petIds = petIds.toSet();
+    _selectedPetId = _petIds.contains(selectedPetId) ? selectedPetId : null;
+    _active = active;
+  }
+
+  List<Medication> _remaining(Iterable<Medication> medications) =>
+      List.unmodifiable(
+        medications.where(
+          (m) =>
+              !_removedPets.contains(m.petId) &&
+              !_removedMedications.contains((m.petId, m.id)),
+        ),
+      );
+
+  void invalidateList() {
+    if (isClosed) return;
+    _dirty = true;
+    ++_loadRequest;
+    ++_dosesRequest;
+    final current = state;
+    if (current is MedicationsLoaded) {
+      emit(
+        current.copyWith(
+          isRefreshing: false,
+          clearActionError: true,
+          doses: MedicationDosesState(
+            date: current.doses.date,
+            doses: current.doses.doses,
+            followsToday: current.doses.followsToday,
+          ),
+        ),
+      );
+    }
+  }
+
   MedicationCubit(
     this._repository,
     this._calculateDoses, {
@@ -26,11 +84,13 @@ final class MedicationCubit extends Cubit<MedicationState> {
   Future<void> loadMedications(String petId, {String? vetVisitId}) =>
       _load(petId, vetVisitId: vetVisitId);
 
+  Future<void> loadAllMedications() => _load(null);
+
   Future<void> loadMedication(String petId, String medicationId) =>
       _load(petId, medicationId: medicationId);
 
   Future<void> _load(
-    String petId, {
+    String? petId, {
     String? medicationId,
     String? vetVisitId,
   }) async {
@@ -44,6 +104,7 @@ final class MedicationCubit extends Cubit<MedicationState> {
             previous.vetVisitId == vetVisitId
         ? previous
         : null;
+    _dirty = false;
     final request = ++_loadRequest;
     ++_dosesRequest;
     ++_calendarRequest;
@@ -53,57 +114,75 @@ final class MedicationCubit extends Cubit<MedicationState> {
     );
     final Result<List<Medication>> result;
     if (medicationId == null) {
-      result = await _repository.getMedications(petId, vetVisitId: vetVisitId);
+      result = petId == null
+          ? await _repository.getAllMedications()
+          : await _repository.getMedications(petId, vetVisitId: vetVisitId);
     } else {
-      final detail = await _repository.getMedicationById(petId, medicationId);
+      final detail = await _repository.getMedicationById(petId!, medicationId);
       result = switch (detail) {
         Success<Medication>() => Success([detail.data]),
         Error<Medication>() => Error(detail.failure),
       };
     }
     if (isClosed || request != _loadRequest) return;
+    final latest = state;
+    final retainedAfter =
+        latest is MedicationsLoaded &&
+            latest.petId == petId &&
+            latest.medicationId == medicationId &&
+            latest.vetVisitId == vetVisitId
+        ? latest
+        : retained;
     switch (result) {
       case Success<List<Medication>>():
+        final records = _remaining(result.data);
         final currentTime = now();
-        final followsToday = retained == null || retained.doses.followsToday;
-        final failedAction = retained?.failedAction;
+        final followsToday =
+            retainedAfter == null || retainedAfter.doses.followsToday;
+        final failedAction = retainedAfter?.failedAction;
         final keepFailedDose =
             failedAction is SaveMedicationDoseAction ||
             failedAction is ClearMedicationDoseAction;
         final date = followsToday && !keepFailedDose
             ? _day(currentTime)
-            : retained!.doses.date;
+            : retainedAfter!.doses.date;
         var refreshed = MedicationsLoaded(
           petId: petId,
-          medications: result.data,
+          medications: records,
           medicationId: medicationId,
           vetVisitId: vetVisitId,
           currentTime: currentTime,
           failedAction: failedAction,
-          actionError: retained?.actionError,
-          calendar: retained?.calendar == null
+          actionError: retainedAfter?.actionError,
+          lastMutation: retainedAfter?.lastMutation,
+          mutationRevision: retainedAfter?.mutationRevision ?? 0,
+          calendar: retainedAfter?.calendar == null
               ? null
               : MedicationCalendarState(
                   month: DateTime(date.year, date.month),
                   doses: _calendarDoses(
-                    result.data,
-                    _calendarLogs(retained!.calendar!),
+                    records,
+                    _calendarLogs(retainedAfter!.calendar!),
                     DateTime(date.year, date.month),
                   ),
                 ),
           doses: MedicationDosesState(
             date: date,
             followsToday: followsToday,
-            doses: retained != null && _sameDay(date, retained.doses.date)
-                ? _doses(result.data, _logs(retained.doses), date)
-                : _doses(result.data, const [], date),
+            doses:
+                retainedAfter != null &&
+                    _sameDay(date, retainedAfter.doses.date)
+                ? _doses(records, _logs(retainedAfter.doses), date)
+                : _doses(records, const [], date),
             hasLoaded:
-                retained != null &&
-                _sameDay(date, retained.doses.date) &&
-                retained.doses.hasLoaded,
+                petId != null &&
+                retainedAfter != null &&
+                _sameDay(date, retainedAfter.doses.date) &&
+                retainedAfter.doses.hasLoaded,
           ),
         );
-        if (failedAction != null && !_canPerform(refreshed, failedAction)) {
+        if (failedAction != null &&
+            !_canPerform(refreshed, failedAction, retainingFailure: true)) {
           refreshed = refreshed.copyWith(clearActionError: true);
           if (followsToday && !_sameDay(date, currentTime)) {
             refreshed = refreshed.copyWith(
@@ -118,26 +197,26 @@ final class MedicationCubit extends Cubit<MedicationState> {
           await loadDoses(refreshed.doses.date);
         }
       case Error<List<Medication>>():
-        if (retained != null &&
+        if (retainedAfter != null &&
             !(medicationId != null && result.failure is NotFoundFailure)) {
           emit(
-            retained.copyWith(
+            retainedAfter.copyWith(
               isRefreshing: false,
               refreshError: result.failure.message,
-              calendar: retained.calendar == null
+              calendar: retainedAfter.calendar == null
                   ? null
                   : MedicationCalendarState(
-                      month: retained.calendar!.month,
-                      doses: retained.calendar!.doses,
-                      hasLoaded: retained.calendar!.hasLoaded,
-                      error: retained.calendar!.error,
+                      month: retainedAfter.calendar!.month,
+                      doses: retainedAfter.calendar!.doses,
+                      hasLoaded: retainedAfter.calendar!.hasLoaded,
+                      error: retainedAfter.calendar!.error,
                     ),
               doses: MedicationDosesState(
-                date: retained.doses.date,
-                doses: retained.doses.doses,
-                hasLoaded: retained.doses.hasLoaded,
-                error: retained.doses.error,
-                followsToday: retained.doses.followsToday,
+                date: retainedAfter.doses.date,
+                doses: retainedAfter.doses.doses,
+                hasLoaded: retainedAfter.doses.hasLoaded,
+                error: retainedAfter.doses.error,
+                followsToday: retainedAfter.doses.followsToday,
               ),
             ),
           );
@@ -153,7 +232,9 @@ final class MedicationCubit extends Cubit<MedicationState> {
     if (loaded is! MedicationsLoaded ||
         loaded.vetVisitId != null ||
         loaded.isRefreshing ||
-        loaded.pendingAction != null) {
+        loaded.pendingAction != null ||
+        loaded.petId == null &&
+            (!_active || _dirty || loaded.refreshError != null)) {
       return;
     }
     date = _day(date);
@@ -175,12 +256,14 @@ final class MedicationCubit extends Cubit<MedicationState> {
         ),
       ),
     );
-    final result = await _repository.getDoseLogs(
-      loaded.petId,
-      medicationId: loaded.medicationId,
-      fromDate: date,
-      toDate: date,
-    );
+    final result = loaded.petId == null
+        ? await _repository.getAllDoseLogs(fromDate: date, toDate: date)
+        : await _repository.getDoseLogs(
+            loaded.petId!,
+            medicationId: loaded.medicationId,
+            fromDate: date,
+            toDate: date,
+          );
     if (isClosed || request != _dosesRequest) return;
     final current = state as MedicationsLoaded;
     switch (result) {
@@ -253,7 +336,7 @@ final class MedicationCubit extends Cubit<MedicationState> {
       ),
     );
     final result = await _repository.getDoseLogs(
-      loaded.petId,
+      loaded.petId!,
       medicationId: loaded.medicationId,
       fromDate: month,
       toDate: DateTime(month.year, month.month + 1, 0),
@@ -354,27 +437,30 @@ final class MedicationCubit extends Cubit<MedicationState> {
         !_canPerform(loaded, action)) {
       return;
     }
+    final owner = loaded.medications
+        .firstWhere((m) => m.id == action.medicationId)
+        .petId;
     ++_loadRequest;
     ++_dosesRequest;
     ++_calendarRequest;
     emit(loaded.copyWith(pendingAction: action, clearActionError: true));
     final result = await switch (action) {
       DeleteMedicationAction() => _repository.deleteMedication(
-        loaded.petId,
+        owner,
         action.medicationId,
       ),
       DeleteMedicationPeriodAction() => _repository.deletePeriod(
-        loaded.petId,
+        owner,
         action.medicationId,
         action.periodId,
       ),
       SaveMedicationDoseAction() => _repository.saveDoseLog(
-        loaded.petId,
+        owner,
         action.medicationId,
         action.log,
       ),
       ClearMedicationDoseAction() => _repository.clearDoseLog(
-        loaded.petId,
+        owner,
         action.medicationId,
         periodId: action.log.periodId,
         scheduledDate: action.log.scheduledDate,
@@ -424,6 +510,8 @@ final class MedicationCubit extends Cubit<MedicationState> {
             medications: medications,
             clearPendingAction: true,
             clearActionError: true,
+            lastMutation: (petId: owner, action: action),
+            mutationRevision: current.mutationRevision + 1,
             calendar: current.calendar == null
                 ? null
                 : MedicationCalendarState(
@@ -457,11 +545,29 @@ final class MedicationCubit extends Cubit<MedicationState> {
     }
   }
 
-  bool _canPerform(MedicationsLoaded loaded, MedicationAction action) {
+  bool _canPerform(
+    MedicationsLoaded loaded,
+    MedicationAction action, {
+    bool retainingFailure = false,
+  }) {
     final medication = loaded.medications
-        .where((m) => m.id == action.medicationId && m.petId == loaded.petId)
+        .where(
+          (m) =>
+              m.id == action.medicationId &&
+              (loaded.petId == null || m.petId == loaded.petId),
+        )
         .firstOrNull;
-    if (medication == null) return false;
+    if (medication == null || _removedPets.contains(medication.petId)) {
+      return false;
+    }
+    if (loaded.petId == null &&
+        (!_active && !retainingFailure ||
+            _dirty ||
+            loaded.refreshError != null ||
+            !_petIds.contains(medication.petId) ||
+            _selectedPetId != null && _selectedPetId != medication.petId)) {
+      return false;
+    }
     switch (action) {
       case DeleteMedicationAction():
         return true;
@@ -474,7 +580,7 @@ final class MedicationCubit extends Cubit<MedicationState> {
             );
       case SaveMedicationDoseAction(:final log):
       case ClearMedicationDoseAction(:final log):
-        if (!loaded.doses.hasLoaded ||
+        if (!retainingFailure && !loaded.doses.hasLoaded ||
             calendarDayNumber(log.scheduledDate) > calendarDayNumber(now())) {
           return false;
         }
@@ -488,7 +594,11 @@ final class MedicationCubit extends Cubit<MedicationState> {
             )
             .firstOrNull;
         return dose != null &&
-            (action is! ClearMedicationDoseAction || dose.log != null);
+            (retainingFailure || loaded.doses.error == null) &&
+            (action is! ClearMedicationDoseAction || dose.log != null) &&
+            (action is! SaveMedicationDoseAction ||
+                log.status == MedicationDoseStatus.skipped ||
+                log.givenAt != null && !log.givenAt!.isAfter(now()));
     }
   }
 
@@ -498,7 +608,8 @@ final class MedicationCubit extends Cubit<MedicationState> {
     final loaded = state;
     if (loaded is! MedicationsLoaded ||
         loaded.isRefreshing ||
-        loaded.pendingAction != null) {
+        loaded.pendingAction != null ||
+        loaded.petId == null && (!_active || _dirty)) {
       return;
     }
     final currentTime = now();
@@ -507,10 +618,16 @@ final class MedicationCubit extends Cubit<MedicationState> {
         loaded.failedAction is SaveMedicationDoseAction ||
         loaded.failedAction is ClearMedicationDoseAction;
     emit(loaded.copyWith(currentTime: currentTime));
+    final unknownGlobalResults =
+        loaded.petId == null &&
+        !loaded.doses.hasLoaded &&
+        !loaded.doses.isLoading &&
+        loaded.doses.error == null;
     if (loaded.vetVisitId == null &&
-        loaded.doses.followsToday &&
-        !keepFailedDose &&
-        !_sameDay(loaded.doses.date, currentTime)) {
+        (unknownGlobalResults ||
+            loaded.doses.followsToday &&
+                !keepFailedDose &&
+                !_sameDay(loaded.doses.date, currentTime))) {
       if (loaded.calendar != null) {
         final month = DateTime(currentTime.year, currentTime.month);
         if (loaded.calendar!.month == month) {
@@ -520,44 +637,79 @@ final class MedicationCubit extends Cubit<MedicationState> {
           if (!isClosed) selectCalendarDay(currentTime);
         }
       } else {
-        await loadDoses(currentTime);
+        await loadDoses(
+          loaded.doses.followsToday && !keepFailedDose
+              ? currentTime
+              : loaded.doses.date,
+        );
       }
     }
   }
 
-  void removeDeletedMedication(String medicationId) {
+  void removeDeletedMedication(String medicationId, {String? petId}) {
     if (isClosed) return;
     final loaded = state;
-    if (loaded is! MedicationsLoaded ||
-        loaded.pendingAction != null ||
-        !loaded.medications.any((m) => m.id == medicationId)) {
-      return;
-    }
-    ++_loadRequest;
-    ++_dosesRequest;
-    if (loaded.medicationId == medicationId) {
+    if (loaded is MedicationsLoaded && loaded.pendingAction != null) return;
+    final owner =
+        petId ??
+        (loaded is MedicationsLoaded
+            ? loaded.medications
+                      .where((m) => m.id == medicationId)
+                      .firstOrNull
+                      ?.petId ??
+                  loaded.petId
+            : null);
+    if (owner == null) return;
+    _removedMedications.add((owner, medicationId));
+    if (loaded is! MedicationsLoaded) return;
+    if (loaded.medicationId == medicationId && loaded.petId == owner) {
+      ++_loadRequest;
+      ++_dosesRequest;
       emit(MedicationDeleted(medicationId));
       return;
     }
-    final medications = loaded.medications
-        .where((m) => m.id != medicationId)
-        .toList();
+    _prune(loaded);
+  }
+
+  void removeDeletedPet(String petId) {
+    if (isClosed) return;
+    _removedPets.add(petId);
+    final loaded = state;
+    if (loaded is MedicationsLoaded) _prune(loaded);
+  }
+
+  void _prune(MedicationsLoaded loaded) {
+    final medications = _remaining(loaded.medications);
+    final failed = loaded.failedAction;
     emit(
       loaded.copyWith(
         medications: medications,
-        isRefreshing: false,
-        clearRefreshError: true,
-        clearActionError: true,
+        clearActionError:
+            failed != null &&
+            !medications.any((m) => m.id == failed.medicationId),
+        calendar: loaded.calendar == null
+            ? null
+            : MedicationCalendarState(
+                month: loaded.calendar!.month,
+                doses: _calendarDoses(
+                  medications,
+                  _calendarLogs(loaded.calendar!),
+                  loaded.calendar!.month,
+                ),
+                hasLoaded: loaded.calendar!.hasLoaded,
+                isLoading: loaded.calendar!.isLoading,
+                error: loaded.calendar!.error,
+              ),
         doses: MedicationDosesState(
           date: loaded.doses.date,
           doses: _doses(medications, _logs(loaded.doses), loaded.doses.date),
           hasLoaded: loaded.doses.hasLoaded,
+          isLoading: loaded.doses.isLoading,
           error: loaded.doses.error,
           followsToday: loaded.doses.followsToday,
         ),
       ),
     );
-    if (loaded.doses.isLoading) loadDoses(loaded.doses.date);
   }
 
   List<MedicationDose> _doses(

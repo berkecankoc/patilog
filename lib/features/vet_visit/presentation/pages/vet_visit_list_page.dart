@@ -1,107 +1,267 @@
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/core/widgets/pet_care_tabs.dart';
-import 'package:petlytics/core/router/pet_care_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/router/app_routes.dart';
+import 'package:petlytics/core/router/care_record_changes.dart';
+import 'package:petlytics/core/router/pet_care_changes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:petlytics/core/widgets/app_pet_filter.dart';
+import 'package:petlytics/core/widgets/app_pet_picker.dart';
+import 'package:petlytics/core/widgets/care_record_card.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
+import 'package:petlytics/core/widgets/pet_care_tabs.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
+import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
 import 'package:petlytics/features/vet_visit/presentation/utils/confirm_vet_visit_deletion.dart';
+import 'package:petlytics/features/vet_visit/presentation/widgets/vet_visit_list_content.dart';
 
-class VetVisitListPage extends StatelessWidget {
-  final String petId;
+import 'package:petlytics/l10n/generated/app_localizations.dart';
+
+class VetVisitListPage extends StatefulWidget {
+  final String? petId;
   final String? petName;
+  final List<Pet> pets;
+  final bool petsLoaded;
 
-  const VetVisitListPage({super.key, required this.petId, this.petName});
+  const VetVisitListPage({
+    super.key,
+    this.petId,
+    this.petName,
+    this.pets = const [],
+    this.petsLoaded = true,
+  });
+  @override
+  State<VetVisitListPage> createState() => _VetVisitListPageState();
+}
 
-  Future<void> _addVisit(BuildContext context) async {
+class _VetVisitListPageState extends State<VetVisitListPage> {
+  String? _selectedPetId;
+  bool _confirming = false;
+  bool get _global => widget.petId == null;
+  VetVisitCubit get _cubit => context.read<VetVisitCubit>();
+  Map<String, Pet> get _petsById => {
+    for (final pet in widget.pets) pet.id: pet,
+  };
+  String? get _filterId =>
+      _petsById.containsKey(_selectedPetId) ? _selectedPetId : null;
+  String? _name(String id) => _global ? _petsById[id]?.name : widget.petName;
+  bool get _busy =>
+      _confirming ||
+      switch (_cubit.state) {
+        VetVisitsLoaded(:final isDeleting, :final isRefreshing) =>
+          isDeleting || isRefreshing,
+        _ => false,
+      };
+
+  Future<void> _reload() =>
+      _global ? _cubit.loadAllVetVisits() : _cubit.loadVetVisits(widget.petId!);
+
+  Future<void> _add() async {
+    if (_busy) return;
+    if (_global && widget.pets.isEmpty) {
+      await context.push(AppRoutes.addEditPet);
+      return;
+    }
+    final pet = _global
+        ? await pickCarePet(context, widget.pets, selectedPetId: _filterId)
+        : null;
+    if (!mounted ||
+        _busy ||
+        _global && (pet == null || !_petsById.containsKey(pet.id))) {
+      return;
+    }
+    final id = widget.petId ?? pet!.id;
     final saved = await context.push<bool>(
-      AppRoutes.addEditVetVisit(petId),
-      extra: VetVisitFormExtra(petId: petId, petName: petName),
+      AppRoutes.addEditVetVisit(id),
+      extra: VetVisitFormExtra(petId: id, petName: _name(id)),
     );
-    if (!context.mounted || PetCareChanges.maybeOf(context) != null) return;
-    if (saved == true) {
-      await context.read<VetVisitCubit>().loadVetVisits(petId);
-    }
+    if (!mounted || _global || PetCareChanges.maybeOf(context) != null) return;
+    if (saved == true) await _reload();
   }
 
-  Future<void> _openVisit(BuildContext context, VetVisit visit) async {
+  Future<void> _open(VetVisit record) async {
+    if (_confirming ||
+        _cubit.state is VetVisitsLoaded &&
+            (_cubit.state as VetVisitsLoaded).isDeleting ||
+        _global && !_petsById.containsKey(record.petId)) {
+      return;
+    }
     final deletedId = await context.push<String>(
-      AppRoutes.vetVisitDetail(petId, visit.id),
-      extra: PetCareRouteExtra(petId: petId, petName: petName),
+      AppRoutes.vetVisitDetail(record.petId, record.id),
+      extra: PetCareRouteExtra(
+        petId: record.petId,
+        petName: _name(record.petId),
+      ),
     );
-    if (!context.mounted || PetCareChanges.maybeOf(context) != null) return;
-    final cubit = context.read<VetVisitCubit>();
+    if (!mounted || _global || PetCareChanges.maybeOf(context) != null) return;
     if (deletedId != null) {
-      cubit.removeDeletedVisit(deletedId);
+      _cubit.removeDeletedVisit(deletedId);
     } else {
-      await cubit.loadVetVisits(petId);
+      await _reload();
     }
   }
 
-  Future<void> _delete(BuildContext context, VetVisit visit) async {
-    final confirmed = await confirmVetVisitDeletion(context, visit);
-    if (confirmed && context.mounted) {
-      await context.read<VetVisitCubit>().deleteListedVisit(visit);
-      if (!context.mounted) return;
-      if (context.read<VetVisitCubit>().state case VetVisitsLoaded(
-        :final visits,
-      ) when !visits.any((item) => item.id == visit.id)) {
+  Future<void> _delete(VetVisit record) async {
+    if (_busy || _global && !_petsById.containsKey(record.petId)) return;
+    setState(() => _confirming = true);
+    final confirmed = await confirmVetVisitDeletion(
+      context,
+      record,
+      petName: _global ? _name(record.petId) : null,
+    );
+    if (!mounted) return;
+    setState(() => _confirming = false);
+    if (!confirmed) return;
+    await _cubit.deleteListedVisit(record);
+    if (!mounted) return;
+    if (_cubit.state
+        case VetVisitsLoaded(
+          :final visits,
+          deleteError: null,
+          isDeleting: false,
+        )
+        when !visits.any(
+          (item) => item.id == record.id && item.petId == record.petId,
+        )) {
+      if (_global) {
+        CareRecordChanges.maybeOf(context)?.changed(
+          record.petId,
+          PetCareTab.vetVisits,
+          deletedId: record.id,
+          globalListIsCurrent: true,
+        );
+      } else {
         PetCareChanges.recordChanged(
           context,
-          petId,
+          record.petId,
           PetCareTab.vetVisits,
+          deletedId: record.id,
           listIsCurrent: true,
         );
       }
     }
   }
 
+  Widget _filter(bool busy) => widget.pets.length < 2
+      ? const SizedBox.shrink()
+      : Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          child: AppPetFilter(
+            key: ValueKey(_filterId),
+            pets: widget.pets,
+            selectedPetId: _filterId,
+            onChanged: busy
+                ? null
+                : (id) {
+                    if (!_busy) {
+                      _cubit.dismissDeletionError();
+                      setState(() => _selectedPetId = id);
+                    }
+                  },
+          ),
+        );
+
+  Widget _loaded(VetVisitsLoaded state) {
+    final busy = _busy;
+    final strings = AppLocalizations.of(context);
+    final records = state.visits
+        .where(
+          (record) =>
+              !_global || _filterId == null || record.petId == _filterId,
+        )
+        .toList();
+    return Column(
+      children: [
+        if (state.deleteError != null && state.deletionVisit != null)
+          Flexible(
+            child: AppErrorFeedback(
+              message: strings.visitDeleteFailed,
+              retryLabel: strings.retryDeletion,
+              onRetry: busy ? null : () => _delete(state.deletionVisit!),
+            ),
+          )
+        else if (state.refreshError != null)
+          Flexible(
+            child: AppErrorFeedback(
+              message: strings.visitsLoadFailed,
+              retryLabel: strings.retry,
+              onRetry: busy ? null : _reload,
+            ),
+          ),
+        Expanded(
+          child: _global && widget.petsLoaded && widget.pets.isEmpty
+              ? CareEmptyView(
+                  icon: Icons.pets_outlined,
+                  title: strings.noPetsYet,
+                  message: strings.petsEmptyDescription,
+                )
+              : VetVisitListContent(
+                  visits: records,
+                  petsById: _global ? _petsById : null,
+                  header: _global ? _filter(busy) : null,
+                  isDeleting: (record) =>
+                      state.isDeleting && state.deletionVisit?.id == record.id,
+                  onOpen: state.isDeleting || !_global && state.isRefreshing
+                      ? null
+                      : _open,
+                  onDelete: busy ? null : _delete,
+                ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_global) {
+      _cubit.setPetContext(
+        widget.pets.map((p) => p.id),
+        selectedPetId: _filterId,
+      );
+    }
     return BlocBuilder<VetVisitCubit, VetVisitState>(
       builder: (context, state) {
-        final deleting = state is VetVisitsLoaded && state.isDeleting;
-        final busy =
-            state is VetVisitsLoaded &&
-            (state.isRefreshing || state.isDeleting);
+        final strings = AppLocalizations.of(context);
+        final deleting =
+            _confirming || state is VetVisitsLoaded && state.isDeleting;
+        final busy = _busy;
+        final addLabel = _global && widget.pets.isEmpty
+            ? strings.addFirstPet
+            : strings.addVisit;
         return PopScope(
           canPop: !deleting,
           child: Scaffold(
-            appBar: petCareAppBar(
-              context,
-              title: PetCareTitle(
-                title: AppLocalizations.of(context).vetVisitsNavigation,
-                petName: petName,
-              ),
-              toolbarHeight: PetCareTitle.toolbarHeight(context),
-              busy: deleting,
-              progress: busy
-                  ? LinearProgressIndicator(
-                      semanticsLabel: AppLocalizations.of(
-                        context,
-                      ).updatingVisits,
-                    )
-                  : null,
-            ),
-            floatingActionButton: state is VetVisitsLoaded
+            appBar: _global
+                ? null
+                : petCareAppBar(
+                    context,
+                    title: PetCareTitle(
+                      title: strings.vetVisitsNavigation,
+                      petName: widget.petName,
+                    ),
+                    toolbarHeight: PetCareTitle.toolbarHeight(context),
+                    busy: deleting,
+                    progress: busy
+                        ? LinearProgressIndicator(
+                            semanticsLabel: strings.updatingVisits,
+                          )
+                        : null,
+                  ),
+            floatingActionButton:
+                state is VetVisitsLoaded && (!_global || widget.petsLoaded)
                 ? FloatingActionButton.extended(
                     isExtended:
                         MediaQuery.textScalerOf(context).scale(14) <= 21,
-                    tooltip: AppLocalizations.of(context).addVisit,
-                    onPressed: busy ? null : () => _addVisit(context),
+                    tooltip: addLabel,
+                    onPressed: busy ? null : _add,
                     icon: const Icon(Icons.add),
-                    label: Text(AppLocalizations.of(context).addVisit),
+                    label: Text(addLabel),
                   )
                 : null,
             body: SafeArea(
@@ -109,116 +269,12 @@ class VetVisitListPage extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 640),
                   child: switch (state) {
-                    VetVisitsLoaded(
-                      :final visits,
-                      :final refreshError,
-                      :final deleteError,
-                      :final deletionVisit,
-                    ) =>
-                      Column(
-                        children: [
-                          if (deleteError != null && deletionVisit != null)
-                            Flexible(
-                              child: AppErrorFeedback(
-                                message: AppLocalizations.of(
-                                  context,
-                                ).visitDeleteFailed,
-                                retryLabel: AppLocalizations.of(
-                                  context,
-                                ).retryDeletion,
-                                onRetry: () => _delete(context, deletionVisit),
-                              ),
-                            )
-                          else if (refreshError != null)
-                            Flexible(
-                              child: AppErrorFeedback(
-                                message: AppLocalizations.of(
-                                  context,
-                                ).visitsLoadFailed,
-                                retryLabel: AppLocalizations.of(context).retry,
-                                onRetry: () => context
-                                    .read<VetVisitCubit>()
-                                    .loadVetVisits(petId),
-                              ),
-                            ),
-                          Expanded(
-                            child: visits.isEmpty
-                                ? Center(
-                                    child: SingleChildScrollView(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        AppSpacing.lg,
-                                        AppSpacing.lg,
-                                        AppSpacing.lg,
-                                        96,
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          ExcludeSemantics(
-                                            child: Icon(
-                                              Icons.event_note_outlined,
-                                              size: 48,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                          VerticalGap.md,
-                                          Text(
-                                            AppLocalizations.of(
-                                              context,
-                                            ).noVisits,
-                                            textAlign: TextAlign.center,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.titleLarge,
-                                          ),
-                                          VerticalGap.sm,
-                                          Text(
-                                            AppLocalizations.of(
-                                              context,
-                                            ).visitsEmpty,
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                : ListView.separated(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      24,
-                                      16,
-                                      24,
-                                      96,
-                                    ),
-                                    itemCount: visits.length,
-                                    separatorBuilder: (_, index) =>
-                                        VerticalGap.md,
-                                    itemBuilder: (context, index) {
-                                      final visit = visits[index];
-                                      return _VisitListItem(
-                                        key: ValueKey(visit.id),
-                                        visit: visit,
-                                        deleting:
-                                            deleting &&
-                                            deletionVisit?.id == visit.id,
-                                        onOpen: busy
-                                            ? null
-                                            : () => _openVisit(context, visit),
-                                        onDelete: busy
-                                            ? null
-                                            : () => _delete(context, visit),
-                                      );
-                                    },
-                                  ),
-                          ),
-                        ],
-                      ),
+                    VetVisitsLoaded() => _loaded(state),
                     VetVisitError(:final failure) => ErrorView(
                       message: failure is NotFoundFailure
-                          ? AppLocalizations.of(context).visitNotFound
-                          : AppLocalizations.of(context).visitsLoadFailed,
-                      onRetry: () =>
-                          context.read<VetVisitCubit>().loadVetVisits(petId),
+                          ? strings.visitNotFound
+                          : strings.visitsLoadFailed,
+                      onRetry: _reload,
                     ),
                     _ => const Center(child: CircularProgressIndicator()),
                   },
@@ -228,137 +284,6 @@ class VetVisitListPage extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _VisitListItem extends StatelessWidget {
-  final VetVisit visit;
-  final bool deleting;
-  final VoidCallback? onOpen;
-  final VoidCallback? onDelete;
-
-  const _VisitListItem({
-    super.key,
-    required this.visit,
-    required this.deleting,
-    required this.onOpen,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final date = MaterialLocalizations.of(
-      context,
-    ).formatShortDate(visit.visitedOn);
-    final clinic = visit.clinicName?.trim();
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ColoredBox(
-              color: colors.surfaceContainer,
-              child: Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                  AppSpacing.sm,
-                  AppSpacing.sm,
-                ),
-                child: Row(
-                  children: [
-                    ExcludeSemantics(
-                      child: Icon(
-                        Icons.event_note_outlined,
-                        size: 20,
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                    HorizontalGap.sm,
-                    Expanded(
-                      child: Text(
-                        date,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    HorizontalGap.sm,
-                    SizedBox.square(
-                      dimension: 48,
-                      child: deleting
-                          ? Center(
-                              child: SizedBox.square(
-                                dimension: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  semanticsLabel: AppLocalizations.of(
-                                    context,
-                                  ).deletingVisit,
-                                ),
-                              ),
-                            )
-                          : IconButton(
-                              tooltip: AppLocalizations.of(
-                                context,
-                              ).deleteVisitTooltip(date, visit.reason),
-                              onPressed: onDelete,
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    visit.reason,
-                    style: theme.textTheme.bodyLarge,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (clinic != null && clinic.isNotEmpty) ...[
-                    VerticalGap.sm,
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ExcludeSemantics(
-                          child: Icon(
-                            Icons.local_hospital_outlined,
-                            size: 18,
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                        HorizontalGap.sm,
-                        Expanded(
-                          child: Text(
-                            clinic,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colors.onSurfaceVariant,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

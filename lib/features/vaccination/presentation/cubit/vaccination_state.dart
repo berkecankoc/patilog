@@ -21,7 +21,7 @@ final class VaccinationLoading extends VaccinationState {
 }
 
 final class VaccinationsLoaded extends VaccinationState {
-  final String petId;
+  final String? petId;
   final List<Vaccination> vaccinations;
   final String? vetVisitId;
   final bool isRefreshing;
@@ -40,6 +40,28 @@ final class VaccinationsLoaded extends VaccinationState {
     this.deletionVaccination,
     this.deleteError,
   });
+
+  VaccinationsLoaded copyWith({
+    List<Vaccination>? vaccinations,
+    bool? isRefreshing,
+    String? refreshError,
+    bool clearRefreshError = false,
+    bool? isDeleting,
+    Vaccination? deletionVaccination,
+    String? deleteError,
+    bool clearDeletion = false,
+  }) => VaccinationsLoaded(
+    petId,
+    vaccinations ?? this.vaccinations,
+    vetVisitId: vetVisitId,
+    isRefreshing: isRefreshing ?? this.isRefreshing,
+    refreshError: clearRefreshError ? null : refreshError ?? this.refreshError,
+    isDeleting: isDeleting ?? this.isDeleting,
+    deletionVaccination: clearDeletion
+        ? null
+        : deletionVaccination ?? this.deletionVaccination,
+    deleteError: clearDeletion ? null : deleteError ?? this.deleteError,
+  );
 
   @override
   List<Object?> get props => [

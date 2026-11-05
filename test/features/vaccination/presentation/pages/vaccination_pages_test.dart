@@ -226,7 +226,6 @@ void main() {
     final ids = MockIds();
     var id = 0;
     when(ids.generate).thenAnswer((_) => 'created-${++id}');
-    registerAllPetsCare(pets);
     getIt.registerFactory<PetCubit>(
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );
@@ -252,6 +251,7 @@ void main() {
     getIt.registerFactory<VetVisitFormCubit>(
       () => VetVisitFormCubit(visitRepository, ids),
     );
+    registerAllPetsCare(pets);
     when(
       () =>
           visitRepository.getSuggestions(clinicName: any(named: 'clinicName')),

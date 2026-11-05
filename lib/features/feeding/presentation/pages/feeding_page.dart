@@ -22,9 +22,9 @@ import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart
 import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
 import 'package:petlytics/features/feeding/presentation/utils/feeding_display.dart';
 import 'package:petlytics/features/feeding/presentation/widgets/feeding_chart.dart';
-import 'package:petlytics/features/all_pets_care/presentation/widgets/care_record_card.dart';
+import 'package:petlytics/core/widgets/care_record_card.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
+import 'package:petlytics/core/widgets/app_pet_picker.dart';
 import 'package:petlytics/l10n/generated/app_localizations.dart';
 
 /// Embedded in either retained navigation root; names come from that root.
@@ -194,45 +194,7 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
 
   Future<Pet?> _choosePet() async {
     if (!_global || _busy) return null;
-    final selected = widget.pets.where((p) => p.id == _owner).firstOrNull;
-    if (selected != null) return selected;
-    return showModalBottomSheet<Pet>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      builder: (context) => ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * .7,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                AppLocalizations.of(context).choosePet,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: widget.pets.length,
-                itemBuilder: (_, index) {
-                  final pet = widget.pets[index];
-                  return ListTile(
-                    leading: PetAvatar(pet: pet, size: 40, iconSize: 24),
-                    title: Text(pet.name),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.of(context).pop(pet),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return pickCarePet(context, widget.pets, selectedPetId: _owner);
   }
 
   Future<void> _entry([FeedingEntry? entry]) async {

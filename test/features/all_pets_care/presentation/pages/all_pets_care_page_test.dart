@@ -330,6 +330,13 @@ void main() {
     'Given targets the correct pet and shared editor corrects and clears its result',
     (tester) async {
       await app.pump(tester, location: AppRoutes.allMedications);
+      final changes = CareRecordChanges.maybeOf(
+        tester.element(find.byType(AllPetsCarePage)),
+      )!;
+      var mutations = 0;
+      void changed() => mutations++;
+      changes.addListener(changed);
+      addTearDown(() => changes.removeListener(changed));
       final second = find.byType(MedicationDoseTile).last;
       await tester.tap(
         find.descendant(
@@ -340,6 +347,9 @@ void main() {
       await tester.pumpAndSettle();
       verify(() => app.repository.saveDoseLog('other', 'b', any())).called(1);
       expect(app.logs.single.periodId, 'period-b');
+      expect(mutations, 1);
+      expect(changes.last!.petId, 'other');
+      expect(changes.last!.globalListIsCurrent, isTrue);
       await tester.tap(find.textContaining('Given at').last);
       await tester.pumpAndSettle();
       expect(

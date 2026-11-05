@@ -154,7 +154,6 @@ void main() {
     when(
       () => pets.getPetById(any()),
     ).thenAnswer((_) async => const Success(pet));
-    registerAllPetsCare(pets);
     getIt.registerFactory<PetCubit>(
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );
@@ -175,6 +174,7 @@ void main() {
     getIt.registerFactory<VetVisitFormCubit>(
       () => VetVisitFormCubit(repository, ids),
     );
+    registerAllPetsCare(pets);
   });
   tearDown(() async => getIt.reset());
 

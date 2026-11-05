@@ -88,7 +88,7 @@ final class MedicationCalendarState extends Equatable {
 }
 
 final class MedicationsLoaded extends MedicationState {
-  final String petId;
+  final String? petId;
   final List<Medication> medications;
   final String? medicationId;
   final String? vetVisitId;
@@ -100,6 +100,8 @@ final class MedicationsLoaded extends MedicationState {
   final MedicationAction? pendingAction;
   final MedicationAction? failedAction;
   final String? actionError;
+  final ({String petId, MedicationAction action})? lastMutation;
+  final int mutationRevision;
 
   MedicationsLoaded({
     required this.petId,
@@ -114,6 +116,8 @@ final class MedicationsLoaded extends MedicationState {
     this.pendingAction,
     this.failedAction,
     this.actionError,
+    this.lastMutation,
+    this.mutationRevision = 0,
   }) : medications = List.unmodifiable(medications);
 
   MedicationsLoaded copyWith({
@@ -129,6 +133,8 @@ final class MedicationsLoaded extends MedicationState {
     MedicationAction? failedAction,
     String? actionError,
     bool clearActionError = false,
+    ({String petId, MedicationAction action})? lastMutation,
+    int? mutationRevision,
   }) => MedicationsLoaded(
     petId: petId,
     medications: medications ?? this.medications,
@@ -144,6 +150,8 @@ final class MedicationsLoaded extends MedicationState {
         : pendingAction ?? this.pendingAction,
     failedAction: clearActionError ? null : failedAction ?? this.failedAction,
     actionError: clearActionError ? null : actionError ?? this.actionError,
+    lastMutation: lastMutation ?? this.lastMutation,
+    mutationRevision: mutationRevision ?? this.mutationRevision,
   );
 
   @override
@@ -160,6 +168,8 @@ final class MedicationsLoaded extends MedicationState {
     pendingAction,
     failedAction,
     actionError,
+    lastMutation,
+    mutationRevision,
   ];
 }
 

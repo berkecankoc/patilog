@@ -7,8 +7,6 @@ import 'package:petlytics/features/feeding/domain/use_cases/calculate_feeding_to
 import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
 import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_cubit.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
-import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
 import 'package:petlytics/features/notification/domain/use_cases/load_notification_data.dart';
 import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
 import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
@@ -237,32 +235,7 @@ Future<void> setupDependencies() async {
   );
 
   getIt.registerFactory<AllPetsCareCubit>(
-    () => AllPetsCareCubit(
-      getIt<PetRepository>(),
-      getIt<VetVisitRepository>(),
-      getIt<VaccinationRepository>(),
-      getIt<MedicationRepository>(),
-      getIt<CalculateMedicationDoses>(),
-      onMutation: (action) {
-        final (tab, deletedId) = switch (action) {
-          DeleteGlobalVetVisit(:final visitId) => (
-            PetCareTab.vetVisits,
-            visitId,
-          ),
-          DeleteGlobalVaccination(:final vaccinationId) => (
-            PetCareTab.vaccinations,
-            vaccinationId,
-          ),
-          GlobalDoseAction() => (PetCareTab.medications, null),
-        };
-        getIt<CareRecordChanges>().changed(
-          action.petId,
-          tab,
-          deletedId: deletedId,
-          globalListIsCurrent: true,
-        );
-      },
-    ),
+    () => AllPetsCareCubit(getIt<PetRepository>()),
   );
 
   getIt.registerFactory<WeightHistoryCubit>(

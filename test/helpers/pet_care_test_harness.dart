@@ -352,7 +352,7 @@ class PetCareTestHarness {
     );
     getIt.registerFactory<VetVisitCubit>(() => VetVisitCubit(visits));
     getIt.registerFactory<VaccinationCubit>(
-      () => VaccinationCubit(vaccinations),
+      () => VaccinationCubit(vaccinations, now: () => clock),
     );
     when(visits.getAllVetVisits).thenAnswer((_) async => Success([visit]));
     when(

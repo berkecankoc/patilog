@@ -13,6 +13,7 @@ import 'package:petlytics/core/di/injection.dart';
 import 'package:petlytics/core/error/failure.dart';
 import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/router/care_record_changes.dart';
+import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
@@ -181,7 +182,7 @@ void main() {
   );
 
   test(
-    'global successful dose writes publish once and remain successful when reminder sync fails',
+    'registered medication writes remain successful when runtime reminder sync fails',
     () async {
       final fake = NotificationTestHarness();
       fake.preferences = NotificationPreferences(
@@ -216,7 +217,7 @@ void main() {
         ),
       );
       final coordinator = getIt<NotificationCubit>();
-      final global = getIt<AllPetsCareCubit>();
+      final global = getIt<MedicationCubit>()..setPetContext([pet.id]);
       final changes = getIt<CareRecordChanges>();
       Future<void>? syncing;
       var signals = 0;
@@ -233,17 +234,24 @@ void main() {
         await fake.dispose();
       });
       await coordinator.initialize();
-      await global.activate(AllPetsCareSection.medications);
+      await global.loadAllMedications();
       fake.failSync = true;
       await global.saveDose(
-        global.state.doses.records.single,
+        (global.state as MedicationsLoaded).doses.doses.single,
         MedicationDoseStatus.given,
+      );
+      // The feature page publishes the committed result to the runtime.
+      final loaded = global.state as MedicationsLoaded;
+      changes.changed(
+        loaded.lastMutation!.petId,
+        PetCareTab.medications,
+        globalListIsCurrent: true,
       );
       await syncing;
       expect(signals, 1);
       expect(changes.last!.globalListIsCurrent, isTrue);
-      expect(global.state.actionError, isNull);
-      expect(global.state.mutationRevision, 1);
+      expect((global.state as MedicationsLoaded).actionError, isNull);
+      expect((global.state as MedicationsLoaded).mutationRevision, 1);
       expect(
         await getIt<Database>().query(DatabaseTables.medicationDoseLogs),
         hasLength(1),
@@ -334,10 +342,15 @@ void main() {
       addTearDown(second.close);
       expect(identical(first, second), isFalse);
       await first.activate(AllPetsCareSection.vetVisits);
-      expect(first.state.visits.records, [visit]);
+      final clinical = getIt<VetVisitCubit>();
+      addTearDown(clinical.close);
+      await clinical.loadAllVetVisits();
+      expect((clinical.state as VetVisitsLoaded).visits, [visit]);
       expect(first.state.petsById['pet-1']!.name, 'Milo');
       expect(second.state.pets.hasLoaded, isFalse);
-      expect(second.state.visits.hasLoaded, isFalse);
+      final untouched = getIt<VetVisitCubit>();
+      addTearDown(untouched.close);
+      expect(untouched.state, isA<VetVisitInitial>());
     },
   );
 

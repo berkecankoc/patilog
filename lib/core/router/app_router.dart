@@ -168,6 +168,13 @@ final appRouter = GoRouter(
           BlocProvider<AllPetsCareCubit>(
             create: (_) => getIt<AllPetsCareCubit>(),
           ),
+          BlocProvider<VetVisitCubit>(create: (_) => getIt<VetVisitCubit>()),
+          BlocProvider<VaccinationCubit>(
+            create: (_) => getIt<VaccinationCubit>(),
+          ),
+          BlocProvider<MedicationCubit>(
+            create: (_) => getIt<MedicationCubit>(),
+          ),
           BlocProvider<FeedingCubit>(create: (_) => getIt<FeedingCubit>()),
         ],
         child: CareRecordChangeScope(child: child),

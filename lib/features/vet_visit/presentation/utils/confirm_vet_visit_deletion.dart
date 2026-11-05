@@ -5,16 +5,20 @@ import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
 
 Future<bool> confirmVetVisitDeletion(
   BuildContext context,
-  VetVisit visit,
-) async {
+  VetVisit visit, {
+  String? petName,
+}) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AppConfirmationDialog(
       title: AppLocalizations.of(context).deleteVisitTitle,
-      message: AppLocalizations.of(context).deleteVisitMessage(
-        visit.reason,
-        MaterialLocalizations.of(context).formatShortDate(visit.visitedOn),
-      ),
+      message: petName != null
+          ? AppLocalizations.of(context).deleteGlobalVisitMessage(petName)
+          : AppLocalizations.of(context).deleteVisitMessage(
+              visit.reason,
+              MaterialLocalizations.of(context)
+                  .formatShortDate(visit.visitedOn),
+            ),
       confirmLabel: AppLocalizations.of(context).deleteAction,
     ),
   );
