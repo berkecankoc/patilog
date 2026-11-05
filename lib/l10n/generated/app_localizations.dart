@@ -770,6 +770,30 @@ abstract class AppLocalizations {
   /// **'Add your first pet to start tracking health and care.'**
   String get petsEmptyDescription;
 
+  /// Welcome heading in the pet directory when no profiles have been added.
+  ///
+  /// In en, this message translates to:
+  /// **'Your pets’ care in one place'**
+  String get petWelcomeTitle;
+
+  /// Explains the app's purpose in the empty pet directory.
+  ///
+  /// In en, this message translates to:
+  /// **'Track health records, meals, and weight.'**
+  String get petWelcomeDescription;
+
+  /// Explains account-free, local storage in the empty pet directory; does not promise encryption or cloud backup.
+  ///
+  /// In en, this message translates to:
+  /// **'No account needed. Records are stored on this device.'**
+  String get petWelcomePrivacy;
+
+  /// Pet creation action across destinations when no profiles have been added.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first pet'**
+  String get addFirstPet;
+
   /// Pet directory introduction shown only when pets exist.
   ///
   /// In en, this message translates to:

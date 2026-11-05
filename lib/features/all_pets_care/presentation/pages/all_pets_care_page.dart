@@ -787,13 +787,6 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       );
     }
     if (section == AllPetsCareSection.pets) {
-      if (state.pets.records.isEmpty) {
-        return CareEmptyView(
-          icon: Icons.pets_outlined,
-          title: AppLocalizations.of(context).noPetsYet,
-          message: AppLocalizations.of(context).petsEmptyDescription,
-        );
-      }
       return PetListPage.fromRecords(
         pets: state.pets.records,
         onOpenPet: (pet) => _open(AppRoutes.petDetail(pet.id), pet.id),
@@ -900,7 +893,9 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
         final section = widget.section;
         final data = _records(state, section);
         final noPets = state.pets.hasLoaded && state.pets.records.isEmpty;
-        final addLabel = section == AllPetsCareSection.pets || noPets
+        final addLabel = noPets
+            ? strings.addFirstPet
+            : section == AllPetsCareSection.pets
             ? strings.addPet
             : switch (section) {
                 AllPetsCareSection.vetVisits => strings.addVisit,

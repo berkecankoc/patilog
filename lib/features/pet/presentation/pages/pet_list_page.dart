@@ -11,6 +11,7 @@ import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
 import 'package:petlytics/features/pet/presentation/extensions/pet_display_extensions.dart';
 import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
+import 'package:petlytics/features/pet/presentation/widgets/pet_species_icon.dart';
 
 void _openAddPet(BuildContext context) => context.push(AppRoutes.addEditPet);
 
@@ -78,7 +79,9 @@ class _PetListPageState extends State<PetListPage> {
   @override
   Widget build(BuildContext context) {
     if (widget.pets != null) {
-      return _PetListView(pets: widget.pets!, onOpenPet: widget.onOpenPet!);
+      return widget.pets!.isEmpty
+          ? const _PetWelcomeView()
+          : _PetListView(pets: widget.pets!, onOpenPet: widget.onOpenPet!);
     }
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context).myPets)),
@@ -89,7 +92,7 @@ class _PetListPageState extends State<PetListPage> {
 
             PetsLoaded(:final pets) =>
               pets.isEmpty
-                  ? _EmptyPetsView(onAddPet: () => _openAddPet(context))
+                  ? const _PetWelcomeView()
                   : _PetListView(pets: pets, onOpenPet: _openPet),
 
             PetError() => Padding(
@@ -104,10 +107,20 @@ class _PetListPageState extends State<PetListPage> {
           };
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openAddPet(context),
-        icon: const Icon(Icons.add),
-        label: Text(AppLocalizations.of(context).addPet),
+      floatingActionButton: BlocBuilder<PetCubit, PetState>(
+        builder: (context, state) {
+          final strings = AppLocalizations.of(context);
+          final label = state is PetsLoaded && state.pets.isEmpty
+              ? strings.addFirstPet
+              : strings.addPet;
+          return FloatingActionButton.extended(
+            tooltip: label,
+            isExtended: MediaQuery.textScalerOf(context).scale(14) <= 21,
+            onPressed: () => _openAddPet(context),
+            icon: const Icon(Icons.add),
+            label: Text(label),
+          );
+        },
       ),
     );
   }
@@ -122,43 +135,96 @@ class _PetLoadingView extends StatelessWidget {
   }
 }
 
-class _EmptyPetsView extends StatelessWidget {
-  final VoidCallback onAddPet;
-  const _EmptyPetsView({required this.onAddPet});
+class _PetWelcomeView extends StatelessWidget {
+  const _PetWelcomeView();
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final strings = AppLocalizations.of(context);
     return SafeArea(
       child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 96),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              // FAB height, Scaffold margin, and a small gap.
+              80,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.pets, size: 48),
-
-                VerticalGap.md,
-
-                Text(
-                  AppLocalizations.of(context).noPetsYet,
-                  style: Theme.of(context).textTheme.titleLarge,
+                ExcludeSemantics(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      for (final species in PetSpecies.values)
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.sm),
+                            child: PetSpeciesIcon(
+                              species: species,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-
-                VerticalGap.sm,
-
+                VerticalGap.lg,
                 Text(
-                  AppLocalizations.of(context).petsEmptyDescription,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  strings.petWelcomeTitle,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-
+                VerticalGap.sm,
+                Text(
+                  strings.petWelcomeDescription,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
                 VerticalGap.lg,
-
-                ElevatedButton(
-                  onPressed: onAddPet,
-                  child: Text(AppLocalizations.of(context).addPet),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Row(
+                      children: [
+                        ExcludeSemantics(
+                          child: Icon(
+                            Icons.smartphone_outlined,
+                            size: 20,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        HorizontalGap.md,
+                        Expanded(
+                          child: Text(
+                            strings.petWelcomePrivacy,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
