@@ -16,20 +16,19 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
-import 'package:petlytics/features/all_pets_care/presentation/widgets/care_record_card.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
+import 'package:petlytics/core/widgets/care_record_card.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_dose.dart';
-import 'package:petlytics/features/medication/presentation/utils/medication_display.dart';
 import 'package:petlytics/features/medication/presentation/widgets/medication_doses.dart';
+import 'package:petlytics/features/medication/presentation/widgets/medication_list_content.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/presentation/extensions/pet_display_extensions.dart';
 import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
 import 'package:petlytics/features/pet/presentation/pages/pet_list_page.dart';
-import 'package:petlytics/features/vaccination/presentation/widgets/vaccination_status_badge.dart';
+import 'package:petlytics/features/vaccination/presentation/widgets/vaccination_list_content.dart';
+import 'package:petlytics/features/vet_visit/presentation/widgets/vet_visit_list_content.dart';
 
 const _destinations = [
   (icon: Icons.pets_outlined, path: AppRoutes.pets),
@@ -393,30 +392,6 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
           ),
         );
 
-  Widget _list(
-    String key,
-    int count,
-    Widget Function(int) builder, {
-    Widget? header,
-    Widget? empty,
-  }) => CustomScrollView(
-    key: PageStorageKey(key),
-    slivers: [
-      if (header != null) SliverToBoxAdapter(child: header),
-      if (count == 0 && empty != null)
-        SliverFillRemaining(hasScrollBody: false, child: empty)
-      else
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 112),
-          sliver: SliverList.separated(
-            itemCount: count,
-            itemBuilder: (_, index) => builder(index),
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-          ),
-        ),
-    ],
-  );
-
   Widget _vaccines(AllPetsCareState state) {
     final groups = [
       (
@@ -440,149 +415,27 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
         Icons.history,
       ),
     ];
-    return CustomScrollView(
-      key: const PageStorageKey('global-vaccines'),
-      slivers: [
-        SliverToBoxAdapter(
-          child: _filter(state, AllPetsCareSection.vaccinations),
-        ),
-        if (state.visibleVaccinations.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: CareEmptyView(
-              icon: Icons.vaccines_outlined,
-              title: AppLocalizations.of(context).noVaccinations,
-              message: AppLocalizations.of(context).vaccinationsEmpty,
-            ),
-          ),
-        for (final (label, rows, icon) in groups)
-          if (rows.isNotEmpty) ...[
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-              sliver: SliverToBoxAdapter(
-                child: AppSectionHeading(title: label, icon: icon),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              sliver: SliverList.builder(
-                itemCount: rows.length,
-                itemBuilder: (_, index) {
-                  final vaccination = rows[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: CareRecordCard(
-                      key: ValueKey(vaccination.id),
-                      pet: state.petsById[vaccination.petId],
-                      title: vaccination.vaccineName,
-                      icon: Icons.vaccines_outlined,
-                      details: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            MaterialLocalizations.of(
-                              context,
-                            ).formatShortDate(vaccination.date),
-                          ),
-                          const SizedBox(height: 8),
-                          VaccinationStatusBadge(vaccination: vaccination),
-                        ],
-                      ),
-                      onOpen:
-                          state.isBusy ||
-                              !state.petsById.containsKey(vaccination.petId)
-                          ? null
-                          : () => _open(
-                              AppRoutes.vaccinationDetail(
-                                vaccination.petId,
-                                vaccination.id,
-                              ),
-                              vaccination.petId,
-                            ),
-                      deleteLabel: AppLocalizations.of(
-                        context,
-                      ).deleteNamedRecord(vaccination.vaccineName),
-                      deleting:
-                          state.pendingAction ==
-                          DeleteGlobalVaccination(
-                            vaccination.petId,
-                            vaccination.id,
-                          ),
-                      onDelete:
-                          state.isBusy ||
-                              state.vaccinations.isLoading ||
-                              !state.petsById.containsKey(vaccination.petId)
-                          ? null
-                          : () => _perform(
-                              DeleteGlobalVaccination(
-                                vaccination.petId,
-                                vaccination.id,
-                              ),
-                            ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        const SliverToBoxAdapter(child: SizedBox(height: 112)),
+    return VaccinationListContent(
+      groups: [
+        for (final (title, rows, icon) in groups)
+          (title: title, icon: icon, records: rows),
       ],
-    );
-  }
-
-  Widget _dateSelector(AllPetsCareState state) {
-    final date = state.doseDate;
-    final busy = state.isBusy || state.medications.isLoading;
-    final today = DateUtils.isSameDay(date, _cubit.now());
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: AppLocalizations.of(context).previousDay,
-            onPressed: busy || date.year <= 2000
-                ? null
-                : () => _cubit.loadDoses(
-                    DateTime(date.year, date.month, date.day - 1),
-                  ),
-            icon: const Icon(Icons.chevron_left),
-          ),
-          Expanded(
-            child: TextButton(
-              onPressed: busy
-                  ? null
-                  : () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: date,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null && mounted) _cubit.loadDoses(picked);
-                    },
-              child: Text(
-                today
-                    ? AppLocalizations.of(context).todayWithDate(
-                        MaterialLocalizations.of(
-                          context,
-                        ).formatMediumDate(date),
-                      )
-                    : MaterialLocalizations.of(context).formatMediumDate(date),
-                textAlign: TextAlign.center,
-              ),
+      petsById: state.petsById,
+      header: _filter(state, AllPetsCareSection.vaccinations),
+      isDeleting: (vaccination) =>
+          state.pendingAction ==
+          DeleteGlobalVaccination(vaccination.petId, vaccination.id),
+      onOpen: state.isBusy
+          ? null
+          : (vaccination) => _open(
+              AppRoutes.vaccinationDetail(vaccination.petId, vaccination.id),
+              vaccination.petId,
             ),
-          ),
-          IconButton(
-            tooltip: AppLocalizations.of(context).nextDay,
-            onPressed: busy || date.year >= 2100
-                ? null
-                : () => _cubit.loadDoses(
-                    DateTime(date.year, date.month, date.day + 1),
-                  ),
-            icon: const Icon(Icons.chevron_right),
-          ),
-        ],
-      ),
+      onDelete: state.isBusy || state.vaccinations.isLoading
+          ? null
+          : (vaccination) => _perform(
+              DeleteGlobalVaccination(vaccination.petId, vaccination.id),
+            ),
     );
   }
 
@@ -609,45 +462,38 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       children: [
         _filter(state, AllPetsCareSection.medications),
         selector,
-        if (!_catalog) ...[
-          _dateSelector(state),
-          if (!DateUtils.isSameDay(state.doseDate, _cubit.now()))
-            TextButton(
-              onPressed: state.isBusy
-                  ? null
-                  : () => _cubit.loadDoses(_cubit.now()),
-              child: Text(AppLocalizations.of(context).backToToday),
-            ),
-        ],
+        if (!_catalog)
+          MedicationDateSelector(
+            date: state.doseDate,
+            now: _cubit.now,
+            compact: true,
+            onChanged: state.isBusy || state.medications.isLoading
+                ? null
+                : _cubit.loadDoses,
+          ),
       ],
     );
     return _catalog
-        ? _catalogList(state, header)
-        : _list(
-            'global-doses',
-            state.visibleDoses.length,
-            (index) {
-              final dose = state.visibleDoses[index];
-              return MedicationDoseTile(
-                key: ValueKey((
-                  dose.period.id,
-                  dose.scheduledDate,
-                  dose.scheduledMinute,
-                )),
-                dose: dose,
-                known: state.doseResultsKnown,
-                loading: state.doses.isLoading,
-                busy:
-                    state.isBusy ||
-                    state.medications.isLoading ||
-                    !state.petsById.containsKey(dose.medication.petId),
-                petIdentity: CarePetIdentity(
-                  pet: state.petsById[dose.medication.petId],
-                ),
-                editor: _editor(dose),
-                onRecord: () => _editDose(dose),
-              );
-            },
+        ? MedicationCatalogContent(
+            medications: state.visibleMedications,
+            currentTime: state.currentTime,
+            petsById: state.petsById,
+            header: header,
+            onOpen: state.isBusy
+                ? null
+                : (medication) => _open(
+                    AppRoutes.medicationDetail(medication.petId, medication.id),
+                    medication.petId,
+                  ),
+          )
+        : MedicationDoseListContent(
+            doses: state.visibleDoses,
+            known: state.doseResultsKnown,
+            loading: state.doses.isLoading,
+            busy: state.isBusy || state.medications.isLoading,
+            petsById: state.petsById,
+            editorFor: _editor,
+            onRecord: _editDose,
             header: header,
             empty: CareEmptyView(
               icon: Icons.schedule_outlined,
@@ -655,97 +501,6 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
               message: AppLocalizations.of(context).allPetsNoDayDoses,
             ),
           );
-  }
-
-  Widget _catalogList(AllPetsCareState state, Widget header) {
-    final groups = [
-      for (final status in MedicationStatus.values)
-        (
-          status,
-          state.visibleMedications
-              .where((m) => m.statusOn(state.currentTime) == status)
-              .toList(),
-        ),
-    ];
-    return CustomScrollView(
-      key: const PageStorageKey('global-medications'),
-      slivers: [
-        SliverToBoxAdapter(child: header),
-        if (state.visibleMedications.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: CareEmptyView(
-              icon: Icons.medication_outlined,
-              title: AppLocalizations.of(context).noMedications,
-              message: AppLocalizations.of(context).medicationsEmpty,
-            ),
-          ),
-        for (final (status, rows) in groups)
-          if (rows.isNotEmpty) ...[
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-              sliver: SliverToBoxAdapter(
-                child: AppSectionHeading(
-                  title: switch (status) {
-                    MedicationStatus.active => AppLocalizations.of(
-                      context,
-                    ).active,
-                    MedicationStatus.upcoming => AppLocalizations.of(
-                      context,
-                    ).upcoming,
-                    MedicationStatus.completed => AppLocalizations.of(
-                      context,
-                    ).history,
-                  },
-                  icon: status == MedicationStatus.active
-                      ? Icons.medication_outlined
-                      : Icons.history,
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              sliver: SliverList.builder(
-                itemCount: rows.length,
-                itemBuilder: (_, index) {
-                  final medication = rows[index];
-                  final period =
-                      medication.periodOn(state.currentTime) ??
-                      medication.pendingPeriod(state.currentTime) ??
-                      medication.periods.last;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: CareRecordCard(
-                      key: ValueKey(medication.id),
-                      pet: state.petsById[medication.petId],
-                      title: medication.name,
-                      icon: Icons.medication_outlined,
-                      details: Text(
-                        medicationSchedule(
-                          AppLocalizations.of(context),
-                          period,
-                        ),
-                      ),
-                      onOpen:
-                          state.isBusy ||
-                              !state.petsById.containsKey(medication.petId)
-                          ? null
-                          : () => _open(
-                              AppRoutes.medicationDetail(
-                                medication.petId,
-                                medication.id,
-                              ),
-                              medication.petId,
-                            ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        const SliverToBoxAdapter(child: SizedBox(height: 112)),
-      ],
-    );
   }
 
   String _loadErrorMessage(AllPetsCareSection section) => switch (section) {
@@ -793,58 +548,21 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       );
     }
     if (section == AllPetsCareSection.vetVisits) {
-      return _list(
-        'global-visits',
-        state.visibleVisits.length,
-        (index) {
-          final visit = state.visibleVisits[index];
-          return CareRecordCard(
-            key: ValueKey(visit.id),
-            pet: state.petsById[visit.petId],
-            title: MaterialLocalizations.of(
-              context,
-            ).formatShortDate(visit.visitedOn),
-            icon: Icons.event_note_outlined,
-            details: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  visit.reason,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (visit.clinicName != null) ...[
-                  const SizedBox(height: 8),
-                  Text(visit.clinicName!),
-                ],
-              ],
-            ),
-            onOpen: state.isBusy || !state.petsById.containsKey(visit.petId)
-                ? null
-                : () => _open(
-                    AppRoutes.vetVisitDetail(visit.petId, visit.id),
-                    visit.petId,
-                  ),
-            deleteLabel: AppLocalizations.of(
-              context,
-            ).deleteNamedRecord(visit.reason),
-            deleting:
-                state.pendingAction ==
-                DeleteGlobalVetVisit(visit.petId, visit.id),
-            onDelete:
-                state.isBusy ||
-                    state.visits.isLoading ||
-                    !state.petsById.containsKey(visit.petId)
-                ? null
-                : () => _perform(DeleteGlobalVetVisit(visit.petId, visit.id)),
-          );
-        },
+      return VetVisitListContent(
+        visits: state.visibleVisits,
+        petsById: state.petsById,
         header: _filter(state, section),
-        empty: CareEmptyView(
-          icon: Icons.event_note_outlined,
-          title: AppLocalizations.of(context).noVetVisits,
-          message: AppLocalizations.of(context).allVisitsEmpty,
-        ),
+        isDeleting: (visit) =>
+            state.pendingAction == DeleteGlobalVetVisit(visit.petId, visit.id),
+        onOpen: state.isBusy
+            ? null
+            : (visit) => _open(
+                AppRoutes.vetVisitDetail(visit.petId, visit.id),
+                visit.petId,
+              ),
+        onDelete: state.isBusy || state.visits.isLoading
+            ? null
+            : (visit) => _perform(DeleteGlobalVetVisit(visit.petId, visit.id)),
       );
     }
     if (section == AllPetsCareSection.vaccinations) {

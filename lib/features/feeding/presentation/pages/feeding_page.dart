@@ -22,7 +22,7 @@ import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart
 import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
 import 'package:petlytics/features/feeding/presentation/utils/feeding_display.dart';
 import 'package:petlytics/features/feeding/presentation/widgets/feeding_chart.dart';
-import 'package:petlytics/features/all_pets_care/presentation/widgets/care_record_card.dart';
+import 'package:petlytics/core/widgets/care_record_card.dart';
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
 import 'package:petlytics/l10n/generated/app_localizations.dart';

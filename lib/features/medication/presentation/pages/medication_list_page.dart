@@ -10,7 +10,6 @@ import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
@@ -19,7 +18,7 @@ import 'package:petlytics/features/medication/presentation/cubit/medication_stat
 import 'package:petlytics/features/medication/presentation/utils/medication_actions.dart';
 import 'package:petlytics/features/medication/presentation/utils/medication_display.dart';
 import 'package:petlytics/features/medication/presentation/widgets/medication_clock.dart';
-import 'package:petlytics/features/medication/presentation/widgets/medication_doses.dart';
+import 'package:petlytics/features/medication/presentation/widgets/medication_list_content.dart';
 
 class MedicationListPage extends StatefulWidget {
   final String petId;
@@ -53,18 +52,6 @@ class _MedicationListPageState extends State<MedicationListPage> {
       context.read<MedicationCubit>().removeDeletedMedication(deleted);
     } else {
       await _reload();
-    }
-  }
-
-  Future<void> _pickDate(DateTime date) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: date,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null && mounted) {
-      await context.read<MedicationCubit>().loadDoses(picked);
     }
   }
 
@@ -104,70 +91,15 @@ class _MedicationListPageState extends State<MedicationListPage> {
 
   Widget _doses(MedicationsLoaded state) {
     final cubit = context.read<MedicationCubit>();
-    final busy = state.pendingAction != null;
+    final busy = state.pendingAction != null || state.isRefreshing;
     final date = state.doses.date;
-    final doses = state.doses.doses;
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
-            children: [
-              IconButton(
-                tooltip: AppLocalizations.of(context).previousDay,
-                onPressed: busy || state.isRefreshing || date.year <= 2000
-                    ? null
-                    : () => cubit.loadDoses(
-                        DateTime(date.year, date.month, date.day - 1),
-                      ),
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Expanded(
-                child: TextButton(
-                  onPressed: busy || state.isRefreshing
-                      ? null
-                      : () => _pickDate(date),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        DateUtils.isSameDay(date, cubit.now())
-                            ? AppLocalizations.of(context).today
-                            : MaterialLocalizations.of(
-                                context,
-                              ).formatMediumDate(date),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      if (DateUtils.isSameDay(date, cubit.now()))
-                        Text(
-                          MaterialLocalizations.of(
-                            context,
-                          ).formatMediumDate(date),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: AppLocalizations.of(context).nextDay,
-                onPressed: busy || state.isRefreshing || date.year >= 2100
-                    ? null
-                    : () => cubit.loadDoses(
-                        DateTime(date.year, date.month, date.day + 1),
-                      ),
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
+        MedicationDateSelector(
+          date: date,
+          now: cubit.now,
+          onChanged: busy ? null : cubit.loadDoses,
         ),
-        if (!DateUtils.isSameDay(date, cubit.now()))
-          TextButton(
-            onPressed: busy || state.isRefreshing
-                ? null
-                : () => cubit.loadDoses(cubit.now()),
-            child: Text(AppLocalizations.of(context).backToToday),
-          ),
         if (state.doses.error != null)
           Flexible(
             child: AppErrorFeedback(
@@ -177,133 +109,30 @@ class _MedicationListPageState extends State<MedicationListPage> {
             ),
           ),
         Expanded(
-          child: doses.isEmpty
-              ? (state.doses.isLoading && !state.doses.hasLoaded
-                    ? const Center(child: CircularProgressIndicator())
-                    : _empty(
-                        AppLocalizations.of(context).noDoses,
-                        AppLocalizations.of(context).noDosesForDay,
-                        action: AppLocalizations.of(context).viewMedications,
-                        onAction: () => setState(() => _tab = 1),
-                      ))
-              : ListView.separated(
-                  key: const PageStorageKey('medication-doses'),
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                  itemCount: doses.length + 1,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) => index == 0
-                      ? Text(
-                          state.doses.hasLoaded && !state.doses.isLoading
-                              ? AppLocalizations.of(context).doseCountRecorded(
-                                  doses.length,
-                                  doses
-                                      .where((dose) => dose.log != null)
-                                      .length,
-                                )
-                              : AppLocalizations.of(
-                                  context,
-                                ).doseCount(doses.length),
-                        )
-                      : MedicationDoseTile(
-                          key: ValueKey((
-                            doses[index - 1].period.id,
-                            doses[index - 1].scheduledMinute,
-                          )),
-                          dose: doses[index - 1],
-                          known:
-                              state.doses.hasLoaded && !state.doses.isLoading,
-                          loading: state.doses.isLoading,
-                          busy: busy || state.isRefreshing,
-                        ),
-                ),
+          child: MedicationDoseListContent(
+            doses: state.doses.doses,
+            known: state.doses.hasLoaded && !state.doses.isLoading,
+            loading: state.doses.isLoading,
+            busy: busy,
+            empty: state.doses.isLoading && !state.doses.hasLoaded
+                ? const Center(child: CircularProgressIndicator())
+                : _empty(
+                    AppLocalizations.of(context).noDoses,
+                    AppLocalizations.of(context).noDosesForDay,
+                    action: AppLocalizations.of(context).viewMedications,
+                    onAction: () => setState(() => _tab = 1),
+                  ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _catalog(MedicationsLoaded state) {
-    final groups = [
-      for (final status in MedicationStatus.values)
-        (
-          status,
-          state.medications
-              .where(
-                (medication) =>
-                    medication.statusOn(state.currentTime) == status,
-              )
-              .toList(),
-        ),
-    ];
-    return ListView(
-      key: const PageStorageKey('medication-catalog'),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 128),
-      children: [
-        for (final (status, medications) in groups)
-          if (medications.isNotEmpty) ...[
-            AppSectionHeading(
-              title: switch (status) {
-                MedicationStatus.active => AppLocalizations.of(context).active,
-                MedicationStatus.upcoming => AppLocalizations.of(
-                  context,
-                ).upcoming,
-                MedicationStatus.completed => AppLocalizations.of(
-                  context,
-                ).history,
-              },
-              icon: switch (status) {
-                MedicationStatus.active => Icons.medication_outlined,
-                MedicationStatus.upcoming => Icons.event_outlined,
-                MedicationStatus.completed => Icons.history_outlined,
-              },
-            ),
-            const SizedBox(height: 12),
-            for (final medication in medications) ...[
-              Card(
-                margin: EdgeInsets.zero,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  onTap: state.pendingAction != null || state.isRefreshing
-                      ? null
-                      : () => _open(medication),
-                  title: Text(
-                    medication.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  subtitle: Text(
-                    status == MedicationStatus.active
-                        ? medicationSchedule(
-                            AppLocalizations.of(context),
-                            medication.periodOn(state.currentTime)!,
-                          )
-                        : status == MedicationStatus.upcoming
-                        ? AppLocalizations.of(context).startsOn(
-                            MaterialLocalizations.of(context).formatShortDate(
-                              medication
-                                  .pendingPeriod(state.currentTime)!
-                                  .startDate,
-                            ),
-                          )
-                        : AppLocalizations.of(context).endedOn(
-                            MaterialLocalizations.of(context).formatShortDate(
-                              medication.effectiveEnd(medication.periods.last)!,
-                            ),
-                          ),
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            const SizedBox(height: 12),
-          ],
-      ],
-    );
-  }
+  Widget _catalog(MedicationsLoaded state) => MedicationCatalogContent(
+    medications: state.medications,
+    currentTime: state.currentTime,
+    onOpen: state.pendingAction != null || state.isRefreshing ? null : _open,
+  );
 
   @override
   Widget build(BuildContext context) => MedicationClock(
@@ -330,9 +159,8 @@ class _MedicationListPageState extends State<MedicationListPage> {
                       loaded?.doses.isLoading == true ||
                       busy
                   ? LinearProgressIndicator(
-                      semanticsLabel: AppLocalizations.of(
-                        context,
-                      ).updatingMedications,
+                      semanticsLabel: AppLocalizations.of(context)
+                          .updatingMedications,
                     )
                   : null,
             ),
@@ -355,12 +183,10 @@ class _MedicationListPageState extends State<MedicationListPage> {
                       ? state is MedicationError
                             ? ErrorView(
                                 message: state.failure is NotFoundFailure
-                                    ? AppLocalizations.of(
-                                        context,
-                                      ).medicationNotFound
-                                    : AppLocalizations.of(
-                                        context,
-                                      ).medicationsLoadFailed,
+                                    ? AppLocalizations.of(context)
+                                          .medicationNotFound
+                                    : AppLocalizations.of(context)
+                                          .medicationsLoadFailed,
                                 onRetry: _reload,
                               )
                             : const Center(child: CircularProgressIndicator())
@@ -375,9 +201,8 @@ class _MedicationListPageState extends State<MedicationListPage> {
                                           AppLocalizations.of(context),
                                           loaded.failedAction,
                                         )
-                                      : AppLocalizations.of(
-                                          context,
-                                        ).medicationsLoadFailed,
+                                      : AppLocalizations.of(context)
+                                            .medicationsLoadFailed,
                                   retryLabel: loaded.failedAction != null
                                       ? AppLocalizations.of(context).retryAction
                                       : AppLocalizations.of(context).retry,
@@ -419,12 +244,10 @@ class _MedicationListPageState extends State<MedicationListPage> {
                             Expanded(
                               child: loaded.medications.isEmpty
                                   ? _empty(
-                                      AppLocalizations.of(
-                                        context,
-                                      ).noMedications,
-                                      AppLocalizations.of(
-                                        context,
-                                      ).medicationsEmpty,
+                                      AppLocalizations.of(context)
+                                          .noMedications,
+                                      AppLocalizations.of(context)
+                                          .medicationsEmpty,
                                     )
                                   : _tab == 0
                                   ? _doses(loaded)

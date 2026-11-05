@@ -71,9 +71,8 @@ class CareRecordCard extends StatelessWidget {
                             padding: EdgeInsets.all(12),
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              semanticsLabel: AppLocalizations.of(
-                                context,
-                              ).deletingRecord,
+                              semanticsLabel: AppLocalizations.of(context)
+                                  .deletingRecord,
                             ),
                           )
                         : IconButton(
@@ -98,9 +97,8 @@ class CareRecordCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
                 if (deleteLabel == null)
@@ -122,16 +120,18 @@ class CareEmptyView extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
+  final double bottomPadding;
   const CareEmptyView({
     super.key,
     required this.icon,
     required this.title,
     required this.message,
+    this.bottomPadding = 112,
   });
   @override
   Widget build(BuildContext context) => Center(
     child: SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 112),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, bottomPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

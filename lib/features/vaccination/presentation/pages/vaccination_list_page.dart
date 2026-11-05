@@ -8,17 +8,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/core/widgets/pet_care_title.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:petlytics/features/vaccination/presentation/widgets/vaccination_list_content.dart';
 import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
 import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_state.dart';
 import 'package:petlytics/features/vaccination/presentation/utils/confirm_vaccination_deletion.dart';
-import 'package:petlytics/features/vaccination/presentation/widgets/vaccination_status_badge.dart';
 
 class VaccinationListPage extends StatelessWidget {
   final String petId;
@@ -58,9 +55,9 @@ class VaccinationListPage extends StatelessWidget {
         vaccination,
       );
       if (!context.mounted) return;
-      if (context.read<VaccinationCubit>().state case VaccinationsLoaded(
-        :final vaccinations,
-      ) when !vaccinations.any((item) => item.id == vaccination.id)) {
+      if (context.read<VaccinationCubit>().state
+          case VaccinationsLoaded(:final vaccinations)
+          when !vaccinations.any((item) => item.id == vaccination.id)) {
         PetCareChanges.recordChanged(
           context,
           petId,
@@ -69,46 +66,6 @@ class VaccinationListPage extends StatelessWidget {
         );
       }
     }
-  }
-
-  List<Widget> _section(
-    BuildContext context,
-    String title,
-    IconData icon,
-    List<Vaccination> rows,
-    VaccinationsLoaded state,
-  ) {
-    if (rows.isEmpty) return [];
-    final busy = state.isDeleting || state.isRefreshing;
-    return [
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-        sliver: SliverToBoxAdapter(
-          child: AppSectionHeading(title: title, icon: icon),
-        ),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        sliver: SliverList.builder(
-          itemCount: rows.length,
-          itemBuilder: (context, index) {
-            final vaccination = rows[index];
-            return Padding(
-              key: ValueKey(vaccination.id),
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: _VaccinationListItem(
-                vaccination: vaccination,
-                deleting:
-                    state.isDeleting &&
-                    state.deletionVaccination?.id == vaccination.id,
-                onOpen: busy ? null : () => _open(context, vaccination),
-                onDelete: busy ? null : () => _delete(context, vaccination),
-              ),
-            );
-          },
-        ),
-      ),
-    ];
   }
 
   Widget _loaded(BuildContext context, VaccinationsLoaded state) {
@@ -145,55 +102,29 @@ class VaccinationListPage extends StatelessWidget {
               ),
             ),
           Expanded(
-            child: state.vaccinations.isEmpty
-                ? Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
-                      child: Column(
-                        children: [
-                          ExcludeSemantics(
-                            child: Icon(
-                              Icons.vaccines_outlined,
-                              size: 48,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          VerticalGap.md,
-                          Text(
-                            AppLocalizations.of(context).noVaccinations,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          VerticalGap.sm,
-                          Text(
-                            AppLocalizations.of(context).vaccinationsEmpty,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : CustomScrollView(
-                    slivers: [
-                      ..._section(
-                        context,
-                        AppLocalizations.of(context).planned,
-                        Icons.event_outlined,
-                        planned,
-                        state,
-                      ),
-                      ..._section(
-                        context,
-                        AppLocalizations.of(context).history,
-                        Icons.history,
-                        history,
-                        state,
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 96)),
-                    ],
-                  ),
+            child: VaccinationListContent(
+              groups: [
+                (
+                  title: AppLocalizations.of(context).planned,
+                  icon: Icons.event_outlined,
+                  records: planned,
+                ),
+                (
+                  title: AppLocalizations.of(context).history,
+                  icon: Icons.history,
+                  records: history,
+                ),
+              ],
+              isDeleting: (vaccination) =>
+                  state.isDeleting &&
+                  state.deletionVaccination?.id == vaccination.id,
+              onOpen: state.isDeleting || state.isRefreshing
+                  ? null
+                  : (vaccination) => _open(context, vaccination),
+              onDelete: state.isDeleting || state.isRefreshing
+                  ? null
+                  : (vaccination) => _delete(context, vaccination),
+            ),
           ),
         ],
       ),
@@ -201,163 +132,63 @@ class VaccinationListPage extends StatelessWidget {
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) => BlocBuilder<VaccinationCubit, VaccinationState>(
-    builder: (context, state) {
-      final deleting = state is VaccinationsLoaded && state.isDeleting;
-      final busy =
-          state is VaccinationsLoaded &&
-          (state.isDeleting || state.isRefreshing);
-      return PopScope(
-        canPop: !deleting,
-        child: Scaffold(
-          appBar: petCareAppBar(
-            context,
-            title: PetCareTitle(
-              title: AppLocalizations.of(context).vaccinations,
-              petName: petName,
-            ),
-            toolbarHeight: PetCareTitle.toolbarHeight(context),
-            busy: deleting,
-            progress: busy
-                ? LinearProgressIndicator(
-                    semanticsLabel: AppLocalizations.of(
-                      context,
-                    ).updatingVaccinations,
-                  )
-                : null,
-          ),
-          floatingActionButton: state is VaccinationsLoaded
-              ? FloatingActionButton.extended(
-                  isExtended: MediaQuery.textScalerOf(context).scale(14) <= 21,
-                  tooltip: AppLocalizations.of(context).addVaccination,
-                  onPressed: busy ? null : () => _add(context),
-                  icon: const Icon(Icons.add),
-                  label: Text(AppLocalizations.of(context).addVaccination),
-                )
-              : null,
-          body: SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: switch (state) {
-                  VaccinationsLoaded() => _loaded(context, state),
-                  VaccinationError(:final failure) => ErrorView(
-                    message: failure is NotFoundFailure
-                        ? AppLocalizations.of(context).vaccinationNotFound
-                        : AppLocalizations.of(context).vaccinationsLoadFailed,
-                    onRetry: () => context
-                        .read<VaccinationCubit>()
-                        .loadVaccinations(petId),
-                  ),
-                  _ => const Center(child: CircularProgressIndicator()),
-                },
+  Widget build(BuildContext context) =>
+      BlocBuilder<VaccinationCubit, VaccinationState>(
+        builder: (context, state) {
+          final deleting = state is VaccinationsLoaded && state.isDeleting;
+          final busy =
+              state is VaccinationsLoaded &&
+              (state.isDeleting || state.isRefreshing);
+          return PopScope(
+            canPop: !deleting,
+            child: Scaffold(
+              appBar: petCareAppBar(
+                context,
+                title: PetCareTitle(
+                  title: AppLocalizations.of(context).vaccinations,
+                  petName: petName,
+                ),
+                toolbarHeight: PetCareTitle.toolbarHeight(context),
+                busy: deleting,
+                progress: busy
+                    ? LinearProgressIndicator(
+                        semanticsLabel: AppLocalizations.of(context)
+                            .updatingVaccinations,
+                      )
+                    : null,
               ),
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
-
-class _VaccinationListItem extends StatelessWidget {
-  final Vaccination vaccination;
-  final bool deleting;
-  final VoidCallback? onOpen;
-  final VoidCallback? onDelete;
-
-  const _VaccinationListItem({
-    required this.vaccination,
-    required this.deleting,
-    required this.onOpen,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final date = MaterialLocalizations.of(
-      context,
-    ).formatShortDate(vaccination.date);
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  ExcludeSemantics(
-                    child: Icon(
-                      Icons.event_outlined,
-                      size: 20,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  HorizontalGap.sm,
-                  Expanded(
-                    child: Text(
-                      date,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+              floatingActionButton: state is VaccinationsLoaded
+                  ? FloatingActionButton.extended(
+                      isExtended:
+                          MediaQuery.textScalerOf(context).scale(14) <= 21,
+                      tooltip: AppLocalizations.of(context).addVaccination,
+                      onPressed: busy ? null : () => _add(context),
+                      icon: const Icon(Icons.add),
+                      label: Text(AppLocalizations.of(context).addVaccination),
+                    )
+                  : null,
+              body: SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 640),
+                    child: switch (state) {
+                      VaccinationsLoaded() => _loaded(context, state),
+                      VaccinationError(:final failure) => ErrorView(
+                        message: failure is NotFoundFailure
+                            ? AppLocalizations.of(context).vaccinationNotFound
+                            : AppLocalizations.of(context)
+                                  .vaccinationsLoadFailed,
+                        onRetry: () => context
+                            .read<VaccinationCubit>()
+                            .loadVaccinations(petId),
                       ),
-                    ),
-                  ),
-                  SizedBox.square(
-                    dimension: 48,
-                    child: deleting
-                        ? Center(
-                            child: SizedBox.square(
-                              dimension: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                semanticsLabel: AppLocalizations.of(
-                                  context,
-                                ).deletingVaccination,
-                              ),
-                            ),
-                          )
-                        : IconButton(
-                            tooltip: AppLocalizations.of(context)
-                                .deleteVaccinationTooltip(
-                                  vaccination.vaccineName,
-                                  date,
-                                ),
-                            onPressed: onDelete,
-                            icon: const Icon(Icons.delete_outline),
-                          ),
-                  ),
-                ],
-              ),
-              Text(
-                vaccination.vaccineName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyLarge,
-              ),
-              VerticalGap.sm,
-              VaccinationStatusBadge(vaccination: vaccination),
-              if (vaccination.clinicName != null) ...[
-                VerticalGap.sm,
-                Text(
-                  vaccination.clinicName!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                      _ => const Center(child: CircularProgressIndicator()),
+                    },
                   ),
                 ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+              ),
+            ),
+          );
+        },
+      );
 }
