@@ -2,10 +2,66 @@ import 'package:petlytics/l10n/generated/app_localizations.dart';
 import 'package:petlytics/core/l10n/app_locale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/rendering.dart';
 import 'package:petlytics/core/theme/app_theme.dart';
 import 'package:petlytics/core/widgets/app_date_field.dart';
 
+import '../../helpers/multi_step_form_helpers.dart';
+
 void main() {
+  setUpAll(loadFormTestFont);
+  for (final locale in [englishLocale, turkishLocale]) {
+    testWidgets(
+      'date errors remain readable on narrow large-text screens in $locale',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        late String message;
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: locale,
+            supportedLocales: appSupportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            theme: AppTheme.light,
+            home: Builder(
+              builder: (context) {
+                final strings = AppLocalizations.of(context);
+                message = strings.periodEndInvalid;
+                return MediaQuery(
+                  data: MediaQuery.of(context)
+                      .copyWith(textScaler: const TextScaler.linear(2)),
+                  child: Scaffold(
+                    body: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: AppDateField(
+                        labelText: strings.endDateOptional,
+                        value: DateTime(2026, 11, 5),
+                        firstDate: DateTime(2026, 11, 6),
+                        lastDate: DateTime(2100),
+                        errorText: message,
+                        onChanged: (_) {},
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final text = find.text(message);
+        expect(
+          tester.renderObject<RenderParagraph>(text).didExceedMaxLines,
+          isFalse,
+        );
+        expect(text.hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets(
     'locale changes refresh an open date picker and field without changing the day',
     (tester) async {

@@ -409,125 +409,168 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
         .where((period) => period != current && !pending.contains(period))
         .toList()
         .reversed;
-    return ListView(
+    return CustomScrollView(
       controller: _scroll,
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(
-          medication.name,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        Text(switch (medication.statusOn(state.currentTime)) {
-          MedicationStatus.active => AppLocalizations.of(context).active,
-          MedicationStatus.upcoming => AppLocalizations.of(context).upcoming,
-          MedicationStatus.completed => AppLocalizations.of(context).completed,
-        }),
-        const SizedBox(height: 24),
-        if (current != null || pending.isNotEmpty) ...[
-          _schedule(medication, current, pending, busy),
-          const SizedBox(height: 16),
-        ],
-        OutlinedButton.icon(
-          onPressed: busy ? null : () => _edit(medication),
-          icon: const Icon(Icons.edit_outlined),
-          label: Text(AppLocalizations.of(context).editMedication),
-        ),
-        if (current == null && pending.isEmpty) ...[
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: busy ? null : () => _edit(medication, newSchedule: true),
-            icon: const Icon(Icons.event_repeat_outlined),
-            label: Text(AppLocalizations.of(context).scheduleAgain),
-          ),
-        ],
-        if (current != null &&
-            (current.clinicName != null ||
-                current.veterinarianName != null ||
-                current.notes != null)) ...[
-          const SizedBox(height: 16),
-          Card(
-            margin: EdgeInsets.zero,
-            child: ListTileTheme.merge(
-              minLeadingWidth: 20,
-              horizontalTitleGap: 8,
-              child: ExpansionTile(
-                key: PageStorageKey(('medication-clinical', current.id)),
-                shape: const Border(),
-                collapsedShape: const Border(),
-                leading: const Icon(Icons.local_hospital_outlined, size: 20),
-                title: Semantics(
-                  header: true,
-                  child: Text(
-                    AppLocalizations.of(context).clinicAndNotes,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.all(24),
+          sliver: SliverMainAxisGroup(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      medication.name,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(switch (medication.statusOn(state.currentTime)) {
+                      MedicationStatus.active => AppLocalizations.of(
+                        context,
+                      ).active,
+                      MedicationStatus.upcoming => AppLocalizations.of(
+                        context,
+                      ).upcoming,
+                      MedicationStatus.completed => AppLocalizations.of(
+                        context,
+                      ).completed,
+                    }),
+                    const SizedBox(height: 24),
+                    if (current != null || pending.isNotEmpty) ...[
+                      _schedule(medication, current, pending, busy),
+                      const SizedBox(height: 16),
+                    ],
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : () => _edit(medication),
+                      icon: const Icon(Icons.edit_outlined),
+                      label: Text(AppLocalizations.of(context).editMedication),
+                    ),
+                    if (current == null && pending.isEmpty) ...[
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: busy
+                            ? null
+                            : () => _edit(medication, newSchedule: true),
+                        icon: const Icon(Icons.event_repeat_outlined),
+                        label: Text(AppLocalizations.of(context).scheduleAgain),
+                      ),
+                    ],
+                    if (current != null &&
+                        (current.clinicName != null ||
+                            current.veterinarianName != null ||
+                            current.notes != null)) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        margin: EdgeInsets.zero,
+                        child: ListTileTheme.merge(
+                          minLeadingWidth: 20,
+                          horizontalTitleGap: 8,
+                          child: ExpansionTile(
+                            key: PageStorageKey((
+                              'medication-clinical',
+                              current.id,
+                            )),
+                            shape: const Border(),
+                            collapsedShape: const Border(),
+                            leading: const Icon(
+                              Icons.local_hospital_outlined,
+                              size: 20,
+                            ),
+                            title: Semantics(
+                              header: true,
+                              child: Text(
+                                AppLocalizations.of(context).clinicAndNotes,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            childrenPadding: const EdgeInsets.fromLTRB(
+                              16,
+                              0,
+                              16,
+                              16,
+                            ),
+                            children: [_clinical(current)],
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (current?.vetVisitId != null) ...[
+                      const SizedBox(height: 16),
+                      _visit(current!, busy),
+                    ],
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      key: _calendarKey,
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                      ),
+                      onPressed: busy ? null : () => _toggleCalendar(state),
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(
+                        _showCalendar
+                            ? AppLocalizations.of(context).hideDoseCalendar
+                            : AppLocalizations.of(context).doseCalendar,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_showCalendar && state.calendar != null)
+                SliverPadding(
+                  padding: const EdgeInsets.only(top: 12),
+                  sliver: MedicationDoseCalendar(state: state),
+                ),
+              if (history.isNotEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.only(top: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      child: ExpansionTile(
+                        key: PageStorageKey((
+                          'medication-history',
+                          medication.id,
+                        )),
+                        shape: const Border(),
+                        collapsedShape: const Border(),
+                        maintainState: true,
+                        title: AppSectionHeading(
+                          title: AppLocalizations.of(context).previousSchedules,
+                          icon: Icons.history_outlined,
+                        ),
+                        childrenPadding: const EdgeInsets.fromLTRB(
+                          16,
+                          0,
+                          16,
+                          16,
+                        ),
+                        children: [
+                          for (final period in history)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _previousSchedule(
+                                medication,
+                                period,
+                                busy,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                children: [_clinical(current)],
-              ),
-            ),
-          ),
-        ],
-        if (current?.vetVisitId != null) ...[
-          const SizedBox(height: 16),
-          _visit(current!, busy),
-        ],
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          ),
-          onPressed: busy ? null : () => _toggleCalendar(state),
-          icon: const Icon(Icons.calendar_month_outlined),
-          label: Text(
-            _showCalendar
-                ? AppLocalizations.of(context).hideDoseCalendar
-                : AppLocalizations.of(context).doseCalendar,
+            ],
           ),
         ),
-        if (_showCalendar && state.calendar != null) ...[
-          const SizedBox(height: 12),
-          Card(
-            key: _calendarKey,
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: MedicationDoseCalendar(state: state),
-            ),
-          ),
-        ],
-        if (history.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Card(
-            margin: EdgeInsets.zero,
-            child: ExpansionTile(
-              key: PageStorageKey(('medication-history', medication.id)),
-              shape: const Border(),
-              collapsedShape: const Border(),
-              maintainState: true,
-              title: AppSectionHeading(
-                title: AppLocalizations.of(context).previousSchedules,
-                icon: Icons.history_outlined,
-              ),
-              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              children: [
-                for (final period in history)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _previousSchedule(medication, period, busy),
-                  ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

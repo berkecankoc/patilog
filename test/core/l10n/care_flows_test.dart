@@ -210,7 +210,9 @@ void main() {
         ValueKey(('dose-calendar-day', DateTime(2026, 4, 1))),
       );
       double column() {
-        final rect = tester.getRect(calendar);
+        final rect = tester.getRect(
+          find.ancestor(of: firstDay, matching: find.byType(Row)).first,
+        );
         return (tester.getCenter(firstDay).dx - rect.left) / rect.width * 7 -
             0.5;
       }

@@ -85,6 +85,7 @@ class _AppDateFieldState extends State<AppDateField> {
       decoration: InputDecoration(
         labelText: widget.labelText,
         errorText: widget.errorText,
+        errorMaxLines: 3,
         suffixIcon: widget.readOnly
             ? const Icon(Icons.calendar_today_outlined)
             : IconButton(
