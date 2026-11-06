@@ -51,8 +51,8 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
   final _allocatedTimes = <TextEditingController>[];
   MedicationPeriod? _period;
   late DateTime _start;
-  late DateTime _changeStart;
-  late DateTime _initialChangeStart;
+  DateTime? _changeStart;
+  late final DateTime _defaultChangeStart;
   DateTime? _end;
   String? _visitId;
   late String _initial;
@@ -97,10 +97,11 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
               _period!.intervalDays ||
           _minutes.join(',') != _period!.doseTimes.join(',') ||
           _start != _period!.startDate ||
-          _changeStart != _initialChangeStart);
+          _changeStart != null);
   bool get _successor =>
       widget.newSchedule || (_locked && !_historical && _scheduleChanged);
-  DateTime get _saveStart => _successor ? _changeStart : _start;
+  DateTime get _saveStart =>
+      _successor ? _changeStart ?? _defaultChangeStart : _start;
 
   @override
   void initState() {
@@ -123,8 +124,7 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
     _notes.text = _period?.notes ?? '';
     _visitId = _period?.vetVisitId;
     _start = _period?.startDate ?? DateUtils.dateOnly(now);
-    _changeStart = DateTime(now.year, now.month, now.day + 1);
-    _initialChangeStart = _changeStart;
+    _defaultChangeStart = DateTime(now.year, now.month, now.day + 1);
     _end = widget.newSchedule ? null : _period?.endDate;
     for (final minute in _period?.doseTimes ?? [now.hour * 60 + now.minute]) {
       _addTime(formatDoseTime(minute));
@@ -210,9 +210,8 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         : null;
   }
 
-  String? get _scheduleError => _times.isEmpty
-      ? AppLocalizations.of(context).doseTimeRequired
-      : _end != null && calendarDayNumber(_end!) < calendarDayNumber(_saveStart)
+  String? get _endError =>
+      _end != null && calendarDayNumber(_end!) < calendarDayNumber(_saveStart)
       ? AppLocalizations.of(context).periodEndInvalid
       : null;
 
@@ -333,12 +332,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
           child: Text(AppLocalizations.of(context).newScheduleEffectiveHint),
         ),
       AppDateField(
-        labelText: _locked && !_historical || widget.newSchedule
+        labelText: _successor
             ? AppLocalizations.of(context).changesStart
             : AppLocalizations.of(context).startDate,
-        value: _locked && !_historical || widget.newSchedule
-            ? _changeStart
-            : _start,
+        value: _saveStart,
         firstDate:
             _locked ||
                 widget.newSchedule ||
@@ -433,7 +430,9 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         const SizedBox(height: 16),
       ],
       FormField<bool>(
-        validator: (_) => _scheduleError,
+        validator: (_) => _times.isEmpty
+            ? AppLocalizations.of(context).doseTimeRequired
+            : null,
         builder: (field) => field.hasError
             ? Text(
                 field.errorText!,
@@ -450,14 +449,18 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
           ),
         ),
       const SizedBox(height: 16),
-      AppDateField(
-        labelText: AppLocalizations.of(context).endDateOptional,
-        value: _end,
-        firstDate: _saveStart,
-        lastDate: DateTime(2100),
-        clearable: true,
-        readOnly: _historical,
-        onChanged: (value) => setState(() => _end = value),
+      FormField<DateTime>(
+        validator: (_) => _endError,
+        builder: (_) => AppDateField(
+          labelText: AppLocalizations.of(context).endDateOptional,
+          value: _end,
+          firstDate: _saveStart,
+          lastDate: DateTime(2100),
+          errorText: _endError,
+          clearable: true,
+          readOnly: _historical,
+          onChanged: (value) => setState(() => _end = value),
+        ),
       ),
     ],
   );

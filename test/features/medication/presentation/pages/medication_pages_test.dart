@@ -8,6 +8,7 @@ import 'package:petlytics/core/result/result.dart';
 import 'package:petlytics/core/router/app_routes.dart';
 import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
+import 'package:petlytics/core/widgets/app_date_field.dart';
 import 'package:petlytics/core/widgets/app_multi_step_form.dart';
 import 'package:petlytics/features/medication/domain/entities/medication.dart';
 import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
@@ -836,6 +837,182 @@ void main() {
       await tester.tap(find.text('Discard changes'));
       await tester.pumpAndSettle();
       verify(() => app.repository.saveDoseLog(any(), any(), any())).called(2);
+    },
+  );
+
+  testWidgets(
+    'a successor uses one start boundary and keeps an invalid inherited end visible until corrected',
+    (tester) async {
+      final original = MedicationPeriod(
+        id: 'period',
+        medicationId: 'med',
+        startDate: DateTime(app.today.year, app.today.month, app.today.day - 2),
+        endDate: app.today,
+        intervalDays: 1,
+        doseTimes: [480],
+      );
+      app.medications = [
+        app.sample(periods: [original]),
+      ];
+      app.logs.add(
+        MedicationDoseLog(
+          periodId: original.id,
+          scheduledDate: original.startDate,
+          scheduledMinute: 480,
+          status: MedicationDoseStatus.skipped,
+        ),
+      );
+      final router = await app.pump(tester);
+      unawaited(
+        router.push(
+          AppRoutes.addEditMedication('pet'),
+          extra: MedicationFormExtra(
+            petId: 'pet',
+            medication: app.medications.single,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Edit').last);
+      await tester.pumpAndSettle();
+      AppDateField dateField(String label) => tester
+          .widgetList<AppDateField>(find.byType(AppDateField))
+          .singleWhere((field) => field.labelText == label);
+      expect(dateField('Start date').value, original.startDate);
+      expect(dateField('End date (optional)').firstDate, original.startDate);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '08:00'),
+        '0930',
+      );
+      await tester.pumpAndSettle();
+      final tomorrow = DateTime(
+        app.today.year,
+        app.today.month,
+        app.today.day + 1,
+      );
+      expect(dateField('Changes start').value, tomorrow);
+      expect(dateField('End date (optional)').firstDate, tomorrow);
+      expect(dateField('End date (optional)').value, app.today);
+      expect(dateField('End date (optional)').errorText, isNotNull);
+      await tap(tester, 'Done');
+      expect(find.text('Step 2 of 3 · Schedule'), findsOneWidget);
+      verifyNever(
+        () => app.repository.createPeriod(
+          any(),
+          any(),
+          medicationName: any(named: 'medicationName'),
+        ),
+      );
+      dateField('End date (optional)').onChanged(null);
+      await tester.pumpAndSettle();
+      await tap(tester, 'Done');
+      await tap(tester, 'Save changes');
+      expect(app.medications.single.periods.first, original);
+      final successor = app.medications.single.periods.last;
+      expect(successor.startDate, tomorrow);
+      expect(successor.endDate, isNull);
+      expect(successor.doseTimes, [570]);
+      expect(app.logs.single.periodId, original.id);
+    },
+  );
+
+  testWidgets(
+    'selecting tomorrow alone creates a successor with matching date bounds',
+    (tester) async {
+      app.medications = [app.sample()];
+      final original = app.medications.single.periods.single;
+      app.logs.add(
+        MedicationDoseLog(
+          periodId: original.id,
+          scheduledDate: original.startDate,
+          scheduledMinute: 480,
+          status: MedicationDoseStatus.skipped,
+        ),
+      );
+      final router = await app.pump(tester);
+      unawaited(
+        router.push(
+          AppRoutes.addEditMedication('pet'),
+          extra: MedicationFormExtra(
+            petId: 'pet',
+            medication: app.medications.single,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Edit').last);
+      await tester.pumpAndSettle();
+      final tomorrow = DateTime(
+        app.today.year,
+        app.today.month,
+        app.today.day + 1,
+      );
+      tester
+          .widgetList<AppDateField>(find.byType(AppDateField))
+          .first
+          .onChanged(tomorrow);
+      await tester.pumpAndSettle();
+      final fields = tester
+          .widgetList<AppDateField>(find.byType(AppDateField))
+          .toList();
+      expect(fields.first.labelText, 'Changes start');
+      expect(fields.first.value, tomorrow);
+      expect(fields.last.firstDate, tomorrow);
+      await tap(tester, 'Done');
+      await tap(tester, 'Save changes');
+      expect(app.medications.single.periods.length, 2);
+      expect(app.medications.single.periods.last.startDate, tomorrow);
+      expect(app.medications.single.periods.first, original);
+    },
+  );
+
+  testWidgets(
+    'end-only correction updates the original period without scheduling new usage',
+    (tester) async {
+      app.medications = [app.sample()];
+      final original = app.medications.single.periods.single;
+      app.logs.add(
+        MedicationDoseLog(
+          periodId: original.id,
+          scheduledDate: original.startDate,
+          scheduledMinute: 480,
+          status: MedicationDoseStatus.skipped,
+        ),
+      );
+      final router = await app.pump(tester);
+      unawaited(
+        router.push(
+          AppRoutes.addEditMedication('pet'),
+          extra: MedicationFormExtra(
+            petId: 'pet',
+            medication: app.medications.single,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Edit').last);
+      await tester.pumpAndSettle();
+      final fields = tester
+          .widgetList<AppDateField>(find.byType(AppDateField))
+          .toList();
+      expect(fields.first.value, original.startDate);
+      fields.last.onChanged(app.today);
+      await tester.pumpAndSettle();
+      await tap(tester, 'Done');
+      await tap(tester, 'Save changes');
+      expect(app.medications.single.periods.single.id, original.id);
+      expect(
+        app.medications.single.periods.single.startDate,
+        original.startDate,
+      );
+      expect(app.medications.single.periods.single.endDate, app.today);
+      verifyNever(
+        () => app.repository.createPeriod(
+          any(),
+          any(),
+          medicationName: any(named: 'medicationName'),
+        ),
+      );
     },
   );
 

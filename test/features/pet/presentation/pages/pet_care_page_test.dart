@@ -347,7 +347,16 @@ void main() {
         await tester.tap(calendar);
         await tester.pumpAndSettle();
         final given = find.widgetWithText(FilledButton, 'Given').first;
-        await tester.ensureVisible(given);
+        await tester.scrollUntilVisible(
+          find.text('08:00'),
+          300,
+          scrollable: find
+              .descendant(
+                of: find.byType(CustomScrollView),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
         await tester.pumpAndSettle();
         await tester.tap(given);
         await tester.pumpAndSettle();

@@ -81,6 +81,11 @@ class MedicationDoseCalendar extends StatelessWidget {
       final date = DateTime(month.year, month.month, day);
       final selected = DateUtils.isSameDay(date, state.doses.date);
       final indicators = statuses(day);
+      final indicator = indicators.isEmpty
+          ? null
+          : indicators.length == 1
+          ? indicators.single.$1
+          : Icons.pie_chart_outline;
       final label = AppLocalizations.of(context).calendarDayDescription(
         dates.formatFullDate(date),
         indicators.isEmpty
@@ -108,39 +113,38 @@ class MedicationDoseCalendar extends StatelessWidget {
               key: ValueKey(('dose-calendar-day', date)),
               borderRadius: BorderRadius.circular(12),
               onTap: busy ? null : () => cubit.selectCalendarDay(date),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                child: largeText
-                    ? Row(
-                        children: [
-                          Expanded(child: Text(dates.formatMediumDate(date))),
-                          Wrap(
-                            spacing: 4,
-                            children: [
-                              for (final item in indicators)
-                                Icon(item.$1, size: 20),
-                            ],
-                          ),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          Text(
-                            '$day',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 1,
-                            runSpacing: 2,
-                            children: [
-                              for (final item in indicators)
-                                Icon(item.$1, size: 12),
-                            ],
-                          ),
-                        ],
-                      ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 64),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 2,
+                  ),
+                  child: largeText
+                      ? Row(
+                          children: [
+                            Expanded(child: Text(dates.formatMediumDate(date))),
+                            if (indicator != null) Icon(indicator, size: 20),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            Text(
+                              '$day',
+                              maxLines: 1,
+                              softWrap: false,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            SizedBox(
+                              height: 16,
+                              child: indicator == null
+                                  ? null
+                                  : Icon(indicator, size: 16),
+                            ),
+                          ],
+                        ),
+                ),
               ),
             ),
           ),
@@ -148,167 +152,188 @@ class MedicationDoseCalendar extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              tooltip: AppLocalizations.of(context).previousMonth,
-              onPressed: busy
-                  ? null
-                  : () => cubit.loadCalendar(
-                      DateTime(month.year, month.month - 1),
-                    ),
-              icon: const Icon(Icons.chevron_left),
-            ),
-            Flexible(
-              child: Text(
-                dates.formatMonthYear(month),
-                style: Theme.of(context).textTheme.titleMedium,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            IconButton(
-              tooltip: AppLocalizations.of(context).nextMonth,
-              onPressed: busy
-                  ? null
-                  : () => cubit.loadCalendar(
-                      DateTime(month.year, month.month + 1),
-                    ),
-              icon: const Icon(Icons.chevron_right),
-            ),
-          ],
-        ),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: TextButton.icon(
-            onPressed:
-                busy || DateUtils.isSameDay(state.doses.date, state.currentTime)
-                ? null
-                : () async {
-                    final now = cubit.now();
-                    if (month.year != now.year || month.month != now.month) {
-                      await cubit.loadCalendar(now);
-                    }
-                    cubit.selectCalendarDay(now);
-                  },
-            icon: const Icon(Icons.today_outlined),
-            label: Text(AppLocalizations.of(context).goToToday),
-          ),
-        ),
-        if (calendar.isLoading)
-          LinearProgressIndicator(
-            semanticsLabel: AppLocalizations.of(context).loadingMonthRecords,
-          ),
-        if (calendar.error != null)
-          AppErrorFeedback(
-            message: AppLocalizations.of(context).doseLoadFailed,
-            retryLabel: AppLocalizations.of(context).retryCalendar,
-            onRetry: () => cubit.loadCalendar(month),
-          ),
-        if (largeText) ...[
-          for (var day = 1; day <= days; day++)
-            if (byDay.containsKey(day) || day == state.doses.date.day)
-              dayButton(day),
-        ] else ...[
-          Row(
-            children: [
-              for (var index = 0; index < 7; index++)
-                Expanded(
-                  child: ExcludeSemantics(
-                    child: Text(
-                      dates.narrowWeekdays[(index + dates.firstDayOfWeekIndex) %
-                          7],
-                      textAlign: TextAlign.center,
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        tooltip: AppLocalizations.of(context).previousMonth,
+                        onPressed: busy
+                            ? null
+                            : () => cubit.loadCalendar(
+                                DateTime(month.year, month.month - 1),
+                              ),
+                        icon: const Icon(Icons.chevron_left),
+                      ),
+                      Flexible(
+                        child: Text(
+                          dates.formatMonthYear(month),
+                          style: Theme.of(context).textTheme.titleMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: AppLocalizations.of(context).nextMonth,
+                        onPressed: busy
+                            ? null
+                            : () => cubit.loadCalendar(
+                                DateTime(month.year, month.month + 1),
+                              ),
+                        icon: const Icon(Icons.chevron_right),
+                      ),
+                    ],
+                  ),
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: TextButton.icon(
+                      onPressed:
+                          busy ||
+                              DateUtils.isSameDay(
+                                state.doses.date,
+                                state.currentTime,
+                              )
+                          ? null
+                          : () async {
+                              final now = cubit.now();
+                              if (month.year != now.year ||
+                                  month.month != now.month) {
+                                await cubit.loadCalendar(now);
+                              }
+                              cubit.selectCalendarDay(now);
+                            },
+                      icon: const Icon(Icons.today_outlined),
+                      label: Text(AppLocalizations.of(context).goToToday),
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          for (var week = 0; week < (days + offset + 6) ~/ 7; week++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var index = 0; index < 7; index++)
-                      Expanded(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(minHeight: 64),
-                          child:
-                              week * 7 + index - offset + 1 < 1 ||
-                                  week * 7 + index - offset + 1 > days
-                              ? const SizedBox.shrink()
-                              : dayButton(week * 7 + index - offset + 1),
+                  if (calendar.isLoading)
+                    LinearProgressIndicator(
+                      semanticsLabel: AppLocalizations.of(context)
+                          .loadingMonthRecords,
+                    ),
+                  if (calendar.error != null)
+                    AppErrorFeedback(
+                      message: AppLocalizations.of(context).doseLoadFailed,
+                      retryLabel: AppLocalizations.of(context).retryCalendar,
+                      onRetry: () => cubit.loadCalendar(month),
+                    ),
+                  if (largeText) ...[
+                    for (var day = 1; day <= days; day++)
+                      if (byDay.containsKey(day) || day == state.doses.date.day)
+                        dayButton(day),
+                  ] else ...[
+                    Row(
+                      children: [
+                        for (var index = 0; index < 7; index++)
+                          Expanded(
+                            child: ExcludeSemantics(
+                              child: Text(
+                                dates.narrowWeekdays[(index +
+                                        dates.firstDayOfWeekIndex) %
+                                    7],
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    for (var week = 0; week < (days + offset + 6) ~/ 7; week++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (var index = 0; index < 7; index++)
+                              Expanded(
+                                child:
+                                    week * 7 + index - offset + 1 < 1 ||
+                                        week * 7 + index - offset + 1 > days
+                                    ? const SizedBox.shrink()
+                                    : dayButton(week * 7 + index - offset + 1),
+                              ),
+                          ],
                         ),
                       ),
                   ],
-                ),
-              ),
-            ),
-        ],
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 16,
-          runSpacing: 8,
-          children: [
-            for (final item in [
-              (
-                Icons.check_circle_outline,
-                AppLocalizations.of(context).doseGiven,
-              ),
-              (
-                Icons.remove_circle_outline,
-                AppLocalizations.of(context).doseSkipped,
-              ),
-              (
-                Icons.radio_button_unchecked,
-                AppLocalizations.of(context).noDoseRecord,
-              ),
-              (Icons.schedule_outlined, AppLocalizations.of(context).scheduled),
-            ])
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(item.$1, size: 16),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      item.$2,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
                 ],
               ),
-          ],
+            ),
+          ),
         ),
-        const SizedBox(height: 24),
-        Text(
-          dates.formatFullDate(state.doses.date),
-          style: Theme.of(context).textTheme.titleMedium,
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 24, bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  dates.formatFullDate(state.doses.date),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                if (state.doses.doses.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      AppLocalizations.of(context).noCalendarDayDoses,
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 8,
+                      children: [
+                        for (final item in statuses(state.doses.date.day))
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(item.$1, size: 16),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  item.$2,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 12),
-        if (state.doses.doses.isEmpty)
-          Text(AppLocalizations.of(context).noCalendarDayDoses),
-        for (final dose in state.doses.doses)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: MedicationDoseTile(
+        SliverList.builder(
+          itemCount: state.doses.doses.length,
+          itemBuilder: (context, index) {
+            final dose = state.doses.doses[index];
+            return Padding(
               key: ValueKey((
                 dose.period.id,
                 dose.scheduledDate,
                 dose.scheduledMinute,
               )),
-              dose: dose,
-              known: state.doses.hasLoaded && !state.doses.isLoading,
-              loading: state.doses.isLoading,
-              busy: busy,
-            ),
-          ),
+              padding: const EdgeInsets.only(bottom: 12),
+              child: MedicationDoseTile(
+                dose: dose,
+                known: state.doses.hasLoaded && !state.doses.isLoading,
+                loading: state.doses.isLoading,
+                busy: busy,
+              ),
+            );
+          },
+        ),
       ],
     );
   }
