@@ -48,6 +48,37 @@ void main() {
 
   test('returns an empty history when there are no measurements', () async {
     expect(await source.getWeightEntries('pet-1'), isEmpty);
+    expect(await source.getAllWeightEntries(), isEmpty);
+  });
+
+  test('all-pet reads preserve ownership, date order and insertion ties after edits and pet deletion', () async {
+    final other = WeightEntryModel(
+      id: 'other',
+      petId: 'pet-2',
+      weight: 7,
+      measuredAt: measuredAt,
+    );
+    final latest = WeightEntryModel(
+      id: 'latest',
+      petId: entry.petId,
+      weight: 5.5,
+      measuredAt: measuredAt.add(const Duration(days: 1)),
+    );
+    await source.createWeightEntry(entry);
+    await source.createWeightEntry(other);
+    await source.createWeightEntry(latest);
+    expect(await source.getAllWeightEntries(), [latest, other, entry]);
+    final corrected = WeightEntryModel(
+      id: entry.id,
+      petId: entry.petId,
+      weight: 5.6,
+      measuredAt: measuredAt,
+    );
+    await source.updateWeightEntry(corrected);
+    expect(await source.getAllWeightEntries(), [latest, other, corrected]);
+    expect(await source.getWeightEntries('pet-2'), [other]);
+    await db.delete(DatabaseTables.pets, where: 'id = ?', whereArgs: ['pet-2']);
+    expect(await source.getAllWeightEntries(), [latest, corrected]);
   });
 
   test(
@@ -217,11 +248,12 @@ void main() {
     expect(await source.getWeightEntries(entry.petId), [entry]);
   });
 
-  for (final operation in ['read', 'create', 'update', 'delete']) {
+  for (final operation in ['read', 'readAll', 'create', 'update', 'delete']) {
     test('maps SQLite errors for $operation', () async {
       await db.execute('DROP TABLE ${DatabaseTables.weightEntries}');
       final result = switch (operation) {
         'read' => source.getWeightEntries(entry.petId),
+        'readAll' => source.getAllWeightEntries(),
         'create' => source.createWeightEntry(entry),
         'update' => source.updateWeightEntry(entry),
         _ => source.deleteWeightEntry(entry.id),

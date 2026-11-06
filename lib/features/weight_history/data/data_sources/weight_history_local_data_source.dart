@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 
 abstract interface class WeightHistoryLocalDataSource {
   Future<List<WeightEntryModel>> getWeightEntries(String petId);
+  Future<List<WeightEntryModel>> getAllWeightEntries();
   Future<void> createWeightEntry(WeightEntryModel entry);
   Future<void> updateWeightEntry(WeightEntryModel entry);
   Future<void> deleteWeightEntry(String id);
@@ -16,12 +17,18 @@ final class WeightHistoryLocalDataSourceImpl
   const WeightHistoryLocalDataSourceImpl(this.db);
 
   @override
-  Future<List<WeightEntryModel>> getWeightEntries(String petId) async {
+  Future<List<WeightEntryModel>> getWeightEntries(String petId) =>
+      _readEntries(petId: petId);
+
+  @override
+  Future<List<WeightEntryModel>> getAllWeightEntries() => _readEntries();
+
+  Future<List<WeightEntryModel>> _readEntries({String? petId}) async {
     try {
       final rows = await db.query(
         DatabaseTables.weightEntries,
-        where: 'pet_id = ?',
-        whereArgs: [petId],
+        where: petId == null ? null : 'pet_id = ?',
+        whereArgs: petId == null ? null : [petId],
         // For equal measurement times, prefer the most recently added row.
         orderBy: 'measured_at DESC, rowid DESC',
       );

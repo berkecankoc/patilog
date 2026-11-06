@@ -11,6 +11,16 @@ final class WeightHistoryRepositoryImpl implements WeightHistoryRepository {
   const WeightHistoryRepositoryImpl(this.localDataSource);
 
   @override
+  Future<Result<List<WeightEntry>>> getAllWeightEntries() async {
+    try {
+      final models = await localDataSource.getAllWeightEntries();
+      return Success(models.map((model) => model.toEntity()).toList());
+    } on LocalDataSourceException {
+      return const Error(LocalDatabaseFailure('Failed to load weight history'));
+    }
+  }
+
+  @override
   Future<Result<List<WeightEntry>>> getWeightEntries(String petId) async {
     try {
       final models = await localDataSource.getWeightEntries(petId);

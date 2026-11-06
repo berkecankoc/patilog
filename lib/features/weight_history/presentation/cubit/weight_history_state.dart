@@ -21,6 +21,7 @@ final class WeightHistoryLoading extends WeightHistoryState {
 }
 
 final class WeightHistoryLoaded extends WeightHistoryState {
+  final String? petId;
   final List<WeightEntry> entries;
   final bool isDeleting;
   final WeightEntry? deletionEntry;
@@ -30,6 +31,7 @@ final class WeightHistoryLoaded extends WeightHistoryState {
 
   const WeightHistoryLoaded(
     this.entries, {
+    this.petId,
     this.isDeleting = false,
     this.deletionEntry,
     this.deleteError,
@@ -37,8 +39,28 @@ final class WeightHistoryLoaded extends WeightHistoryState {
     this.refreshError,
   });
 
+  WeightHistoryLoaded copyWith({
+    List<WeightEntry>? entries,
+    bool? isDeleting,
+    WeightEntry? deletionEntry,
+    String? deleteError,
+    bool clearDeletion = false,
+    bool? isRefreshing,
+    String? refreshError,
+    bool clearRefreshError = false,
+  }) => WeightHistoryLoaded(
+    entries ?? this.entries,
+    petId: petId,
+    isDeleting: isDeleting ?? this.isDeleting,
+    deletionEntry: clearDeletion ? null : deletionEntry ?? this.deletionEntry,
+    deleteError: clearDeletion ? null : deleteError ?? this.deleteError,
+    isRefreshing: isRefreshing ?? this.isRefreshing,
+    refreshError: clearRefreshError ? null : refreshError ?? this.refreshError,
+  );
+
   @override
   List<Object?> get props => [
+    petId,
     entries,
     isDeleting,
     deletionEntry,

@@ -9,41 +9,85 @@ final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
   final WeightHistoryRepository repository;
   final IdGenerator _idGenerator;
   int _loadRequest = 0;
+  bool _dirty = false;
+  Set<String> _petIds = {};
+  String? _selectedPetId;
+  final _removedPets = <String>{};
+  final _removedEntries = <(String, String)>{};
 
   WeightHistoryCubit(this.repository, this._idGenerator)
     : super(const WeightHistoryInitial());
 
-  Future<void> loadWeightHistory(String petId) async {
+  bool get needsReload => _dirty || state is WeightHistoryInitial;
+
+  void setPetContext(Iterable<String> petIds, {String? selectedPetId}) {
+    _petIds = petIds.toSet();
+    _selectedPetId = _petIds.contains(selectedPetId) ? selectedPetId : null;
+  }
+
+  void dismissDeletionError() {
+    final current = state;
+    if (!isClosed && current is WeightHistoryLoaded && !current.isDeleting) {
+      emit(current.copyWith(clearDeletion: true));
+    }
+  }
+
+  void invalidateList() {
+    if (isClosed) return;
+    _dirty = true;
+    ++_loadRequest;
+    final current = state;
+    if (current is WeightHistoryLoaded && current.isRefreshing) {
+      emit(current.copyWith(isRefreshing: false));
+    }
+  }
+
+  List<WeightEntry> _remaining(Iterable<WeightEntry> entries) => entries
+      .where(
+        (entry) =>
+            !_removedPets.contains(entry.petId) &&
+            !_removedEntries.contains((entry.petId, entry.id)),
+      )
+      .toList();
+
+  Future<void> loadWeightHistory(String petId) => _load(petId);
+  Future<void> loadAllWeightHistory() => _load(null);
+
+  Future<void> _load(String? petId) async {
     if (isClosed ||
         state is WeightHistoryLoaded &&
             (state as WeightHistoryLoaded).isDeleting) {
       return;
     }
-    final previous =
-        state is WeightHistoryLoaded &&
-            (state as WeightHistoryLoaded).entries.every(
-              (entry) => entry.petId == petId,
-            )
-        ? state as WeightHistoryLoaded
+    _dirty = false;
+    final current = state;
+    final previous = current is WeightHistoryLoaded && current.petId == petId
+        ? current
         : null;
     final request = ++_loadRequest;
     emit(
       previous == null
           ? const WeightHistoryLoading()
-          : WeightHistoryLoaded(previous.entries, isRefreshing: true),
+          : previous.copyWith(isRefreshing: true, clearRefreshError: true),
     );
-    final result = await repository.getWeightEntries(petId);
+    final result = petId == null
+        ? await repository.getAllWeightEntries()
+        : await repository.getWeightEntries(petId);
     if (isClosed || request != _loadRequest) return;
+    final latest = state;
+    final retained = latest is WeightHistoryLoaded && latest.petId == petId
+        ? latest
+        : previous;
 
     switch (result) {
       case Success<List<WeightEntry>>():
-        emit(WeightHistoryLoaded(result.data));
+        emit(WeightHistoryLoaded(_remaining(result.data), petId: petId));
       case Error<List<WeightEntry>>():
         emit(
-          previous == null
+          retained == null
               ? WeightHistoryError(result.failure)
-              : WeightHistoryLoaded(
-                  previous.entries,
+              : retained.copyWith(
+                  isRefreshing: false,
                   refreshError: result.failure.message,
                 ),
         );
@@ -98,34 +142,84 @@ final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
 
   Future<void> deleteWeightEntry(WeightEntry entry) async {
     final current = state;
-    if (current is! WeightHistoryLoaded || current.isDeleting) return;
+    if (isClosed ||
+        current is! WeightHistoryLoaded ||
+        current.isDeleting ||
+        current.isRefreshing ||
+        _removedPets.contains(entry.petId) ||
+        (current.petId == null
+            ? !_petIds.contains(entry.petId) ||
+                  (_selectedPetId != null && _selectedPetId != entry.petId)
+            : current.petId != entry.petId) ||
+        !current.entries.any(
+          (item) => item.id == entry.id && item.petId == entry.petId,
+        )) {
+      return;
+    }
     ++_loadRequest;
-    emit(
-      WeightHistoryLoaded(
-        current.entries,
-        isDeleting: true,
-        deletionEntry: entry,
-      ),
-    );
+    emit(current.copyWith(isDeleting: true, deletionEntry: entry));
     final result = await repository.deleteWeightEntry(entry.id);
     if (isClosed) return;
+    final latest = state is WeightHistoryLoaded
+        ? state as WeightHistoryLoaded
+        : current;
 
     switch (result) {
       case Success<void>():
+        _removedEntries.add((entry.petId, entry.id));
         // The committed deletion is known; keep the list and its scroll state.
         emit(
-          WeightHistoryLoaded(
-            current.entries.where((item) => item.id != entry.id).toList(),
+          latest.copyWith(
+            entries: _remaining(latest.entries),
+            isDeleting: false,
+            clearDeletion: true,
           ),
         );
       case Error<void>():
         emit(
-          WeightHistoryLoaded(
-            current.entries,
+          latest.copyWith(
+            isDeleting: false,
             deletionEntry: entry,
             deleteError: result.failure.message,
           ),
         );
+    }
+  }
+
+  void removeDeletedEntry(String id, {String? petId}) {
+    if (isClosed) return;
+    final current = state;
+    final owner =
+        petId ??
+        (current is WeightHistoryLoaded
+            ? current.entries
+                  .where((entry) => entry.id == id)
+                  .firstOrNull
+                  ?.petId
+            : null);
+    if (owner == null) return;
+    _removedEntries.add((owner, id));
+    if (current is WeightHistoryLoaded) {
+      emit(
+        current.copyWith(
+          entries: _remaining(current.entries),
+          clearDeletion: current.deletionEntry?.id == id,
+        ),
+      );
+    }
+  }
+
+  void removeDeletedPet(String petId) {
+    if (isClosed) return;
+    _removedPets.add(petId);
+    final current = state;
+    if (current is WeightHistoryLoaded) {
+      emit(
+        current.copyWith(
+          entries: _remaining(current.entries),
+          clearDeletion: current.deletionEntry?.petId == petId,
+        ),
+      );
     }
   }
 }

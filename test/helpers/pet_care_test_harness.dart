@@ -95,6 +95,7 @@ class PetCareTestHarness {
   );
 
   void register() {
+    when(weights.getAllWeightEntries).thenAnswer((_) async => Success(measurements));
     when(() => weights.getWeightEntries(any())).thenAnswer(
       (call) async => Success(
         measurements

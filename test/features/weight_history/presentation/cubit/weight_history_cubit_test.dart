@@ -47,11 +47,15 @@ void main() {
       );
       return makeCubit();
     },
-    seed: () => WeightHistoryLoaded([entry]),
+    seed: () => WeightHistoryLoaded([entry], petId: entry.petId),
     act: (cubit) => cubit.loadWeightHistory(entry.petId),
     expect: () => [
-      WeightHistoryLoaded([entry], isRefreshing: true),
-      WeightHistoryLoaded([entry], refreshError: 'Refresh failed'),
+      WeightHistoryLoaded([entry], petId: entry.petId, isRefreshing: true),
+      WeightHistoryLoaded(
+        [entry],
+        petId: entry.petId,
+        refreshError: 'Refresh failed',
+      ),
     ],
   );
 
@@ -68,15 +72,14 @@ void main() {
     blocTest<WeightHistoryCubit, WeightHistoryState>(
       'loads ${entries.length} measurements',
       build: () {
-        when(
-          () => repository.getWeightEntries(entry.petId),
-        ).thenAnswer((_) async => Success(entries));
+        when(() => repository.getWeightEntries(entry.petId))
+            .thenAnswer((_) async => Success(entries));
         return makeCubit();
       },
       act: (cubit) => cubit.loadWeightHistory(entry.petId),
       expect: () => [
         const WeightHistoryLoading(),
-        WeightHistoryLoaded(entries),
+        WeightHistoryLoaded(entries, petId: entry.petId),
       ],
       verify: (_) =>
           verify(() => repository.getWeightEntries(entry.petId)).called(1),
@@ -109,9 +112,8 @@ void main() {
       'creates a measurement with a generated ID and emits $state',
       build: () {
         when(() => idGenerator.generate()).thenReturn(entry.id);
-        when(
-          () => repository.createWeightEntry(entry),
-        ).thenAnswer((_) async => result);
+        when(() => repository.createWeightEntry(entry))
+            .thenAnswer((_) async => result);
         return makeCubit();
       },
       act: (cubit) => cubit.createWeightEntry(
@@ -141,9 +143,8 @@ void main() {
     blocTest<WeightHistoryCubit, WeightHistoryState>(
       'preserves measurement identity when updating and emits $state',
       build: () {
-        when(
-          () => repository.updateWeightEntry(updated),
-        ).thenAnswer((_) async => result);
+        when(() => repository.updateWeightEntry(updated))
+            .thenAnswer((_) async => result);
         return makeCubit();
       },
       act: (cubit) => cubit.updateWeightEntry(
@@ -162,16 +163,20 @@ void main() {
   blocTest<WeightHistoryCubit, WeightHistoryState>(
     'removes a deleted measurement without discarding the loaded list',
     build: () {
-      when(
-        () => repository.deleteWeightEntry(entry.id),
-      ).thenAnswer((_) async => const Success(null));
+      when(() => repository.deleteWeightEntry(entry.id))
+          .thenAnswer((_) async => const Success(null));
       return makeCubit();
     },
-    seed: () => WeightHistoryLoaded([entry]),
+    seed: () => WeightHistoryLoaded([entry], petId: entry.petId),
     act: (cubit) => cubit.deleteWeightEntry(entry),
     expect: () => [
-      WeightHistoryLoaded([entry], isDeleting: true, deletionEntry: entry),
-      const WeightHistoryLoaded([]),
+      WeightHistoryLoaded(
+        [entry],
+        petId: entry.petId,
+        isDeleting: true,
+        deletionEntry: entry,
+      ),
+      const WeightHistoryLoaded([], petId: 'pet-1'),
     ],
     verify: (_) {
       verify(() => repository.deleteWeightEntry(entry.id)).called(1);
@@ -187,12 +192,18 @@ void main() {
       );
       return makeCubit();
     },
-    seed: () => WeightHistoryLoaded([entry]),
+    seed: () => WeightHistoryLoaded([entry], petId: entry.petId),
     act: (cubit) => cubit.deleteWeightEntry(entry),
     expect: () => [
-      WeightHistoryLoaded([entry], isDeleting: true, deletionEntry: entry),
       WeightHistoryLoaded(
         [entry],
+        petId: entry.petId,
+        isDeleting: true,
+        deletionEntry: entry,
+      ),
+      WeightHistoryLoaded(
+        [entry],
+        petId: entry.petId,
         deletionEntry: entry,
         deleteError: 'Delete failed',
       ),
@@ -209,13 +220,11 @@ void main() {
         weight: 5,
         measuredAt: DateTime.utc(2026, 10, 12),
       );
-      when(
-        () => repository.getWeightEntries(entry.petId),
-      ).thenAnswer((_) async => Success([entry, older]));
+      when(() => repository.getWeightEntries(entry.petId))
+          .thenAnswer((_) async => Success([entry, older]));
       final pending = Completer<Result<void>>();
-      when(
-        () => repository.deleteWeightEntry(entry.id),
-      ).thenAnswer((_) => pending.future);
+      when(() => repository.deleteWeightEntry(entry.id))
+          .thenAnswer((_) => pending.future);
       final cubit = makeCubit();
       addTearDown(cubit.close);
       await cubit.loadWeightHistory(entry.petId);
@@ -223,7 +232,7 @@ void main() {
       await cubit.deleteWeightEntry(entry);
       pending.complete(const Success(null));
       await first;
-      expect(cubit.state, WeightHistoryLoaded([older]));
+      expect(cubit.state, WeightHistoryLoaded([older], petId: entry.petId));
       verify(() => repository.deleteWeightEntry(entry.id)).called(1);
       verify(() => repository.getWeightEntries(entry.petId)).called(1);
     },
@@ -233,9 +242,8 @@ void main() {
     'does not emit when a pending load finishes after the Cubit closes',
     () async {
       final pending = Completer<Result<List<WeightEntry>>>();
-      when(
-        () => repository.getWeightEntries(entry.petId),
-      ).thenAnswer((_) => pending.future);
+      when(() => repository.getWeightEntries(entry.petId))
+          .thenAnswer((_) => pending.future);
       final cubit = makeCubit();
       final operation = cubit.loadWeightHistory(entry.petId);
       await cubit.close();
@@ -248,13 +256,11 @@ void main() {
     'does not emit or reload when a pending deletion finishes after closing',
     () async {
       final pending = Completer<Result<void>>();
-      when(
-        () => repository.deleteWeightEntry(entry.id),
-      ).thenAnswer((_) => pending.future);
+      when(() => repository.deleteWeightEntry(entry.id))
+          .thenAnswer((_) => pending.future);
       final cubit = makeCubit();
-      when(
-        () => repository.getWeightEntries(entry.petId),
-      ).thenAnswer((_) async => Success([entry]));
+      when(() => repository.getWeightEntries(entry.petId))
+          .thenAnswer((_) async => Success([entry]));
       await cubit.loadWeightHistory(entry.petId);
       clearInteractions(repository);
       final operation = cubit.deleteWeightEntry(entry);

@@ -1170,6 +1170,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Finish the current form or action to open this reminder.';
 
   @override
+  String get healthRecords => 'Health records';
+
+  @override
+  String deleteMeasurementForPetMessage(
+    String weight,
+    String date,
+    String petName,
+  ) {
+    return 'Remove the $weight kg measurement from $date for $petName?';
+  }
+
+  @override
   String deleteMeasurementMessage(String weight, String date) {
     return 'Remove the $weight kg measurement from $date?';
   }

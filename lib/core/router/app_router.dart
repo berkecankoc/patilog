@@ -176,6 +176,9 @@ final appRouter = GoRouter(
             create: (_) => getIt<MedicationCubit>(),
           ),
           BlocProvider<FeedingCubit>(create: (_) => getIt<FeedingCubit>()),
+          BlocProvider<WeightHistoryCubit>(
+            create: (_) => getIt<WeightHistoryCubit>(),
+          ),
         ],
         child: CareRecordChangeScope(child: child),
       ),
@@ -193,6 +196,14 @@ final appRouter = GoRouter(
                   !context.read<NotificationCubit>().state.isSaving,
             ),
           ],
+        ),
+        GoRoute(
+          path: AppRoutes.healthRecords,
+          redirect: (_, _) => AppRoutes.allVetVisits,
+        ),
+        GoRoute(
+          path: AppRoutes.allWeightHistory,
+          pageBuilder: (_, _) => _allPetsPage(AllPetsCareSection.weightHistory),
         ),
         GoRoute(
           path: AppRoutes.allVetVisits,

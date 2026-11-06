@@ -2312,6 +2312,22 @@ abstract class AppLocalizations {
   /// **'Finish the current form or action to open this reminder.'**
   String get finishFormToOpenReminder;
 
+  /// No description provided for @healthRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Health records'**
+  String get healthRecords;
+
+  /// No description provided for @deleteMeasurementForPetMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the {weight} kg measurement from {date} for {petName}?'**
+  String deleteMeasurementForPetMessage(
+    String weight,
+    String date,
+    String petName,
+  );
+
   /// Care UI: deleteMeasurementMessage. User content and formatted values are passed unchanged.
   ///
   /// In en, this message translates to:
