@@ -1170,6 +1170,18 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu hatırlatmayı açmak için açık formu veya işlemi tamamlayın.';
 
   @override
+  String get healthRecords => 'Sağlık kayıtları';
+
+  @override
+  String deleteMeasurementForPetMessage(
+    String weight,
+    String date,
+    String petName,
+  ) {
+    return '$petName için $date tarihli $weight kg ölçümü silinsin mi?';
+  }
+
+  @override
   String deleteMeasurementMessage(String weight, String date) {
     return '$date tarihindeki $weight kg ölçümü silinsin mi?';
   }

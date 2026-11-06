@@ -18,6 +18,8 @@ import 'package:petlytics/features/notification/domain/entities/notification_tar
 import 'package:petlytics/features/pet/domain/entities/pet.dart';
 import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
 import 'package:petlytics/features/vaccination/presentation/pages/vaccination_detail_page.dart';
+import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 import '../../../../helpers/settings_test_harness.dart';
 
 void main() {
@@ -291,6 +293,7 @@ void main() {
   for (final location in [
     AppRoutes.allVetVisits,
     AppRoutes.allVaccinations,
+    AppRoutes.allWeightHistory,
     AppRoutes.allMedications,
   ]) {
     testWidgets('idle global care tab $location does not block a reminder', (
@@ -301,6 +304,35 @@ void main() {
       expect(find.byType(VaccinationDetailPage), findsOneWidget);
     });
   }
+  testWidgets(
+    'a global weight deletion finishes before a pending reminder opens',
+    (tester) async {
+      final entry = WeightEntry(
+        id: 'measurement',
+        petId: 'pet',
+        weight: 4,
+        measuredAt: app.care.today,
+      );
+      app.care.measurements = [entry];
+      final pending = Completer<Result<void>>();
+      when(() => app.care.weights.deleteWeightEntry(entry.id))
+          .thenAnswer((_) => pending.future);
+      await pump(tester, location: AppRoutes.allWeightHistory);
+      final global = tester
+          .element(find.byType(AllPetsCarePage))
+          .read<WeightHistoryCubit>();
+      final write = global.deleteWeightEntry(entry);
+      await tester.pump();
+      app.notifications.taps.add(target);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(appRouter.state.uri.path, AppRoutes.allWeightHistory);
+      verifyNever(() => app.care.vaccinations.getVaccinationById(any(), any()));
+      pending.complete(const Success(null));
+      await write;
+      await tester.pumpAndSettle();
+      expect(find.byType(VaccinationDetailPage), findsOneWidget);
+    },
+  );
   testWidgets(
     'a failed global dose write finishes before the waiting reminder opens',
     (tester) async {

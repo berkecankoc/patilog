@@ -19,6 +19,8 @@ import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cu
 import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_state.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
 import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
+import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
 import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
 import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
 import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
@@ -83,6 +85,8 @@ class _NotificationNavigationState extends State<NotificationNavigation>
         final Cubit<Object?>? feature = route is! ModalRoute
             ? null
             : switch (path) {
+                AppRoutes.allWeightHistory =>
+                  route.subtreeContext?.read<WeightHistoryCubit?>(),
                 AppRoutes.allVetVisits =>
                   route.subtreeContext?.read<VetVisitCubit?>(),
                 AppRoutes.allVaccinations =>
@@ -94,6 +98,7 @@ class _NotificationNavigationState extends State<NotificationNavigation>
                 _ => null,
               };
         final busy = switch (feature?.state) {
+          WeightHistoryLoaded(:final isDeleting) => isDeleting,
           VetVisitsLoaded(:final isDeleting) => isDeleting,
           VaccinationsLoaded(:final isDeleting) => isDeleting,
           MedicationsLoaded(:final pendingAction) => pendingAction != null,
@@ -109,6 +114,7 @@ class _NotificationNavigationState extends State<NotificationNavigation>
               AppRoutes.pets,
               AppRoutes.allVetVisits,
               AppRoutes.allVaccinations,
+              AppRoutes.allWeightHistory,
               AppRoutes.allMedications,
               AppRoutes.allFeeding,
             ].contains(path) &&

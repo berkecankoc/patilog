@@ -105,10 +105,11 @@ void main() {
             tester
                 .widgetList<NavigationDestination>(destinations)
                 .map((d) => d.label),
-            containsAll([strings.vaccinations, strings.medications]),
+            containsAll([strings.healthRecords, strings.medications]),
           );
           final positions = <double>[];
-          for (var i = 0; i < 5; i++) {
+          expect(destinations, findsNWidgets(4));
+          for (var i = 0; i < destinations.evaluate().length; i++) {
             final icon = find
                 .descendant(
                   of: destinations.at(i),
@@ -570,7 +571,7 @@ void main() {
           lessThan(tester.getRect(find.byType(SegmentedButton<int>)).top),
         );
       }
-      expect(find.byType(NavigationDestination), findsNWidgets(5));
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
       expect(
         find.text('Select a pet above to see its daily feeding chart.'),
         findsOneWidget,

@@ -2,8 +2,10 @@ abstract final class AppRoutes {
   static const settings = '/settings';
   static const notificationSettings = '$settings/notifications';
   static const pets = '/pets';
-  static const allVetVisits = '/vet-visits';
-  static const allVaccinations = '/vaccinations';
+  static const healthRecords = '/health-records';
+  static const allVetVisits = '$healthRecords/visits';
+  static const allVaccinations = '$healthRecords/vaccinations';
+  static const allWeightHistory = '$healthRecords/weight-history';
   static const allMedications = '/medications';
   static const allFeeding = '/feeding';
   static String feeding(String petId) => '${petDetail(petId)}/feeding';

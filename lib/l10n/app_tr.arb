@@ -369,6 +369,8 @@
   "time24DeviceHint": "Bu cihazda 24 saat biçimi kullanılır.",
   "timeRangeInvalid": "00:00–23:59 arasında bir saat girin",
   "finishFormToOpenReminder": "Bu hatırlatmayı açmak için açık formu veya işlemi tamamlayın.",
+  "healthRecords": "Sağlık kayıtları",
+  "deleteMeasurementForPetMessage": "{petName} için {date} tarihli {weight} kg ölçümü silinsin mi?",
   "deleteMeasurementMessage": "{date} tarihindeki {weight} kg ölçümü silinsin mi?",
   "deleteMeasurementTooltip": "{date} tarihindeki {weight} kg ölçümü sil",
   "deleteVisitMessage": "{date} tarihindeki “{reason}” ziyareti silinsin mi? Bağlı ilaçlar ve doz kayıtları, ziyaret bağlantısı kaldırılarak korunacak. Bu işlem geri alınamaz.",

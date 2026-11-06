@@ -10,6 +10,7 @@ import 'package:petlytics/core/router/pet_care_route_extra.dart';
 import 'package:petlytics/core/router/pet_care_tab.dart';
 import 'package:petlytics/core/widgets/app_error_feedback.dart';
 import 'package:petlytics/core/widgets/app_feeding_icon.dart';
+import 'package:petlytics/core/widgets/app_health_records_icon.dart';
 import 'package:petlytics/core/widgets/error_view.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
@@ -27,15 +28,32 @@ import 'package:petlytics/features/vaccination/presentation/pages/vaccination_li
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
 import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
 import 'package:petlytics/features/vet_visit/presentation/pages/vet_visit_list_page.dart';
+import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
+import 'package:petlytics/features/weight_history/presentation/pages/weight_history_page.dart';
 import 'package:petlytics/l10n/generated/app_localizations.dart';
 
 const _destinations = [
-  (icon: Icons.pets_outlined, path: AppRoutes.pets),
-  (icon: Icons.event_note_outlined, path: AppRoutes.allVetVisits),
-  (icon: Icons.vaccines_outlined, path: AppRoutes.allVaccinations),
-  (icon: Icons.medication_outlined, path: AppRoutes.allMedications),
-  (icon: Icons.rice_bowl_outlined, path: AppRoutes.allFeeding),
+  (icon: Icon(Icons.pets_outlined), path: AppRoutes.pets),
+  (icon: AppHealthRecordsIcon(), path: AppRoutes.allVetVisits),
+  (icon: Icon(Icons.medication_outlined), path: AppRoutes.allMedications),
+  (icon: AppFeedingIcon(), path: AppRoutes.allFeeding),
 ];
+
+const _healthSections = [
+  AllPetsCareSection.vetVisits,
+  AllPetsCareSection.vaccinations,
+  AllPetsCareSection.weightHistory,
+];
+
+String _sectionPath(AllPetsCareSection section) => switch (section) {
+  AllPetsCareSection.pets => AppRoutes.pets,
+  AllPetsCareSection.vetVisits => AppRoutes.allVetVisits,
+  AllPetsCareSection.vaccinations => AppRoutes.allVaccinations,
+  AllPetsCareSection.weightHistory => AppRoutes.allWeightHistory,
+  AllPetsCareSection.medications => AppRoutes.allMedications,
+  AllPetsCareSection.feeding => AppRoutes.allFeeding,
+};
 
 class AllPetsCarePage extends StatefulWidget {
   final AllPetsCareSection section;
@@ -45,7 +63,18 @@ class AllPetsCarePage extends StatefulWidget {
 }
 
 class _AllPetsCarePageState extends State<AllPetsCarePage>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  late final TabController _healthTabs;
+  AllPetsCareSection _lastHealthSection = AllPetsCareSection.vetVisits;
+  bool get _health => _healthSections.contains(widget.section);
+  int get _navigationIndex => _health
+      ? 1
+      : switch (widget.section) {
+          AllPetsCareSection.pets => 0,
+          AllPetsCareSection.medications => 2,
+          AllPetsCareSection.feeding => 3,
+          _ => 1,
+        };
   GoRouter? _router;
   CareRecordChanges? _changes;
   Timer? _timer;
@@ -64,8 +93,10 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     AllPetsCareSection.vaccinations => context.read<VaccinationCubit>(),
     AllPetsCareSection.medications => context.read<MedicationCubit>(),
     AllPetsCareSection.feeding => context.read<FeedingCubit>(),
+    AllPetsCareSection.weightHistory => context.read<WeightHistoryCubit>(),
   };
   bool get _busy => switch (_feature?.state) {
+    WeightHistoryLoaded(:final isDeleting) => isDeleting,
     VetVisitsLoaded(:final isDeleting) => isDeleting,
     VaccinationsLoaded(:final isDeleting) => isDeleting,
     MedicationsLoaded(:final pendingAction) => pendingAction != null,
@@ -73,10 +104,12 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     _ => false,
   };
   bool get _loading => switch (_feature?.state) {
+    WeightHistoryLoading() ||
     VetVisitLoading() ||
     VaccinationLoading() ||
     MedicationLoading() ||
     FeedingLoading() => true,
+    WeightHistoryLoaded(:final isRefreshing) => isRefreshing,
     VetVisitsLoaded(:final isRefreshing) => isRefreshing,
     VaccinationsLoaded(:final isRefreshing) => isRefreshing,
     MedicationsLoaded(
@@ -93,6 +126,12 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
   @override
   void initState() {
     super.initState();
+    if (_health) _lastHealthSection = widget.section;
+    _healthTabs = TabController(
+      length: _healthSections.length,
+      vsync: this,
+      initialIndex: _healthSections.indexOf(_lastHealthSection),
+    );
     WidgetsBinding.instance.addObserver(this);
     _timer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted &&
@@ -129,8 +168,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
   }
 
   void _scheduleSync() {
-    _visible =
-        _router?.state.uri.path == _destinations[widget.section.index].path;
+    _visible = _router?.state.uri.path == _sectionPath(widget.section);
     if (_queued) return;
     _queued = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -139,6 +177,18 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       if (!_visible) {
         if (_started) setState(() {});
         return;
+      }
+      if (_health) {
+        _lastHealthSection = widget.section;
+        final index = _healthSections.indexOf(widget.section);
+        if (_healthTabs.index != index) {
+          _healthTabs.animateTo(
+            index,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : null,
+          );
+        }
       }
       setState(() {
         _started = true;
@@ -157,6 +207,9 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       if (_busy) return;
       _cubit.activate(widget.section);
       switch (widget.section) {
+        case AllPetsCareSection.weightHistory:
+          final cubit = context.read<WeightHistoryCubit>();
+          if (cubit.needsReload) cubit.loadAllWeightHistory();
         case AllPetsCareSection.vetVisits:
           final cubit = context.read<VetVisitCubit>();
           if (cubit.needsReload) cubit.loadAllVetVisits();
@@ -173,6 +226,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
   }
 
   void _removePetRecords(String id) {
+    context.read<WeightHistoryCubit>().removeDeletedPet(id);
     context.read<VetVisitCubit>().removeDeletedPet(id);
     context.read<VaccinationCubit>().removeDeletedPet(id);
     context.read<MedicationCubit>().removeDeletedPet(id);
@@ -199,8 +253,21 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       _removePetRecords(change.petId!);
     } else {
       switch (change.tab) {
-        case PetCareTab.profile || PetCareTab.weightHistory:
+        case PetCareTab.profile:
           _cubit.invalidatePets();
+          context.read<WeightHistoryCubit>().invalidateList();
+        case PetCareTab.weightHistory:
+          _cubit.invalidatePets();
+          if (!change.globalListIsCurrent) {
+            if (change.deletedId != null) {
+              context.read<WeightHistoryCubit>().removeDeletedEntry(
+                change.deletedId!,
+                petId: change.petId,
+              );
+            } else {
+              context.read<WeightHistoryCubit>().invalidateList();
+            }
+          }
         case PetCareTab.vetVisits:
           if (!change.globalListIsCurrent) {
             if (change.deletedId != null) {
@@ -249,6 +316,8 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       switch (widget.section) {
         case AllPetsCareSection.pets:
           _cubit.loadPets();
+        case AllPetsCareSection.weightHistory:
+          context.read<WeightHistoryCubit>().loadAllWeightHistory();
         case AllPetsCareSection.vetVisits:
           context.read<VetVisitCubit>().loadAllVetVisits();
         case AllPetsCareSection.vaccinations:
@@ -261,6 +330,7 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
 
   @override
   void dispose() {
+    _healthTabs.dispose();
     _timer?.cancel();
     _featureChanges?.cancel();
     WidgetsBinding.instance.removeObserver(this);
@@ -291,6 +361,10 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                   pets: state.pets.records,
                   onOpenPet: _openPet,
                 ),
+        AllPetsCareSection.weightHistory => WeightHistoryPage(
+          pets: state.pets.records,
+          petsLoaded: state.pets.hasLoaded,
+        ),
         AllPetsCareSection.vetVisits => VetVisitListPage(
           pets: state.pets.records,
           petsLoaded: state.pets.hasLoaded,
@@ -324,23 +398,48 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
         final strings = AppLocalizations.of(context);
         final labels = [
           strings.myPets,
-          strings.vetVisits,
-          strings.vaccinations,
+          strings.healthRecords,
           strings.medications,
           strings.feeding,
         ];
-        final navigationLabels = [...labels]
-          ..[AllPetsCareSection.vetVisits.index] = strings.vetVisitsNavigation;
+        final navigationLabels = labels;
         final labelStyle = Theme.of(context).textTheme.labelSmall!
             .copyWith(letterSpacing: 0);
         final navigationWidth =
             MediaQuery.sizeOf(context).width -
             MediaQuery.paddingOf(context).horizontal;
+        final healthLabels = [
+          strings.vetVisitsNavigation,
+          strings.vaccinations,
+          strings.weightHistory,
+        ];
+        var healthLabelWidth = 0.0;
+        var healthLabelHeight = 0.0;
+        for (final label in healthLabels) {
+          final painter = TextPainter(
+            text: TextSpan(
+              text: label,
+              style:
+                  TabBarTheme.of(context).labelStyle ??
+                  Theme.of(context).textTheme.titleSmall,
+            ),
+            textDirection: Directionality.of(context),
+            locale: Localizations.localeOf(context),
+            textScaler: MediaQuery.textScalerOf(context),
+          )..layout();
+          healthLabelWidth += painter.width + 16;
+          healthLabelHeight = math.max(healthLabelHeight, painter.height);
+          painter.dispose();
+        }
+        final scrollHealthTabs = healthLabelWidth > navigationWidth;
+        final healthTabHeight = math.max(48.0, healthLabelHeight + 16);
         var labelHeight = 0.0;
         final labelHeights = <double>[];
         for (final label in navigationLabels) {
           final painter = TextPainter(
             text: TextSpan(text: label, style: labelStyle),
+            maxLines: label.contains(' ') ? 2 : 1,
+            ellipsis: '…',
             textDirection: Directionality.of(context),
             locale: Localizations.localeOf(context),
             // Match NavigationBar's effective label scaling.
@@ -367,7 +466,45 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
             appBar: AppBar(
               automaticallyImplyLeading: false,
               scrolledUnderElevation: 0,
-              title: Text(labels[section.index]),
+              title: Text(labels[_navigationIndex]),
+              bottom: _health
+                  ? PreferredSize(
+                      preferredSize: Size.fromHeight(healthTabHeight),
+                      child: AbsorbPointer(
+                        absorbing: _busy,
+                        child: TabBar(
+                          controller: _healthTabs,
+                          isScrollable: scrollHealthTabs,
+                          tabAlignment: scrollHealthTabs
+                              ? TabAlignment.start
+                              : TabAlignment.fill,
+                          labelPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          dividerHeight: 0,
+                          onTap: (index) {
+                            if (!_busy &&
+                                _visible &&
+                                _healthSections[index] != widget.section) {
+                              context.go(_sectionPath(_healthSections[index]));
+                            }
+                          },
+                          tabs: [
+                            for (final label in healthLabels)
+                              Tab(
+                                height: healthTabHeight,
+                                child: Text(
+                                  label,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : null,
               actions: [
                 if (section == AllPetsCareSection.pets)
                   IconButton(
@@ -384,12 +521,16 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                 labelStyle.copyWith(overflow: TextOverflow.clip),
               ),
               height: math.max(80, 40 + labelHeight),
-              selectedIndex: section.index,
+              selectedIndex: _navigationIndex,
               onDestinationSelected: _busy
                   ? null
                   : (index) {
-                      if (!_busy && index != widget.section.index) {
-                        context.go(_destinations[index].path);
+                      if (!_busy && index != _navigationIndex) {
+                        context.go(
+                          index == 1
+                              ? _sectionPath(_lastHealthSection)
+                              : _destinations[index].path,
+                        );
                       }
                     },
               destinations: [
@@ -404,12 +545,14 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                         labelHeight - labelHeights[index],
                       ),
                     ),
-                    child: NavigationDestination(
-                      icon: index == AllPetsCareSection.feeding.index
-                          ? const AppFeedingIcon()
-                          : Icon(destination.icon),
-                      label: navigationLabels[index],
-                      tooltip: labels[index],
+                    child: DefaultTextStyle.merge(
+                      softWrap: navigationLabels[index].contains(' '),
+                      maxLines: navigationLabels[index].contains(' ') ? 2 : 1,
+                      child: NavigationDestination(
+                        icon: destination.icon,
+                        label: navigationLabels[index],
+                        tooltip: labels[index],
+                      ),
                     ),
                   ),
               ],

@@ -232,16 +232,15 @@ void main() {
                 find.byType(NavigationDestination),
               )
               .map((item) => item.label),
-          ['Dostlarım', 'Ziyaretler', 'Aşılar', 'İlaçlar', 'Beslenme'],
+          ['Dostlarım', 'Sağlık kayıtları', 'İlaçlar', 'Beslenme'],
         );
-        final visitCaption = find.descendant(
+        final healthCaption = find.descendant(
           of: find.byType(NavigationBar),
-          matching: find.text('Ziyaretler'),
+          matching: find.text('Sağlık kayıtları'),
         );
         for (final label in [
           'Dostlarım',
-          'Ziyaretler',
-          'Aşılar',
+          'Sağlık kayıtları',
           'İlaçlar',
           'Beslenme',
         ]) {
@@ -255,13 +254,13 @@ void main() {
             reason: label,
           );
         }
-        expect(find.byTooltip('Veteriner ziyaretleri'), findsOneWidget);
-        await tester.tap(visitCaption);
+        expect(find.byTooltip('Sağlık kayıtları'), findsOneWidget);
+        await tester.tap(healthCaption);
         await tester.pumpAndSettle();
         expect(
           find.descendant(
             of: find.byType(AppBar),
-            matching: find.text('Veteriner ziyaretleri'),
+            matching: find.text('Sağlık kayıtları'),
           ),
           findsOneWidget,
         );

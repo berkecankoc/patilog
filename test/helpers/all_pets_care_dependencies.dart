@@ -11,6 +11,13 @@ import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cu
 import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
 import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
+import 'package:petlytics/core/services/id_generator.dart';
+import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
+import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+
+class _Weights extends Mock implements WeightHistoryRepository {}
+
+class _Ids extends Mock implements IdGenerator {}
 
 class _Visits extends Mock implements VetVisitRepository {}
 
@@ -24,11 +31,27 @@ void registerAllPetsCare(
   VetVisitRepository? visits,
   VaccinationRepository? vaccinations,
   MedicationRepository? medications,
+  WeightHistoryRepository? weights,
   DateTime Function()? now,
 }) {
   final visitRepository = visits ?? _Visits();
   final vaccinationRepository = vaccinations ?? _Vaccinations();
   final medicationRepository = medications ?? _Medications();
+  final weightRepository = weights ?? _Weights();
+  if (weights == null) {
+    when(weightRepository.getAllWeightEntries)
+        .thenAnswer((_) async => const Success([]));
+  }
+  if (!getIt.isRegistered<WeightHistoryCubit>()) {
+    getIt.registerFactory<WeightHistoryCubit>(
+      () => WeightHistoryCubit(weightRepository, _Ids()),
+    );
+    addTearDown(() async {
+      if (getIt.isRegistered<WeightHistoryCubit>()) {
+        await getIt.unregister<WeightHistoryCubit>();
+      }
+    });
+  }
   if (visits == null) {
     when(visitRepository.getAllVetVisits)
         .thenAnswer((_) async => const Success([]));

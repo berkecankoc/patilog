@@ -166,6 +166,15 @@ void main() {
   });
 
   Future<void> destination(WidgetTester tester, String label) async {
+    if (label == 'Vet visits' || label == 'Vaccinations') {
+      if (find.byType(TabBar).evaluate().isEmpty) {
+        await destination(tester, 'Health records');
+      }
+      await tester.ensureVisible(find.widgetWithText(Tab, label));
+      await tester.tap(find.widgetWithText(Tab, label));
+      await tester.pumpAndSettle();
+      return;
+    }
     await tester.tap(
       find
           .descendant(
@@ -413,7 +422,7 @@ void main() {
       find
           .descendant(
             of: find.byType(NavigationBar),
-            matching: find.text('Vet visits'),
+            matching: find.text('Health records'),
           )
           .last,
     );

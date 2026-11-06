@@ -83,13 +83,13 @@ void main() {
         pet.copyWith(weight: entries.isEmpty ? null : entries.first.weight),
       ),
     );
-    registerAllPetsCare(pets);
     getIt.registerFactory<PetCubit>(
       () => PetCubit(pets, MockCreatePet(), MockUpdatePet(), MockDeletePet()),
     );
     getIt.registerFactory<WeightHistoryCubit>(
       () => WeightHistoryCubit(repository, ids),
     );
+    registerAllPetsCare(pets);
   });
 
   tearDown(() async {

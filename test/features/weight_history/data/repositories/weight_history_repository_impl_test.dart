@@ -33,6 +33,39 @@ void main() {
     repository = WeightHistoryRepositoryImpl(source);
   });
 
+  group('getAllWeightEntries', () {
+    test('maps all pets without per-pet reads or losing their identities and order', () async {
+      final other = WeightEntry(
+        id: 'other',
+        petId: 'pet-2',
+        weight: 7,
+        measuredAt: entry.measuredAt,
+      );
+      when(source.getAllWeightEntries)
+          .thenAnswer((_) async => [WeightEntryModel.fromEntity(other), model]);
+      expect(await repository.getAllWeightEntries(), Success([other, entry]));
+      verify(source.getAllWeightEntries).called(1);
+      verifyNever(() => source.getWeightEntries(any()));
+    });
+    test('returns an empty success', () async {
+      when(source.getAllWeightEntries).thenAnswer((_) async => []);
+      expect(
+        await repository.getAllWeightEntries(),
+        const Success<List<WeightEntry>>([]),
+      );
+    });
+    test('maps database failures', () async {
+      when(source.getAllWeightEntries)
+          .thenThrow(const LocalDataSourceException());
+      expect(
+        await repository.getAllWeightEntries(),
+        const Error<List<WeightEntry>>(
+          LocalDatabaseFailure('Failed to load weight history'),
+        ),
+      );
+    });
+  });
+
   group('getWeightEntries', () {
     test('maps measurements to entities and preserves their order', () async {
       when(() => source.getWeightEntries(entry.petId)).thenAnswer(
