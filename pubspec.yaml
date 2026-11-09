@@ -67,6 +67,8 @@ dev_dependencies:
   bloc_test: ^10.0.0
   mocktail: ^1.0.5
   sqflite_common_ffi: ^2.4.3
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -109,3 +111,22 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/branding/icon/app_icon.png"
+  remove_alpha_ios: true
+  background_color_ios: "#ff4500"
+  min_sdk_android: 24 # matches flutter.minSdkVersion used by android/app/build.gradle.kts
+  adaptive_icon_background: "#ff4500"
+  adaptive_icon_foreground: "assets/branding/icon/app_icon_foreground.png"
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_monochrome: "assets/branding/icon/app_icon_monochrome.png"
+
+flutter_native_splash:
+  color: "#ff4500"
+  image: assets/branding/splash/splash_logo.png
+  android_12:
+    color: "#ff4500"
+    image: assets/branding/splash/splash_android12.png
