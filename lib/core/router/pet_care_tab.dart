@@ -1,5 +1,5 @@
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 enum PetCareTab {
   profile,

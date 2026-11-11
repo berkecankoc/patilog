@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
 
 void main() {
   final date = DateTime(2026, 10, 15);

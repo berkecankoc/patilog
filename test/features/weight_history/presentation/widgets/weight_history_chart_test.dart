@@ -2,12 +2,12 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
-import 'package:petlytics/features/weight_history/presentation/utils/weight_chart_data.dart';
-import 'package:petlytics/features/weight_history/presentation/widgets/weight_history_chart.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/presentation/utils/weight_chart_data.dart';
+import 'package:patilog/features/weight_history/presentation/widgets/weight_history_chart.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 import '../../../../helpers/multi_step_form_helpers.dart';
 

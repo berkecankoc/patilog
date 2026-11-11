@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_meal.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
 
 /// One version of a pet's daily meal plan.
 final class FeedingPlan extends Equatable {

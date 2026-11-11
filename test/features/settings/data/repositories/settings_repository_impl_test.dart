@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/settings/data/repositories/settings_repository_impl.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
-import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/settings/data/repositories/settings_repository_impl.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/features/settings/domain/entities/language_preference.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MockPreferences extends Mock implements SharedPreferencesAsync {}

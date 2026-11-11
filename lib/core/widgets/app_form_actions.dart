@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_gap.dart';
 
 class AppFormActions extends StatelessWidget {
   final String label;

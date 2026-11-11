@@ -3,16 +3,16 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_suggestions.dart';
-import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
-import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
-import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_form_cubit.dart';
-import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_form_state.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
-import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination_suggestions.dart';
+import 'package:patilog/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:patilog/features/vaccination/domain/use_cases/save_vaccination.dart';
+import 'package:patilog/features/vaccination/presentation/cubit/vaccination_form_cubit.dart';
+import 'package:patilog/features/vaccination/presentation/cubit/vaccination_form_state.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/domain/repositories/vet_visit_repository.dart';
 
 class MockVaccinationRepository extends Mock implements VaccinationRepository {}
 

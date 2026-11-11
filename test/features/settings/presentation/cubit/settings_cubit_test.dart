@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
-import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
-import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
-import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
-import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/features/settings/domain/entities/language_preference.dart';
+import 'package:patilog/features/settings/domain/repositories/settings_repository.dart';
+import 'package:patilog/features/settings/presentation/cubit/settings_cubit.dart';
+import 'package:patilog/features/settings/presentation/cubit/settings_state.dart';
 
 class MockSettingsRepository extends Mock implements SettingsRepository {}
 

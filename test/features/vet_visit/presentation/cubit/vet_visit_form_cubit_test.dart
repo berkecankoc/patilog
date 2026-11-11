@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
-import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_state.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
+import 'package:patilog/features/vet_visit/domain/repositories/vet_visit_repository.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_form_state.dart';
 
 class MockVetVisitRepository extends Mock implements VetVisitRepository {}
 

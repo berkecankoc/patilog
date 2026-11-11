@@ -2,21 +2,21 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/database/app_database.dart';
-import 'package:petlytics/core/database/database_tables.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/core/storage/image_storage.dart';
-import 'package:petlytics/features/pet/data/data_sources/pet_local_data_source.dart';
-import 'package:petlytics/features/pet/data/models/pet_model.dart';
-import 'package:petlytics/features/pet/data/repositories/pet_repository_impl.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
-import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
-import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
-import 'package:petlytics/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
-import 'package:petlytics/features/weight_history/data/models/weight_entry_model.dart';
+import 'package:patilog/core/database/app_database.dart';
+import 'package:patilog/core/database/database_tables.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/core/storage/image_storage.dart';
+import 'package:patilog/features/pet/data/data_sources/pet_local_data_source.dart';
+import 'package:patilog/features/pet/data/models/pet_model.dart';
+import 'package:patilog/features/pet/data/repositories/pet_repository_impl.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/use_cases/create_pet.dart';
+import 'package:patilog/features/pet/domain/use_cases/delete_pet.dart';
+import 'package:patilog/features/pet/domain/use_cases/update_pet.dart';
+import 'package:patilog/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
+import 'package:patilog/features/weight_history/data/models/weight_entry_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class MockImageStorage extends Mock implements ImageStorage {}

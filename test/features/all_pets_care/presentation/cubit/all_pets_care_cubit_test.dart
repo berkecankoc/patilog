@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
-import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
+import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
 
 class MockPets extends Mock implements PetRepository {}
 

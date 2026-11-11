@@ -1,9 +1,9 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/app_multi_step_form.dart';
-import 'package:petlytics/core/widgets/app_error_feedback.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/widgets/app_multi_step_form.dart';
+import 'package:patilog/core/widgets/app_error_feedback.dart';
 
 void main() {
   late TextEditingController name;

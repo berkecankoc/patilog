@@ -1,19 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/di/injection.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
-import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
-import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
-import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
-import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
-import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
-import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
-import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+import 'package:patilog/core/di/injection.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
+import 'package:patilog/features/medication/domain/repositories/medication_repository.dart';
+import 'package:patilog/features/medication/domain/use_cases/calculate_medication_doses.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:patilog/features/vaccination/presentation/cubit/vaccination_cubit.dart';
+import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:patilog/features/vet_visit/domain/repositories/vet_visit_repository.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/weight_history/domain/repositories/weight_history_repository.dart';
+import 'package:patilog/features/weight_history/presentation/cubit/weight_history_cubit.dart';
 
 class _Weights extends Mock implements WeightHistoryRepository {}
 

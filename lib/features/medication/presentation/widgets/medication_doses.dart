@@ -1,17 +1,17 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_keyboard.dart';
+import 'package:patilog/core/widgets/app_keyboard.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
-import 'package:petlytics/features/medication/presentation/utils/medication_actions.dart';
-import 'package:petlytics/features/medication/presentation/utils/medication_display.dart';
-import 'package:petlytics/core/utils/time_input_formatter.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/app_form_actions.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_state.dart';
+import 'package:patilog/features/medication/presentation/utils/medication_actions.dart';
+import 'package:patilog/features/medication/presentation/utils/medication_display.dart';
+import 'package:patilog/core/utils/time_input_formatter.dart';
 
 typedef DoseRecordState = ({
   MedicationDose? dose,

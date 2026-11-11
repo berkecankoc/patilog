@@ -1,8 +1,8 @@
-import 'package:petlytics/core/error/failure.dart';
+import 'package:patilog/core/error/failure.dart';
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
 
 sealed class MedicationState extends Equatable {
   const MedicationState();

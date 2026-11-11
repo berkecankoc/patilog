@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/medication/data/models/medication_model_values.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/data/models/medication_model_values.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
 
 final class MedicationDoseLogModel extends Equatable {
   final String periodId;

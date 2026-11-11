@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/core/storage/image_storage.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/core/storage/image_storage.dart';
 
 final class LocalImageStorage implements ImageStorage {
   final IdGenerator _idGenerator;

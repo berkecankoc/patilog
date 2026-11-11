@@ -3,13 +3,13 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:petlytics/core/l10n/app_number_formats.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
-import 'package:petlytics/features/weight_history/presentation/utils/weight_chart_data.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/l10n/app_number_formats.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_gap.dart';
+import 'package:patilog/core/widgets/app_section_heading.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/presentation/utils/weight_chart_data.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 class WeightHistoryChart extends StatefulWidget {
   final List<WeightEntry> entries;

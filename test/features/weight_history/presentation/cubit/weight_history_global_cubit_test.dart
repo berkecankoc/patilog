@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
-import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
-import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
-import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/domain/repositories/weight_history_repository.dart';
+import 'package:patilog/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+import 'package:patilog/features/weight_history/presentation/cubit/weight_history_state.dart';
 
 class _Repository extends Mock implements WeightHistoryRepository {}
 

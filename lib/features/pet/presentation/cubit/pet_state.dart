@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
 
 sealed class PetState extends Equatable {
   const PetState();

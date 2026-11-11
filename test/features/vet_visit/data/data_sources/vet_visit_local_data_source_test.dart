@@ -1,16 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/database/app_database.dart';
-import 'package:petlytics/core/database/database_tables.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
-import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
-import 'package:petlytics/features/vet_visit/data/models/vet_visit_model.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
+import 'package:patilog/core/database/app_database.dart';
+import 'package:patilog/core/database/database_tables.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
+import 'package:patilog/features/vaccination/data/models/vaccination_model.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
+import 'package:patilog/features/vet_visit/data/models/vet_visit_model.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {

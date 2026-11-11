@@ -1,6 +1,6 @@
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
 
 abstract interface class PetRepository {
   Future<Result<List<Pet>>> getPets();

@@ -1,8 +1,8 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/widgets/app_keyboard.dart';
+import 'package:patilog/core/widgets/app_keyboard.dart';
 
 void main() {
   testWidgets(

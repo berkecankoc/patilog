@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
 
 final class FeedingFormState extends Equatable {
   final bool isSaving;

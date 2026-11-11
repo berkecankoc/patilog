@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/presentation/cubit/pet_cubit.dart';
 
 Future<void> deletePetWithConfirmation(BuildContext context, Pet pet) async {
   final confirmed = await showDialog<bool>(

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/storage/image_storage.dart';
+import 'package:patilog/core/storage/image_storage.dart';
 
 class PetImage extends StatefulWidget {
   final String? imagePath;

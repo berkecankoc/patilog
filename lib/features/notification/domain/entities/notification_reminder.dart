@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
 
 typedef NotificationText = ({String title, String body});
 typedef MedicationReminderText =

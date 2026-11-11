@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/notification/data/codecs/notification_target_codec.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/data/codecs/notification_target_codec.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
 
 void main() {
   test(
@@ -57,7 +57,7 @@ void main() {
     ['dose', 'pet1', 'med1', 'period1', 2030, 1, 1, '540'],
   ].indexed) {
     test('ignores malformed owned payload $index', () {
-      final payload = 'petlytics.reminder.v1:${jsonEncode(invalid)}';
+      final payload = 'patilog.reminder.v1:${jsonEncode(invalid)}';
       expect(NotificationTargetCodec.isOwned(payload), isTrue);
       expect(NotificationTargetCodec.decode(payload), isNull);
     });
@@ -68,8 +68,8 @@ void main() {
       null,
       '',
       'other',
-      'petlytics.reminder.v2:[]',
-      'petlytics.reminder.v1:{',
+      'patilog.reminder.v2:[]',
+      'patilog.reminder.v1:{',
     ]) {
       expect(NotificationTargetCodec.decode(payload), isNull);
     }

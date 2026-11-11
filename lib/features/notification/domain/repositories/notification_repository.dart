@@ -1,9 +1,9 @@
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_channel_labels.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/notification/domain/entities/notification_channel_labels.dart';
+import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_reminder.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
 
 abstract interface class NotificationRepository {
   /// Shared application budget across pets and reminder categories.

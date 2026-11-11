@@ -1,7 +1,7 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/widgets/app_related_clinical_details.dart';
+import 'package:patilog/core/widgets/app_related_clinical_details.dart';
 
 void main() {
   testWidgets('hides duplicate clinical names ignoring case and whitespace', (

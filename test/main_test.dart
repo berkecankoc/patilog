@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/router/app_router.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
-import 'package:petlytics/features/settings/presentation/pages/settings_page.dart';
+import 'package:patilog/core/router/app_router.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/features/settings/presentation/pages/settings_page.dart';
 
 import 'helpers/settings_test_harness.dart';
 

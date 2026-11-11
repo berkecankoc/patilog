@@ -1,10 +1,10 @@
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
-import 'package:petlytics/features/weight_history/data/models/weight_entry_model.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
-import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/weight_history/data/data_sources/weight_history_local_data_source.dart';
+import 'package:patilog/features/weight_history/data/models/weight_entry_model.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/domain/repositories/weight_history_repository.dart';
 
 final class WeightHistoryRepositoryImpl implements WeightHistoryRepository {
   final WeightHistoryLocalDataSource localDataSource;

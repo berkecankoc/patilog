@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
 
 class PetCareTitle extends StatelessWidget {
   final String title;

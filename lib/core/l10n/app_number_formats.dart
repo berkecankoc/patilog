@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
-import 'package:petlytics/core/utils/weight_utils.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 
 String _decimalSeparator(Locale locale) =>
     NumberFormat.decimalPattern(locale.toLanguageTag()).symbols.DECIMAL_SEP;

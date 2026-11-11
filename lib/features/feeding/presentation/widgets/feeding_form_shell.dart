@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/router/pet_care_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/core/widgets/app_multi_step_form.dart';
-import 'package:petlytics/core/widgets/pet_care_title.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_cubit.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_state.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/router/pet_care_changes.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/app_multi_step_form.dart';
+import 'package:patilog/core/widgets/pet_care_title.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_form_cubit.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_form_state.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 /// Shared draft exit/save behavior for the record and plan forms.
 class FeedingFormShell extends StatefulWidget {

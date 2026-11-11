@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
 
 enum WeightChartRange { month, threeMonths, sixMonths, all }
 

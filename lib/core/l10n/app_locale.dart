@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
+import 'package:patilog/features/settings/domain/entities/language_preference.dart';
 
 const englishLocale = Locale('en', 'US');
 const turkishLocale = Locale('tr', 'TR');

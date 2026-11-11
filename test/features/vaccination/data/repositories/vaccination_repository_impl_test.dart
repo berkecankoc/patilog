@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
-import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
-import 'package:petlytics/features/vaccination/data/repositories/vaccination_repository_impl.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_suggestions.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
+import 'package:patilog/features/vaccination/data/models/vaccination_model.dart';
+import 'package:patilog/features/vaccination/data/repositories/vaccination_repository_impl.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination_suggestions.dart';
 
 class MockVaccinationLocalDataSource extends Mock
     implements VaccinationLocalDataSource {}

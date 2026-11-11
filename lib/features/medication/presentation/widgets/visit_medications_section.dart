@@ -1,15 +1,15 @@
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/widgets/app_related_records_section.dart';
-import 'package:petlytics/core/widgets/app_related_clinical_details.dart';
-import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
-import 'package:petlytics/features/medication/presentation/utils/medication_display.dart';
+import 'package:patilog/core/widgets/app_related_records_section.dart';
+import 'package:patilog/core/widgets/app_related_clinical_details.dart';
+import 'package:patilog/core/widgets/app_error_feedback.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_state.dart';
+import 'package:patilog/features/medication/presentation/utils/medication_display.dart';
 
 class VisitMedicationsSection extends StatelessWidget {
   final String petId;

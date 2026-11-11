@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
-import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/domain/use_cases/calculate_medication_doses.dart';
 
 void main() {
   const calculate = CalculateMedicationDoses();

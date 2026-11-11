@@ -1,12 +1,12 @@
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/feeding/data/data_sources/feeding_local_data_source.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_entry_model.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_plan_model.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
-import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/feeding/data/data_sources/feeding_local_data_source.dart';
+import 'package:patilog/features/feeding/data/models/feeding_entry_model.dart';
+import 'package:patilog/features/feeding/data/models/feeding_plan_model.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/feeding/domain/repositories/feeding_repository.dart';
 
 final class FeedingRepositoryImpl implements FeedingRepository {
   final FeedingLocalDataSource localDataSource;

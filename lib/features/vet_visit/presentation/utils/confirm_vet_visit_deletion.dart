@@ -1,7 +1,7 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
 
 Future<bool> confirmVetVisitDeletion(
   BuildContext context,

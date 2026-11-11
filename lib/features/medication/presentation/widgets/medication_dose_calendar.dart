@@ -1,12 +1,12 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
-import 'package:petlytics/features/medication/presentation/widgets/medication_doses.dart';
+import 'package:patilog/core/widgets/app_error_feedback.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_state.dart';
+import 'package:patilog/features/medication/presentation/widgets/medication_doses.dart';
 
 class MedicationDoseCalendar extends StatelessWidget {
   final MedicationsLoaded state;

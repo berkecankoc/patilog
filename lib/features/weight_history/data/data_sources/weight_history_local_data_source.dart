@@ -1,6 +1,6 @@
-import 'package:petlytics/core/database/database_tables.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/weight_history/data/models/weight_entry_model.dart';
+import 'package:patilog/core/database/database_tables.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/weight_history/data/models/weight_entry_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 abstract interface class WeightHistoryLocalDataSource {

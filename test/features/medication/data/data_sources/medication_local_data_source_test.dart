@@ -1,18 +1,18 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/database/app_database.dart';
-import 'package:petlytics/core/database/database_tables.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/medication/data/data_sources/medication_local_data_source.dart';
-import 'package:petlytics/features/medication/data/models/medication_dose_log_model.dart';
-import 'package:petlytics/features/medication/data/models/medication_model.dart';
-import 'package:petlytics/features/medication/data/models/medication_model_values.dart';
-import 'package:petlytics/features/medication/data/models/medication_period_model.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
-import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
-import 'package:petlytics/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
+import 'package:patilog/core/database/app_database.dart';
+import 'package:patilog/core/database/database_tables.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/medication/data/data_sources/medication_local_data_source.dart';
+import 'package:patilog/features/medication/data/models/medication_dose_log_model.dart';
+import 'package:patilog/features/medication/data/models/medication_model.dart';
+import 'package:patilog/features/medication/data/models/medication_model_values.dart';
+import 'package:patilog/features/medication/data/models/medication_period_model.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/use_cases/calculate_medication_doses.dart';
+import 'package:patilog/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
+import 'package:patilog/features/vet_visit/data/data_sources/vet_visit_local_data_source.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {

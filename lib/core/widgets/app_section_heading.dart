@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
+import 'package:patilog/core/widgets/app_gap.dart';
 
 class AppSectionHeading extends StatelessWidget {
   final String title;

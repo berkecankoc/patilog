@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/core/storage/local_image_storage.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/core/storage/local_image_storage.dart';
 
 class FixedIdGenerator implements IdGenerator {
   @override

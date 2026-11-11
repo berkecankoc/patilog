@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/router/care_record_changes.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
-import 'package:petlytics/features/notification/presentation/widgets/notification_runtime.dart';
-import 'package:petlytics/features/notification/presentation/widgets/notification_navigation.dart';
-import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
-import 'package:petlytics/core/di/injection.dart';
-import 'package:petlytics/core/router/app_router.dart';
-import 'package:petlytics/core/storage/image_storage.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/app_keyboard.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
-import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
-import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
-import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
+import 'package:patilog/core/router/care_record_changes.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:patilog/features/notification/presentation/widgets/notification_runtime.dart';
+import 'package:patilog/features/notification/presentation/widgets/notification_navigation.dart';
+import 'package:patilog/features/notification/domain/use_cases/resolve_notification_target.dart';
+import 'package:patilog/core/di/injection.dart';
+import 'package:patilog/core/router/app_router.dart';
+import 'package:patilog/core/storage/image_storage.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/widgets/app_keyboard.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/features/settings/domain/entities/language_preference.dart';
+import 'package:patilog/features/settings/presentation/cubit/settings_cubit.dart';
+import 'package:patilog/features/settings/presentation/cubit/settings_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
                   language: state.languagePreference,
                 ),
                 builder: (_, preference) => MaterialApp.router(
-                  title: 'Petlytics',
+                  title: 'Patilog',
                   locale: preference.language.locale,
                   supportedLocales: appSupportedLocales,
                   localizationsDelegates:

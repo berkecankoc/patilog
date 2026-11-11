@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/router/care_record_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
-import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
-import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/router/care_record_changes.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:patilog/features/notification/presentation/utils/notification_content.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 /// App-level lifetime, independent of the currently visible care tab or form.
 class NotificationRuntime extends StatefulWidget {

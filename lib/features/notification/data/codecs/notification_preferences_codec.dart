@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/data/codecs/vaccination_reminder_schedule_codec.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/data/codecs/vaccination_reminder_schedule_codec.dart';
 
 abstract final class NotificationPreferencesCodec {
   static String encode(NotificationPreferences preferences) => jsonEncode({

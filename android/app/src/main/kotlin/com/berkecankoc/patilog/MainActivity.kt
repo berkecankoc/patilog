@@ -1,4 +1,4 @@
-package com.example.petlytics
+package com.berkecankoc.patilog
 
 import io.flutter.embedding.android.FlutterActivity
 

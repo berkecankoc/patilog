@@ -1,7 +1,7 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
 
 Future<bool> confirmVaccinationDeletion(
   BuildContext context,

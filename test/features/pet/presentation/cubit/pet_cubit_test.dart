@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
-import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
-import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
-import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
-import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
-import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/features/pet/domain/use_cases/create_pet.dart';
+import 'package:patilog/features/pet/domain/use_cases/delete_pet.dart';
+import 'package:patilog/features/pet/domain/use_cases/update_pet.dart';
+import 'package:patilog/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:patilog/features/pet/presentation/cubit/pet_state.dart';
 
 class MockPetRepository extends Mock implements PetRepository {}
 

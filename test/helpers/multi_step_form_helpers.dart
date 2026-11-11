@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
-import 'package:petlytics/core/widgets/app_multi_step_form.dart';
+import 'package:patilog/core/widgets/app_form_scroll_view.dart';
+import 'package:patilog/core/widgets/app_multi_step_form.dart';
 
 // Ahem's fixed-width letters can consume the entire keyboard-open viewport.
 // Use the SDK's bundled app font when checking large-text form geometry.

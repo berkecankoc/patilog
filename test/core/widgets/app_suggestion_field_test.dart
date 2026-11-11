@@ -1,13 +1,13 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/app_suggestion_field.dart';
-import 'package:petlytics/core/widgets/app_multi_step_form.dart';
-import 'package:petlytics/core/widgets/app_keyboard.dart';
-import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/widgets/app_suggestion_field.dart';
+import 'package:patilog/core/widgets/app_multi_step_form.dart';
+import 'package:patilog/core/widgets/app_keyboard.dart';
+import 'package:patilog/core/widgets/app_form_scroll_view.dart';
 
 void main() {
   late TextEditingController text;

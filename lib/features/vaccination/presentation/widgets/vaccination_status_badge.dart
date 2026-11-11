@@ -1,7 +1,7 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
 
 class VaccinationStatusBadge extends StatelessWidget {
   final Vaccination vaccination;

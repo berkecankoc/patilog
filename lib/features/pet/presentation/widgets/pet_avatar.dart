@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/presentation/widgets/pet_image.dart';
-import 'package:petlytics/features/pet/presentation/widgets/pet_species_icon.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/presentation/widgets/pet_image.dart';
+import 'package:patilog/features/pet/presentation/widgets/pet_species_icon.dart';
 
 class PetAvatar extends StatelessWidget {
   final Pet pet;

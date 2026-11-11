@@ -1,4 +1,4 @@
-import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 abstract final class VaccinationReminderScheduleCodec {
   static Map<String, Object> toJson(VaccinationReminderSchedule schedule) {

@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/core/router/care_record_changes.dart';
-import 'package:petlytics/core/router/pet_care_changes.dart';
-import 'package:petlytics/core/router/pet_care_route_extra.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
-import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_pet_filter.dart';
-import 'package:petlytics/core/widgets/app_pet_picker.dart';
-import 'package:petlytics/core/widgets/care_record_card.dart';
-import 'package:petlytics/core/widgets/error_view.dart';
-import 'package:petlytics/core/widgets/pet_care_tabs.dart';
-import 'package:petlytics/core/widgets/pet_care_title.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
-import 'package:petlytics/features/vet_visit/presentation/utils/confirm_vet_visit_deletion.dart';
-import 'package:petlytics/features/vet_visit/presentation/widgets/vet_visit_list_content.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/core/router/care_record_changes.dart';
+import 'package:patilog/core/router/pet_care_changes.dart';
+import 'package:patilog/core/router/pet_care_route_extra.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/core/widgets/app_error_feedback.dart';
+import 'package:patilog/core/widgets/app_pet_filter.dart';
+import 'package:patilog/core/widgets/app_pet_picker.dart';
+import 'package:patilog/core/widgets/care_record_card.dart';
+import 'package:patilog/core/widgets/error_view.dart';
+import 'package:patilog/core/widgets/pet_care_tabs.dart';
+import 'package:patilog/core/widgets/pet_care_title.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_state.dart';
+import 'package:patilog/features/vet_visit/presentation/utils/confirm_vet_visit_deletion.dart';
+import 'package:patilog/features/vet_visit/presentation/widgets/vet_visit_list_content.dart';
 
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 class VetVisitListPage extends StatefulWidget {
   final String? petId;

@@ -1,11 +1,11 @@
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
-import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_suggestions.dart';
-import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/vaccination/data/data_sources/vaccination_local_data_source.dart';
+import 'package:patilog/features/vaccination/data/models/vaccination_model.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination_suggestions.dart';
+import 'package:patilog/features/vaccination/domain/repositories/vaccination_repository.dart';
 
 final class VaccinationRepositoryImpl implements VaccinationRepository {
   final VaccinationLocalDataSource localDataSource;

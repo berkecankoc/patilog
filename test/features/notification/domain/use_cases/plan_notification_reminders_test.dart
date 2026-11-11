@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_data.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_plan.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
-import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/notification/domain/entities/notification_data.dart';
+import 'package:patilog/features/notification/domain/entities/notification_plan.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/use_cases/plan_notification_reminders.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 import '../../../../helpers/notification_test_harness.dart';
 
 void main() {

@@ -1,6 +1,6 @@
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/settings/domain/entities/language_preference.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 
 abstract interface class SettingsRepository {
   /// Missing or unrecognized stored values return [ThemePreference.system].

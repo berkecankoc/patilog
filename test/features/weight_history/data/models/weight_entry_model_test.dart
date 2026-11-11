@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/weight_history/data/models/weight_entry_model.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/data/models/weight_entry_model.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
 
 void main() {
   final measuredAt = DateTime.utc(2026, 10, 13, 10, 30);

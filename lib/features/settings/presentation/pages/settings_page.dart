@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
-import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/features/settings/presentation/cubit/settings_cubit.dart';
-import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_error_feedback.dart';
+import 'package:patilog/core/widgets/app_section_heading.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/features/settings/domain/entities/language_preference.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/settings/presentation/cubit/settings_cubit.dart';
+import 'package:patilog/features/settings/presentation/cubit/settings_state.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});

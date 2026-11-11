@@ -1,8 +1,8 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/presentation/widgets/pet_avatar.dart';
 
 class CarePetIdentity extends StatelessWidget {
   final Pet? pet;

@@ -1,6 +1,6 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'dart:io';
-import 'package:petlytics/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
+import 'package:patilog/features/all_pets_care/presentation/pages/all_pets_care_page.dart';
 import '../../../../helpers/all_pets_care_dependencies.dart';
 import 'dart:ui' as ui;
 
@@ -11,23 +11,23 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../../helpers/multi_step_form_helpers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/core/router/app_router.dart';
-import 'package:petlytics/core/di/injection.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/storage/image_storage.dart';
-import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
-import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
-import 'package:petlytics/features/pet/domain/use_cases/delete_pet.dart';
-import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
-import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
-import 'package:petlytics/features/pet/presentation/pages/pet_form_page.dart';
-import 'package:petlytics/features/pet/presentation/pages/pet_detail_page.dart';
-import 'package:petlytics/features/pet/presentation/pages/pet_list_page.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/core/router/app_router.dart';
+import 'package:patilog/core/di/injection.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/storage/image_storage.dart';
+import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/features/pet/domain/use_cases/update_pet.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/use_cases/create_pet.dart';
+import 'package:patilog/features/pet/domain/use_cases/delete_pet.dart';
+import 'package:patilog/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:patilog/features/pet/presentation/cubit/pet_state.dart';
+import 'package:patilog/features/pet/presentation/pages/pet_form_page.dart';
+import 'package:patilog/features/pet/presentation/pages/pet_detail_page.dart';
+import 'package:patilog/features/pet/presentation/pages/pet_list_page.dart';
 
 class MockRepository extends Mock implements PetRepository {}
 

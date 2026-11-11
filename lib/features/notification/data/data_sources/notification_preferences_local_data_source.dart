@@ -1,6 +1,6 @@
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/notification/data/codecs/notification_preferences_codec.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/notification/data/codecs/notification_preferences_codec.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 abstract interface class NotificationPreferencesLocalDataSource {

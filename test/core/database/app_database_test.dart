@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/database/app_database.dart';
-import 'package:petlytics/core/database/database_tables.dart';
+import 'package:patilog/core/database/app_database.dart';
+import 'package:patilog/core/database/database_tables.dart';
 import 'package:path/path.dart' show join;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -79,7 +79,7 @@ void main() {
       'version $legacyVersion upgrade preserves existing care data across reopen',
       () async {
         final legacy = await databaseFactory.openDatabase(
-          join(directory.path, 'petlytics.db'),
+          join(directory.path, 'patilog.db'),
           options: OpenDatabaseOptions(
             version: legacyVersion,
             onCreate: (db, _) async {

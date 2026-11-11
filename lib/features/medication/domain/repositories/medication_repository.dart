@@ -1,8 +1,8 @@
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_suggestions.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/domain/entities/medication_suggestions.dart';
 
 /// Record operations must match the pet, medication, period and scheduled dose.
 /// A missing match returns NotFoundFailure. Writes validate ownership and rules

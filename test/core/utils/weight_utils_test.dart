@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/utils/weight_utils.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 
 void main() {
   test('parses decimal separators without treating them as grouping', () {

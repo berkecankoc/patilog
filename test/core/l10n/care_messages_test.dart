@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 void main() {
   test(

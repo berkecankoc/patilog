@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:petlytics/core/router/care_record_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
+import 'package:patilog/core/router/care_record_changes.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
 
 /// Invalidations live for one pet flow, including its pushed forms/details.
 class PetCareChanges extends ChangeNotifier {

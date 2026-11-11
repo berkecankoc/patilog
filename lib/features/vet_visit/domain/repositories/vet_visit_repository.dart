@@ -1,6 +1,6 @@
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
 
 /// Single-visit reads, updates and deletes must match both pet and visit IDs.
 /// A missing match returns NotFoundFailure.

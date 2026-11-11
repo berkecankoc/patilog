@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
-import 'package:petlytics/core/widgets/care_record_card.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/presentation/widgets/vaccination_status_badge.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_gap.dart';
+import 'package:patilog/core/widgets/app_section_heading.dart';
+import 'package:patilog/core/widgets/care_record_card.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/presentation/widgets/vaccination_status_badge.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 /// Callers retain their existing grouping; both contexts share list rendering.
 class VaccinationListContent extends StatelessWidget {

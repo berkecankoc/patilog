@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/medication/domain/utils/medication_calendar.dart';
+import 'package:patilog/features/medication/domain/utils/medication_calendar.dart';
 
 final class MedicationPeriod extends Equatable {
   final String id;

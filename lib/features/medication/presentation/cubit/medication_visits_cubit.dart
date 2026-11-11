@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/vet_visit/domain/repositories/vet_visit_repository.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_state.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
 
 /// Each schedule's linked visit keeps its own loading/error/result state.
 class MedicationVisitsCubit extends Cubit<Map<String, VetVisitState>> {

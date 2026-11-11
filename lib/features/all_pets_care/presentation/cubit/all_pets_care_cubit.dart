@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
 
 final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
   final PetRepository _repository;

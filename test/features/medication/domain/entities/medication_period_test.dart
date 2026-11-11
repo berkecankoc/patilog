@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
 
 void main() {
   MedicationPeriod period({

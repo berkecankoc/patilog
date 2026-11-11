@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_meal.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
-import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_cubit.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_state.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_form_cubit.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_form_state.dart';
 
 class MockFeedingRepository extends Mock implements FeedingRepository {}
 

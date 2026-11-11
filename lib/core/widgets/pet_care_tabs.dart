@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
 
 class PetCareTabs extends InheritedWidget {
   final PetCareTab active;

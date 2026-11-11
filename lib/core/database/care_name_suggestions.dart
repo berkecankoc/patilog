@@ -1,4 +1,4 @@
-import 'package:petlytics/core/database/database_tables.dart';
+import 'package:patilog/core/database/database_tables.dart';
 import 'package:sqflite/sqflite.dart';
 
 Future<({List<String> clinicNames, List<String> veterinarianNames})>

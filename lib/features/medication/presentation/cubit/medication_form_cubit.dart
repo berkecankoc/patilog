@@ -1,13 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_suggestions.dart';
-import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
-import 'package:petlytics/features/medication/domain/use_cases/create_medication.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_form_state.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
-import 'package:petlytics/features/vet_visit/domain/repositories/vet_visit_repository.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/domain/entities/medication_suggestions.dart';
+import 'package:patilog/features/medication/domain/repositories/medication_repository.dart';
+import 'package:patilog/features/medication/domain/use_cases/create_medication.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_form_state.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/domain/repositories/vet_visit_repository.dart';
 
 final class MedicationFormCubit extends Cubit<MedicationFormState> {
   final MedicationRepository _repository;
