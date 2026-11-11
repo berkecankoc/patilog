@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/router/care_record_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
-import 'package:petlytics/features/notification/presentation/widgets/notification_runtime.dart';
+import 'package:patilog/core/router/care_record_changes.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:patilog/features/notification/presentation/widgets/notification_runtime.dart';
 import '../../../../helpers/notification_test_harness.dart';
 
 void main() {

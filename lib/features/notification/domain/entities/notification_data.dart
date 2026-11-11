@@ -1,9 +1,9 @@
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
 
 /// Planning input; failed log reads must never be represented as empty results.
 final class NotificationData {

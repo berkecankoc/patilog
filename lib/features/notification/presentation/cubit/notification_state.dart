@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_plan.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
+import 'package:patilog/features/notification/domain/entities/notification_plan.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
 
 enum NotificationAction {
   initialize,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/app_view_selector.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/widgets/app_view_selector.dart';
 import '../../helpers/multi_step_form_helpers.dart';
 
 void main() {

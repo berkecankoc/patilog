@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
-import 'package:petlytics/core/router/pet_care_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
-import 'package:petlytics/core/router/care_record_changes.dart';
+import 'package:patilog/core/router/pet_care_changes.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/core/router/care_record_changes.dart';
 
 void main() {
   testWidgets('nested route scopes reuse the app-owned mutation notifier', (

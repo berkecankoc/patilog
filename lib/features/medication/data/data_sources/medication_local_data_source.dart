@@ -1,14 +1,14 @@
 import 'package:characters/characters.dart';
-import 'package:petlytics/core/database/care_name_suggestions.dart';
-import 'package:petlytics/core/database/database_tables.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/medication/data/models/medication_dose_log_model.dart';
-import 'package:petlytics/features/medication/data/models/medication_model.dart';
-import 'package:petlytics/features/medication/data/models/medication_model_values.dart';
-import 'package:petlytics/features/medication/data/models/medication_period_model.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_suggestions.dart';
-import 'package:petlytics/features/medication/domain/utils/medication_calendar.dart';
+import 'package:patilog/core/database/care_name_suggestions.dart';
+import 'package:patilog/core/database/database_tables.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/medication/data/models/medication_dose_log_model.dart';
+import 'package:patilog/features/medication/data/models/medication_model.dart';
+import 'package:patilog/features/medication/data/models/medication_model_values.dart';
+import 'package:patilog/features/medication/data/models/medication_period_model.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/entities/medication_suggestions.dart';
+import 'package:patilog/features/medication/domain/utils/medication_calendar.dart';
 import 'package:sqflite/sqflite.dart';
 
 abstract interface class MedicationLocalDataSource {

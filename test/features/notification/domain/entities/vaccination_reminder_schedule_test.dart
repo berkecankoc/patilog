@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 void main() {
   test('defaults are 3/1/0 calendar days before at 09:00', () {

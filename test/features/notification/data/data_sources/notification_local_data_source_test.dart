@@ -3,15 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/notification/data/codecs/notification_target_codec.dart';
-import 'package:petlytics/features/notification/data/data_sources/notification_local_data_source.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/notification/data/codecs/notification_target_codec.dart';
+import 'package:patilog/features/notification/data/data_sources/notification_local_data_source.dart';
+import 'package:patilog/features/notification/domain/entities/notification_reminder.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/l10n/generated/app_localizations_tr.dart';
+import 'package:patilog/features/notification/presentation/utils/notification_content.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/l10n/generated/app_localizations_tr.dart';
 import '../../../../helpers/notification_test_harness.dart'
     show englishNotificationContent;
 
@@ -202,7 +202,7 @@ void main() {
           notificationResponse: NotificationResponse(
             notificationResponseType:
                 NotificationResponseType.selectedNotification,
-            payload: 'petlytics.reminder.v1:{',
+            payload: 'patilog.reminder.v1:{',
           ),
         ),
       );

@@ -4,12 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/notification/data/codecs/notification_target_codec.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_channel_labels.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/notification/data/codecs/notification_target_codec.dart';
+import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
+import 'package:patilog/features/notification/domain/entities/notification_channel_labels.dart';
+import 'package:patilog/features/notification/domain/entities/notification_reminder.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 

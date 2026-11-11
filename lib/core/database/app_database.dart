@@ -1,8 +1,8 @@
-import 'package:petlytics/core/database/database_tables.dart';
+import 'package:patilog/core/database/database_tables.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' show join;
 
-const _databaseName = 'petlytics.db';
+const _databaseName = 'patilog.db';
 const _databaseVersion = 6;
 
 Future<Database> openAppDatabase() async {

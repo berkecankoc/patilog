@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_channel_labels.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/l10n/generated/app_localizations_en.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/features/notification/domain/entities/notification_channel_labels.dart';
+import 'package:patilog/features/notification/domain/entities/notification_reminder.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations_en.dart';
 
 class NotificationContent {
   final AppLocalizations strings;

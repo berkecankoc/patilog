@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
-import 'package:petlytics/features/weight_history/presentation/utils/weight_chart_data.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/presentation/utils/weight_chart_data.dart';
 
 WeightEntry entry(String id, DateTime day, [double weight = 5]) =>
     WeightEntry(id: id, petId: 'pet', weight: weight, measuredAt: day);

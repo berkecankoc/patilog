@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
+import 'package:patilog/features/notification/domain/entities/notification_reminder.dart';
 
 final class NotificationPlan extends Equatable {
   final List<NotificationReminder> reminders;

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/entities/notification_reminder.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
 
 void main() {
   const target = VaccinationNotificationTarget(

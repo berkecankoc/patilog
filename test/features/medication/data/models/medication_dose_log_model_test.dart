@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/medication/data/models/medication_dose_log_model.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/data/models/medication_dose_log_model.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
 
 void main() {
   test('scheduled day stays a calendar day while actual time is UTC', () {

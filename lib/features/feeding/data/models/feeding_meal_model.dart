@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_model_values.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_meal.dart';
+import 'package:patilog/features/feeding/data/models/feeding_model_values.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
 
 final class FeedingMealModel extends Equatable {
   final String id;

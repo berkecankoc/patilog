@@ -1,5 +1,5 @@
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 extension PetSpeciesLabel on PetSpecies {
   String label(AppLocalizations strings) => switch (this) {

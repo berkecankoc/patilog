@@ -1,9 +1,9 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_state.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
-import 'package:petlytics/features/medication/domain/utils/medication_calendar.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/domain/utils/medication_calendar.dart';
 
 String formatDoseTime(int minute) =>
     '${(minute ~/ 60).toString().padLeft(2, '0')}:${(minute % 60).toString().padLeft(2, '0')}';

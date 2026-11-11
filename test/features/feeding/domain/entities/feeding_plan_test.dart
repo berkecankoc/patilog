@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_meal.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
 
 void main() {
   const morning = FeedingMeal(

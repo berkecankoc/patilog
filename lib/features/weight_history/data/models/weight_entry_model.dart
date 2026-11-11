@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/core/utils/weight_utils.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
 
 final class WeightEntryModel extends Equatable {
   final String id;

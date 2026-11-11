@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
 
 class PetSpeciesIcon extends StatelessWidget {
   final PetSpecies species;

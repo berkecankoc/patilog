@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/feeding/data/data_sources/feeding_local_data_source.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_entry_model.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_meal_model.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_plan_model.dart';
-import 'package:petlytics/features/feeding/data/repositories/feeding_repository_impl.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/feeding/data/data_sources/feeding_local_data_source.dart';
+import 'package:patilog/features/feeding/data/models/feeding_entry_model.dart';
+import 'package:patilog/features/feeding/data/models/feeding_meal_model.dart';
+import 'package:patilog/features/feeding/data/models/feeding_plan_model.dart';
+import 'package:patilog/features/feeding/data/repositories/feeding_repository_impl.dart';
 
 class MockFeedingLocalDataSource extends Mock
     implements FeedingLocalDataSource {}

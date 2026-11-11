@@ -1,6 +1,6 @@
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
 
 /// Writes validate pet/plan/meal ownership transactionally; missing or foreign
 /// records return NotFoundFailure. Amounts are finite, positive grams with at

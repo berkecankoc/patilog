@@ -1,9 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
-import 'package:petlytics/features/weight_history/domain/repositories/weight_history_repository.dart';
-import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/domain/repositories/weight_history_repository.dart';
+import 'package:patilog/features/weight_history/presentation/cubit/weight_history_state.dart';
 
 final class WeightHistoryCubit extends Cubit<WeightHistoryState> {
   final WeightHistoryRepository repository;

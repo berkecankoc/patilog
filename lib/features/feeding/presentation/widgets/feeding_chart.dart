@@ -2,10 +2,10 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_daily_total.dart';
-import 'package:petlytics/features/feeding/presentation/utils/feeding_display.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/widgets/app_section_heading.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_daily_total.dart';
+import 'package:patilog/features/feeding/presentation/utils/feeding_display.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 class FeedingChart extends StatelessWidget {
   final List<FeedingDailyTotal> totals;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/theme/app_colors.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
+import 'package:patilog/core/theme/app_colors.dart';
+import 'package:patilog/core/theme/app_theme.dart';
 
 double contrast(Color a, Color b) {
   final first = a.computeLuminance();

@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/storage/image_storage.dart';
-import 'package:petlytics/features/pet/presentation/widgets/pet_image.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/storage/image_storage.dart';
+import 'package:patilog/features/pet/presentation/widgets/pet_image.dart';
 
 class MockImageStorage extends Mock implements ImageStorage {}
 

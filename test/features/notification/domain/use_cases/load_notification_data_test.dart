@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_data.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/notification/domain/entities/notification_data.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
 import '../../../../helpers/notification_test_harness.dart';
 
 void main() {

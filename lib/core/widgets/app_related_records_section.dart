@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
 
 class AppRelatedRecordsSection extends StatefulWidget {
   final String title;

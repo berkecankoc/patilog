@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/vaccination/data/models/vaccination_model.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/data/models/vaccination_model.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
 
 void main() {
   final vaccination = Vaccination(

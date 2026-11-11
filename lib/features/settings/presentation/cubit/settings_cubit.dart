@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
-import 'package:petlytics/features/settings/domain/repositories/settings_repository.dart';
-import 'package:petlytics/features/settings/presentation/cubit/settings_state.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/settings/domain/entities/language_preference.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/features/settings/domain/repositories/settings_repository.dart';
+import 'package:patilog/features/settings/presentation/cubit/settings_state.dart';
 
 final class SettingsCubit extends Cubit<SettingsState> {
   final SettingsRepository repository;

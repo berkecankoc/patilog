@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/core/l10n/app_number_formats.dart';
-import 'package:petlytics/features/vet_visit/presentation/utils/vet_visit_cost.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/core/l10n/app_number_formats.dart';
+import 'package:patilog/features/vet_visit/presentation/utils/vet_visit_cost.dart';
 
 void main() {
   test('parses decimal inputs exactly without floating point arithmetic', () {

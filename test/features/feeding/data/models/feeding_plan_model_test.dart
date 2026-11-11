@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_meal_model.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_plan_model.dart';
+import 'package:patilog/features/feeding/data/models/feeding_meal_model.dart';
+import 'package:patilog/features/feeding/data/models/feeding_plan_model.dart';
 
 void main() {
   test('calendar storage drops time without converting the calendar day', () {

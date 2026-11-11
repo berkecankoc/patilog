@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
 
 /// Successful writes can invalidate the retained global lists without loading
 /// them when the app was opened directly on a pet-specific route.

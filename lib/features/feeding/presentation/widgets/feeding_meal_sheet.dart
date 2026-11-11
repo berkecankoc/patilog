@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/utils/time_input_formatter.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
-import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
-import 'package:petlytics/core/widgets/app_keyboard.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_occurrence.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
-import 'package:petlytics/features/feeding/presentation/utils/feeding_display.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/utils/time_input_formatter.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/app_form_actions.dart';
+import 'package:patilog/core/widgets/app_form_scroll_view.dart';
+import 'package:patilog/core/widgets/app_keyboard.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_occurrence.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_cubit.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_state.dart';
+import 'package:patilog/features/feeding/presentation/utils/feeding_display.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 Future<void> showFeedingMealSheet(
   BuildContext context, {

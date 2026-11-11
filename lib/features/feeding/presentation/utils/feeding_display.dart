@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 String feedingAmount(BuildContext context, double grams) => NumberFormat(
   '0.#',

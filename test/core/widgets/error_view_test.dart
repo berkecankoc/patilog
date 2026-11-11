@@ -1,8 +1,8 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/error_view.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/widgets/error_view.dart';
 
 void main() {
   for (final brightness in Brightness.values) {

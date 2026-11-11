@@ -1,18 +1,18 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
-import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
-import 'package:petlytics/features/medication/presentation/widgets/visit_medications_section.dart';
-import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
-import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
-import 'package:petlytics/features/vet_visit/presentation/widgets/visit_vaccinations_section.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/features/medication/domain/repositories/medication_repository.dart';
+import 'package:patilog/features/medication/domain/use_cases/calculate_medication_doses.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:patilog/features/medication/presentation/widgets/visit_medications_section.dart';
+import 'package:patilog/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:patilog/features/vaccination/presentation/cubit/vaccination_cubit.dart';
+import 'package:patilog/features/vet_visit/presentation/widgets/visit_vaccinations_section.dart';
 
 class _Medications extends Mock implements MedicationRepository {}
 

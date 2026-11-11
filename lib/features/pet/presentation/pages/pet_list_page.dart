@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/error_view.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
-import 'package:petlytics/features/pet/presentation/cubit/pet_state.dart';
-import 'package:petlytics/features/pet/presentation/extensions/pet_display_extensions.dart';
-import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
-import 'package:petlytics/features/pet/presentation/widgets/pet_species_icon.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_gap.dart';
+import 'package:patilog/core/widgets/error_view.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:patilog/features/pet/presentation/cubit/pet_state.dart';
+import 'package:patilog/features/pet/presentation/extensions/pet_display_extensions.dart';
+import 'package:patilog/features/pet/presentation/widgets/pet_avatar.dart';
+import 'package:patilog/features/pet/presentation/widgets/pet_species_icon.dart';
 
 void _openAddPet(BuildContext context) => context.push(AppRoutes.addEditPet);
 

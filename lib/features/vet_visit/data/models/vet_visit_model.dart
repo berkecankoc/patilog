@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
 
 final class VetVisitModel extends Equatable {
   final String id;

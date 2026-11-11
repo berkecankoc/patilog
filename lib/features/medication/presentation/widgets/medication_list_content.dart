@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
-import 'package:petlytics/core/widgets/care_record_card.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose.dart';
-import 'package:petlytics/features/medication/presentation/utils/medication_display.dart';
-import 'package:petlytics/features/medication/presentation/widgets/medication_doses.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/widgets/app_section_heading.dart';
+import 'package:patilog/core/widgets/care_record_card.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose.dart';
+import 'package:patilog/features/medication/presentation/utils/medication_display.dart';
+import 'package:patilog/features/medication/presentation/widgets/medication_doses.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 /// Presentation only: each navigation root retains its own queries and writes.
 class MedicationDoseListContent extends StatelessWidget {

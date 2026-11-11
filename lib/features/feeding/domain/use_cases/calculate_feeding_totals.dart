@@ -1,6 +1,6 @@
-import 'package:petlytics/features/feeding/domain/entities/feeding_daily_total.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/utils/feeding_calendar.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_daily_total.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/utils/feeding_calendar.dart';
 
 final class CalculateFeedingTotals {
   const CalculateFeedingTotals();

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_cubit.dart';
 
 class MedicationClock extends StatefulWidget {
   final Widget child;

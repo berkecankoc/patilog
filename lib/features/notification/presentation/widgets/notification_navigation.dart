@@ -1,30 +1,30 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 import 'dart:async';
 
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_cubit.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_cubit.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/router/app_navigation_observer.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/core/router/pet_care_route_extra.dart';
-import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_state.dart';
-import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_cubit.dart';
-import 'package:petlytics/features/vaccination/presentation/cubit/vaccination_state.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_cubit.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
-import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
-import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
-import 'package:petlytics/features/notification/domain/use_cases/resolve_notification_target.dart';
-import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
-import 'package:petlytics/features/notification/presentation/cubit/notification_state.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/router/app_navigation_observer.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/core/router/pet_care_route_extra.dart';
+import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_state.dart';
+import 'package:patilog/features/vaccination/presentation/cubit/vaccination_cubit.dart';
+import 'package:patilog/features/vaccination/presentation/cubit/vaccination_state.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_cubit.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_state.dart';
+import 'package:patilog/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+import 'package:patilog/features/weight_history/presentation/cubit/weight_history_state.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/use_cases/resolve_notification_target.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_state.dart';
 
 class NotificationNavigation extends StatefulWidget {
   final GoRouter router;

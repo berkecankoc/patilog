@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
 
 abstract final class HorizontalGap {
   static const xs = SizedBox(width: AppSpacing.xs);

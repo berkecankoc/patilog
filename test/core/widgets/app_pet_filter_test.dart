@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/app_pet_filter.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/widgets/app_pet_filter.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import '../../helpers/multi_step_form_helpers.dart';
 
 const pets = [

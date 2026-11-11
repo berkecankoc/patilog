@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/router/app_routes.dart';
+import 'package:patilog/core/router/app_routes.dart';
 
 class MyPetsButton extends StatelessWidget {
   final bool enabled;

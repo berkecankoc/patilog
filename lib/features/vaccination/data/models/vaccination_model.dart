@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
 
 final class VaccinationModel extends Equatable {
   final String id;

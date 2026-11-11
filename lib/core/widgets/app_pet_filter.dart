@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/presentation/extensions/pet_display_extensions.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/presentation/extensions/pet_display_extensions.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 class AppPetFilter extends StatelessWidget {
   final List<Pet> pets;

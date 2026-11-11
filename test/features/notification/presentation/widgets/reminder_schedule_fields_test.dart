@@ -1,9 +1,9 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/features/notification/presentation/widgets/reminder_schedule_fields.dart';
-import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/features/notification/presentation/widgets/reminder_schedule_fields.dart';
+import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 import '../../../../helpers/multi_step_form_helpers.dart';
 
 void main() {

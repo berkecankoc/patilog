@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/settings/domain/entities/language_preference.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/features/settings/domain/entities/language_preference.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 
 final class SettingsState extends Equatable {
   final ThemePreference themePreference;

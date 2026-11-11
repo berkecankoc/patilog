@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/core/router/pet_care_route_extra.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
-import 'package:petlytics/features/medication/presentation/widgets/medication_doses.dart';
-import 'package:petlytics/features/medication/presentation/widgets/medication_dose_calendar.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/core/router/pet_care_route_extra.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/presentation/widgets/medication_doses.dart';
+import 'package:patilog/features/medication/presentation/widgets/medication_dose_calendar.dart';
 
 import '../../../../helpers/pet_care_test_harness.dart';
 

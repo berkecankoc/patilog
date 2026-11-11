@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_feeding_icon.dart';
+import 'package:patilog/core/widgets/app_feeding_icon.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/utils/time_input_formatter.dart';
-import 'package:petlytics/core/widgets/app_date_field.dart';
-import 'package:petlytics/core/widgets/app_detail_field.dart';
-import 'package:petlytics/core/widgets/app_multi_step_form.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_form_cubit.dart';
-import 'package:petlytics/features/feeding/presentation/utils/feeding_display.dart';
-import 'package:petlytics/features/feeding/presentation/widgets/feeding_form_shell.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/utils/time_input_formatter.dart';
+import 'package:patilog/core/widgets/app_date_field.dart';
+import 'package:patilog/core/widgets/app_detail_field.dart';
+import 'package:patilog/core/widgets/app_multi_step_form.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_form_cubit.dart';
+import 'package:patilog/features/feeding/presentation/utils/feeding_display.dart';
+import 'package:patilog/features/feeding/presentation/widgets/feeding_form_shell.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 class FeedingEntryFormPage extends StatefulWidget {
   final String petId;

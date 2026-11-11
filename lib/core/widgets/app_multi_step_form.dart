@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
-import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
-import 'package:petlytics/core/widgets/app_keyboard.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_error_feedback.dart';
+import 'package:patilog/core/widgets/app_form_actions.dart';
+import 'package:patilog/core/widgets/app_form_scroll_view.dart';
+import 'package:patilog/core/widgets/app_section_heading.dart';
+import 'package:patilog/core/widgets/app_keyboard.dart';
 
 class AppFormStep {
   final String title;

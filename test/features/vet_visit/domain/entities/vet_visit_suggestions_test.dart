@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
 
 void main() {
   const suggestions = VetVisitSuggestions(

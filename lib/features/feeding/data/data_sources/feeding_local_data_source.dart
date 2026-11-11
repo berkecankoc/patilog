@@ -1,10 +1,10 @@
 import 'package:characters/characters.dart';
-import 'package:petlytics/core/database/database_tables.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_entry_model.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_meal_model.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_model_values.dart';
-import 'package:petlytics/features/feeding/data/models/feeding_plan_model.dart';
+import 'package:patilog/core/database/database_tables.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/feeding/data/models/feeding_entry_model.dart';
+import 'package:patilog/features/feeding/data/models/feeding_meal_model.dart';
+import 'package:patilog/features/feeding/data/models/feeding_model_values.dart';
+import 'package:patilog/features/feeding/data/models/feeding_plan_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 abstract interface class FeedingLocalDataSource {

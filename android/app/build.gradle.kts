@@ -1,11 +1,27 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Release signing reads android/key.properties, which is gitignored. Without it,
+// release builds fall back to debug keys so contributors can still run them;
+// Google Play rejects debug-signed uploads.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+fun requiredKeystoreProperty(name: String): String =
+    keystoreProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+        ?: throw GradleException("Missing '$name' in ${keystorePropertiesFile.path}")
+
 android {
-    namespace = "com.example.petlytics"
+    namespace = "com.berkecankoc.patilog"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,8 +32,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.petlytics"
+        applicationId = "com.berkecankoc.patilog"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -26,11 +41,25 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = file(requiredKeystoreProperty("storeFile"))
+                storePassword = requiredKeystoreProperty("storePassword")
+                keyAlias = requiredKeystoreProperty("keyAlias")
+                keyPassword = requiredKeystoreProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn("android/key.properties not found; signing release with debug keys.")
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

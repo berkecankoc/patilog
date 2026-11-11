@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
 
 void main() {
   const pet = Pet(

@@ -1,22 +1,22 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/core/router/pet_care_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/router/pet_care_changes.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/l10n/app_number_formats.dart';
-import 'package:petlytics/core/widgets/app_multi_step_form.dart';
-import 'package:petlytics/core/widgets/app_detail_field.dart';
+import 'package:patilog/core/l10n/app_number_formats.dart';
+import 'package:patilog/core/widgets/app_multi_step_form.dart';
+import 'package:patilog/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/core/widgets/app_date_field.dart';
-import 'package:petlytics/core/widgets/pet_care_title.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
-import 'package:petlytics/features/vet_visit/presentation/cubit/vet_visit_form_state.dart';
-import 'package:petlytics/features/vet_visit/presentation/utils/vet_visit_cost.dart';
-import 'package:petlytics/core/widgets/app_suggestion_field.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_gap.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/app_date_field.dart';
+import 'package:patilog/core/widgets/pet_care_title.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_form_cubit.dart';
+import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_form_state.dart';
+import 'package:patilog/features/vet_visit/presentation/utils/vet_visit_cost.dart';
+import 'package:patilog/core/widgets/app_suggestion_field.dart';
 
 class VetVisitFormPage extends StatefulWidget {
   final String petId;

@@ -4,10 +4,10 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/notification/data/data_sources/notification_preferences_local_data_source.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/notification/data/data_sources/notification_preferences_local_data_source.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MockPreferences extends Mock implements SharedPreferencesAsync {}

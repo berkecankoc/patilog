@@ -1,7 +1,7 @@
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/utils/medication_calendar.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/utils/medication_calendar.dart';
 
 final class CalculateMedicationDoses {
   const CalculateMedicationDoses();

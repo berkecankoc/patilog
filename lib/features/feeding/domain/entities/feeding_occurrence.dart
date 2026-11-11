@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_meal.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
 
 /// A calculated meal/day, not a persisted row. A null entry means no record
 /// only after the caller has successfully loaded that day's results.

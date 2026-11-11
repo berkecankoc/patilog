@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/pet/data/models/pet_model.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/data/models/pet_model.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
 
 void main() {
   final model = PetModel(

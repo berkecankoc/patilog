@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 class AppDateField extends StatefulWidget {
   final String labelText;

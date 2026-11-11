@@ -1,9 +1,9 @@
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
 
 final class FeedingRouteExtra extends PetCareRouteExtra {
   final DateTime date;

@@ -1,8 +1,8 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/utils/time_input_formatter.dart';
-import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/utils/time_input_formatter.dart';
+import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 String reminderScheduleSummary(
   AppLocalizations strings,

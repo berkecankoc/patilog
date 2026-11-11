@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
-import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
-import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
-import 'package:petlytics/l10n/generated/app_localizations_tr.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/use_cases/plan_notification_reminders.dart';
+import 'package:patilog/features/notification/presentation/utils/notification_content.dart';
+import 'package:patilog/l10n/generated/app_localizations_tr.dart';
 
 import '../../../../helpers/notification_test_harness.dart';
 

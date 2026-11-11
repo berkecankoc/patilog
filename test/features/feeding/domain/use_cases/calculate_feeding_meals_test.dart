@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_meal.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
-import 'package:petlytics/features/feeding/domain/use_cases/calculate_feeding_meals.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/feeding/domain/use_cases/calculate_feeding_meals.dart';
 
 void main() {
   const calculate = CalculateFeedingMeals();

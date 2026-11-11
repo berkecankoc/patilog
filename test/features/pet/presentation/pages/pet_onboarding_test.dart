@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/di/injection.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/use_cases/create_pet.dart';
-import 'package:petlytics/features/pet/presentation/cubit/pet_cubit.dart';
-import 'package:petlytics/features/pet/presentation/pages/pet_form_page.dart';
+import 'package:patilog/core/di/injection.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/use_cases/create_pet.dart';
+import 'package:patilog/features/pet/presentation/cubit/pet_cubit.dart';
+import 'package:patilog/features/pet/presentation/pages/pet_form_page.dart';
 
 import '../../../../helpers/multi_step_form_helpers.dart';
 import '../../../../helpers/feeding_test_harness.dart';

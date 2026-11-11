@@ -1,15 +1,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_daily_total.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_occurrence.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
-import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
-import 'package:petlytics/features/feeding/domain/use_cases/calculate_feeding_meals.dart';
-import 'package:petlytics/features/feeding/domain/use_cases/calculate_feeding_totals.dart';
-import 'package:petlytics/features/feeding/domain/utils/feeding_calendar.dart';
-import 'package:petlytics/features/feeding/presentation/cubit/feeding_state.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_daily_total.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_occurrence.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:patilog/features/feeding/domain/use_cases/calculate_feeding_meals.dart';
+import 'package:patilog/features/feeding/domain/use_cases/calculate_feeding_totals.dart';
+import 'package:patilog/features/feeding/domain/utils/feeding_calendar.dart';
+import 'package:patilog/features/feeding/presentation/cubit/feeding_state.dart';
 
 typedef _FeedingQuery = ({
   String? petId,

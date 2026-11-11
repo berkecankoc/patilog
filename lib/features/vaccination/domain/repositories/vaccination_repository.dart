@@ -1,6 +1,6 @@
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination_suggestions.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination_suggestions.dart';
 
 /// Single-record reads, updates and deletes must match both pet and record IDs.
 /// A missing match returns NotFoundFailure. Linked visits must belong to the pet.

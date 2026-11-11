@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
 
 /// A computed occurrence; only its optional result is persisted.
 final class MedicationDose extends Equatable {

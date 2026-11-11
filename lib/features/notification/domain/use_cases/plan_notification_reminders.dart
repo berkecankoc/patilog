@@ -1,13 +1,13 @@
 import 'dart:math' as math;
 
-import 'package:petlytics/features/medication/domain/utils/medication_calendar.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_data.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_plan.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
-import 'package:petlytics/features/notification/domain/repositories/notification_repository.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/medication/domain/utils/medication_calendar.dart';
+import 'package:patilog/features/notification/domain/entities/notification_data.dart';
+import 'package:patilog/features/notification/domain/entities/notification_plan.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_reminder.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/repositories/notification_repository.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
 
 final class PlanNotificationReminders {
   const PlanNotificationReminders();

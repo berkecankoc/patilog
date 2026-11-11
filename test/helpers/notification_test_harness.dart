@@ -1,31 +1,31 @@
 import 'dart:async';
 
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/features/feeding/domain/repositories/feeding_repository.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_plan.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_entry.dart';
-import 'package:petlytics/features/feeding/domain/entities/feeding_meal.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_data.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_reminder.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
-import 'package:petlytics/features/notification/domain/repositories/notification_repository.dart';
-import 'package:petlytics/features/notification/domain/use_cases/load_notification_data.dart';
-import 'package:petlytics/features/notification/domain/use_cases/plan_notification_reminders.dart';
-import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
-import 'package:petlytics/features/notification/presentation/utils/notification_content.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_channel_labels.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:patilog/features/feeding/domain/repositories/feeding_repository.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
+import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/repositories/medication_repository.dart';
+import 'package:patilog/features/notification/domain/entities/notification_data.dart';
+import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_reminder.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/repositories/notification_repository.dart';
+import 'package:patilog/features/notification/domain/use_cases/load_notification_data.dart';
+import 'package:patilog/features/notification/domain/use_cases/plan_notification_reminders.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:patilog/features/notification/presentation/utils/notification_content.dart';
+import 'package:patilog/features/notification/domain/entities/notification_channel_labels.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/domain/repositories/vaccination_repository.dart';
 
 class MockNotificationRepository extends Mock
     implements NotificationRepository {}

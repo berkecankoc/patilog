@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
-import 'package:petlytics/core/l10n/app_number_formats.dart';
-import 'package:petlytics/core/utils/weight_utils.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
+import 'package:patilog/core/l10n/app_number_formats.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 
 void main() {
   test(

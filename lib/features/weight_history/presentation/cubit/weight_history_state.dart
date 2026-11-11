@@ -1,6 +1,6 @@
-import 'package:petlytics/core/error/failure.dart';
+import 'package:patilog/core/error/failure.dart';
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
 
 sealed class WeightHistoryState extends Equatable {
   const WeightHistoryState();

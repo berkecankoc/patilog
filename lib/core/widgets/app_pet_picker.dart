@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/presentation/extensions/pet_display_extensions.dart';
-import 'package:petlytics/features/pet/presentation/widgets/pet_avatar.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/presentation/extensions/pet_display_extensions.dart';
+import 'package:patilog/features/pet/presentation/widgets/pet_avatar.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 
 /// Chooses from the retained directory without another pet lookup.
 Future<Pet?> pickCarePet(

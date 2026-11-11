@@ -1,21 +1,21 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/router/pet_care_changes.dart';
-import 'package:petlytics/core/router/pet_care_tab.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/router/pet_care_changes.dart';
+import 'package:patilog/core/router/pet_care_tab.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/l10n/app_number_formats.dart';
-import 'package:petlytics/core/widgets/app_multi_step_form.dart';
-import 'package:petlytics/core/widgets/app_detail_field.dart';
+import 'package:patilog/core/l10n/app_number_formats.dart';
+import 'package:patilog/core/widgets/app_multi_step_form.dart';
+import 'package:patilog/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/utils/weight_utils.dart';
-import 'package:petlytics/core/widgets/app_gap.dart';
-import 'package:petlytics/core/widgets/app_date_field.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/core/widgets/pet_care_title.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
-import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_cubit.dart';
-import 'package:petlytics/features/weight_history/presentation/cubit/weight_history_state.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
+import 'package:patilog/core/widgets/app_gap.dart';
+import 'package:patilog/core/widgets/app_date_field.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/pet_care_title.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+import 'package:patilog/features/weight_history/presentation/cubit/weight_history_state.dart';
 
 class WeightEntryFormPage extends StatefulWidget {
   final String petId;

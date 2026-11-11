@@ -1,8 +1,8 @@
-import 'package:petlytics/core/database/care_name_suggestions.dart';
-import 'package:petlytics/core/database/database_tables.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/features/vet_visit/data/models/vet_visit_model.dart';
-import 'package:petlytics/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
+import 'package:patilog/core/database/care_name_suggestions.dart';
+import 'package:patilog/core/database/database_tables.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/features/vet_visit/data/models/vet_visit_model.dart';
+import 'package:patilog/features/vet_visit/domain/entities/vet_visit_suggestions.dart';
 import 'package:sqflite/sqflite.dart';
 
 abstract interface class VetVisitLocalDataSource {

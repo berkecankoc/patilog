@@ -1,13 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/repositories/medication_repository.dart';
-import 'package:petlytics/features/medication/domain/use_cases/calculate_medication_doses.dart';
-import 'package:petlytics/features/medication/domain/utils/medication_calendar.dart';
-import 'package:petlytics/features/medication/presentation/cubit/medication_state.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/repositories/medication_repository.dart';
+import 'package:patilog/features/medication/domain/use_cases/calculate_medication_doses.dart';
+import 'package:patilog/features/medication/domain/utils/medication_calendar.dart';
+import 'package:patilog/features/medication/presentation/cubit/medication_state.dart';
 
 final class MedicationCubit extends Cubit<MedicationState> {
   final MedicationRepository _repository;

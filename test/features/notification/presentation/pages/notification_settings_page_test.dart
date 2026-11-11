@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_permission_status.dart';
-import 'package:petlytics/features/notification/presentation/pages/notification_settings_page.dart';
-import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/settings/domain/entities/theme_preference.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
+import 'package:patilog/features/notification/presentation/pages/notification_settings_page.dart';
+import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 import '../../../../helpers/settings_test_harness.dart';
 
 void main() {

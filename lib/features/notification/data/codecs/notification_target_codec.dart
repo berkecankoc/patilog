@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:petlytics/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/entities/notification_target.dart';
 
 abstract final class NotificationTargetCodec {
-  static const _prefix = 'petlytics.reminder.v1:';
+  static const _prefix = 'patilog.reminder.v1:';
 
   static bool isOwned(String? payload) => payload?.startsWith(_prefix) ?? false;
 

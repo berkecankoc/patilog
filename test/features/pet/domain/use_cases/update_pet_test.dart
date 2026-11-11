@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/storage/image_storage.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
-import 'package:petlytics/features/pet/domain/use_cases/update_pet.dart';
-import 'package:petlytics/features/weight_history/domain/entities/weight_entry.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/storage/image_storage.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/features/pet/domain/use_cases/update_pet.dart';
+import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
 
 class MockPetRepository extends Mock implements PetRepository {}
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_suggestions.dart';
+import 'package:patilog/features/medication/domain/entities/medication_suggestions.dart';
 
 void main() {
   test(

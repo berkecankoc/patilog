@@ -1,7 +1,7 @@
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/storage/image_storage.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
-import 'package:petlytics/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/storage/image_storage.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
 
 class DeletePet {
   final PetRepository repository;

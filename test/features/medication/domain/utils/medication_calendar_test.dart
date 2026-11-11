@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:petlytics/features/medication/domain/utils/medication_calendar.dart';
+import 'package:patilog/features/medication/domain/utils/medication_calendar.dart';
 
 void main() {
   test('time and UTC flags never change a chosen calendar day', () {

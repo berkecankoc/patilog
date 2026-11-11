@@ -1,20 +1,20 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:petlytics/core/widgets/app_feeding_icon.dart';
+import 'package:patilog/core/widgets/app_feeding_icon.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petlytics/core/router/app_routes.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
-import 'package:petlytics/core/widgets/app_confirmation_dialog.dart';
-import 'package:petlytics/core/widgets/app_error_feedback.dart';
-import 'package:petlytics/core/widgets/app_form_actions.dart';
-import 'package:petlytics/core/widgets/app_form_scroll_view.dart';
-import 'package:petlytics/core/widgets/app_section_heading.dart';
-import 'package:petlytics/features/notification/domain/entities/notification_preferences.dart';
-import 'package:petlytics/features/notification/presentation/cubit/notification_cubit.dart';
-import 'package:petlytics/features/notification/presentation/cubit/notification_state.dart';
-import 'package:petlytics/features/notification/presentation/widgets/reminder_schedule_fields.dart';
-import 'package:petlytics/features/notification/domain/entities/vaccination_reminder_schedule.dart';
+import 'package:patilog/core/router/app_routes.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/app_error_feedback.dart';
+import 'package:patilog/core/widgets/app_form_actions.dart';
+import 'package:patilog/core/widgets/app_form_scroll_view.dart';
+import 'package:patilog/core/widgets/app_section_heading.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_state.dart';
+import 'package:patilog/features/notification/presentation/widgets/reminder_schedule_fields.dart';
+import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 class NotificationSettingsPage extends StatelessWidget {
   const NotificationSettingsPage({super.key});

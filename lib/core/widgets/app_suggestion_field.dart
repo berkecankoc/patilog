@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
 
 class AppSuggestionField extends StatefulWidget {
   final String label;

@@ -1,17 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/exception.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/features/medication/data/data_sources/medication_local_data_source.dart';
-import 'package:petlytics/features/medication/data/models/medication_dose_log_model.dart';
-import 'package:petlytics/features/medication/data/models/medication_model.dart';
-import 'package:petlytics/features/medication/data/models/medication_period_model.dart';
-import 'package:petlytics/features/medication/data/repositories/medication_repository_impl.dart';
-import 'package:petlytics/features/medication/domain/entities/medication.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_dose_log.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_period.dart';
-import 'package:petlytics/features/medication/domain/entities/medication_suggestions.dart';
+import 'package:patilog/core/error/exception.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/features/medication/data/data_sources/medication_local_data_source.dart';
+import 'package:patilog/features/medication/data/models/medication_dose_log_model.dart';
+import 'package:patilog/features/medication/data/models/medication_model.dart';
+import 'package:patilog/features/medication/data/models/medication_period_model.dart';
+import 'package:patilog/features/medication/data/repositories/medication_repository_impl.dart';
+import 'package:patilog/features/medication/domain/entities/medication.dart';
+import 'package:patilog/features/medication/domain/entities/medication_dose_log.dart';
+import 'package:patilog/features/medication/domain/entities/medication_period.dart';
+import 'package:patilog/features/medication/domain/entities/medication_suggestions.dart';
 
 class MockMedicationLocalDataSource extends Mock
     implements MedicationLocalDataSource {}

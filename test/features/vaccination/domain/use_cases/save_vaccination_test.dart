@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:petlytics/core/error/failure.dart';
-import 'package:petlytics/core/result/result.dart';
-import 'package:petlytics/core/services/id_generator.dart';
-import 'package:petlytics/features/vaccination/domain/entities/vaccination.dart';
-import 'package:petlytics/features/vaccination/domain/repositories/vaccination_repository.dart';
-import 'package:petlytics/features/vaccination/domain/use_cases/save_vaccination.dart';
+import 'package:patilog/core/error/failure.dart';
+import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/services/id_generator.dart';
+import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/vaccination/domain/repositories/vaccination_repository.dart';
+import 'package:patilog/features/vaccination/domain/use_cases/save_vaccination.dart';
 
 class MockVaccinationRepository extends Mock implements VaccinationRepository {}
 

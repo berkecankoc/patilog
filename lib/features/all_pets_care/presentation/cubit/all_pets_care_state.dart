@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:petlytics/features/pet/domain/entities/pet.dart';
+import 'package:patilog/features/pet/domain/entities/pet.dart';
 
 enum AllPetsCareSection {
   pets,

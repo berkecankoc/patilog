@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/core/theme/app_spacing.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/theme/app_spacing.dart';
 
 /// Wrap in Flexible beside Expanded content to keep recovery reachable when
 /// long errors need to scroll on short screens with enlarged text.

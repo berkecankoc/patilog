@@ -1,10 +1,10 @@
-import 'package:petlytics/l10n/generated/app_localizations.dart';
-import 'package:petlytics/core/l10n/app_locale.dart';
+import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/core/l10n/app_locale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/rendering.dart';
-import 'package:petlytics/core/theme/app_theme.dart';
-import 'package:petlytics/core/widgets/app_date_field.dart';
+import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/widgets/app_date_field.dart';
 
 import '../../helpers/multi_step_form_helpers.dart';
 
