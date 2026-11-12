@@ -174,7 +174,7 @@ class _PetView extends StatelessWidget {
                             ? null
                             : MaterialLocalizations.of(
                                 context,
-                              ).formatMediumDate(birthDate),
+                              ).formatShortDate(birthDate),
                       ),
                       (
                         Icons.monitor_weight_outlined,

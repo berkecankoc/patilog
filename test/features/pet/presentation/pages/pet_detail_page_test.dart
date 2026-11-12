@@ -162,4 +162,50 @@ void main() {
       );
     }
   }
+
+  for (final (locale, expected) in [
+    (const Locale('en'), 'Apr 12, 2021'),
+    (const Locale('tr'), '12 Nis 2021'),
+  ]) {
+    testWidgets('birth date shows the year in $locale', (tester) async {
+      final pet = Pet(
+        id: 'pet-1',
+        name: 'Luna',
+        species: PetSpecies.cat,
+        sex: PetSex.female,
+        reproductiveStatus: ReproductiveStatus.sterilized,
+        birthDate: DateTime(2021, 4, 12),
+      );
+      final repository = MockPetRepository();
+      when(
+        () => repository.getPetById(pet.id),
+      ).thenAnswer((_) async => Success(pet));
+      final cubit = PetCubit(
+        repository,
+        MockCreatePet(),
+        MockUpdatePet(),
+        MockDeletePet(),
+      );
+      await cubit.getPetById(pet.id);
+      addTearDown(cubit.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: RepositoryProvider<ImageStorage>.value(
+            value: MockImageStorage(),
+            child: BlocProvider<PetCubit>.value(
+              value: cubit,
+              child: const PetDetailPage(petId: 'pet-1'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(expected), findsOneWidget);
+    });
+  }
 }
