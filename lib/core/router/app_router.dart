@@ -44,6 +44,8 @@ import 'package:patilog/features/weight_history/presentation/cubit/weight_histor
 import 'package:patilog/features/weight_history/presentation/pages/weight_entry_form_page.dart';
 import 'package:patilog/features/weight_history/presentation/pages/weight_history_page.dart';
 import 'package:patilog/features/settings/presentation/cubit/settings_cubit.dart';
+import 'package:patilog/core/services/external_link_launcher.dart';
+import 'package:patilog/features/settings/presentation/pages/open_source_licenses_page.dart';
 import 'package:patilog/features/settings/presentation/pages/settings_page.dart';
 import 'package:patilog/features/notification/presentation/pages/notification_settings_page.dart';
 import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
@@ -186,7 +188,10 @@ final appRouter = GoRouter(
         // Settings shares the care shell so reminder pushes cannot duplicate it.
         GoRoute(
           path: AppRoutes.settings,
-          builder: (_, _) => const SettingsPage(),
+          // Resolve the launcher on tap so Settings needs no link dependency to render.
+          builder: (_, _) => SettingsPage(
+            openLink: (uri) => getIt<ExternalLinkLauncher>().open(uri),
+          ),
           onExit: (context, _) => !context.read<SettingsCubit>().state.isBusy,
           routes: [
             GoRoute(
@@ -194,6 +199,10 @@ final appRouter = GoRouter(
               builder: (_, _) => const NotificationSettingsPage(),
               onExit: (context, _) =>
                   !context.read<NotificationCubit>().state.isSaving,
+            ),
+            GoRoute(
+              path: 'licenses',
+              builder: (_, _) => const OpenSourceLicensesPage(),
             ),
           ],
         ),

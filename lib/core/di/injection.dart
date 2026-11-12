@@ -21,6 +21,8 @@ import 'package:patilog/features/medication/presentation/cubit/medication_visits
 import 'package:patilog/core/database/app_database.dart';
 import 'package:patilog/core/services/id_generator.dart';
 import 'package:patilog/core/services/uuid_generator.dart';
+import 'package:patilog/core/services/external_link_launcher.dart';
+import 'package:patilog/core/services/url_external_link_launcher.dart';
 import 'package:patilog/core/storage/image_storage.dart';
 import 'package:patilog/core/storage/local_image_storage.dart';
 import 'package:patilog/features/medication/data/data_sources/medication_local_data_source.dart';
@@ -94,6 +96,10 @@ Future<void> setupDependencies() async {
   );
 
   getIt.registerLazySingleton<IdGenerator>(() => UuidGenerator());
+
+  getIt.registerLazySingleton<ExternalLinkLauncher>(
+    () => const UrlExternalLinkLauncher(),
+  );
 
   getIt.registerLazySingleton<ImageStorage>(
     () => LocalImageStorage(getIt<IdGenerator>()),
