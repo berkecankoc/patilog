@@ -1,6 +1,7 @@
 abstract final class AppRoutes {
   static const settings = '/settings';
   static const notificationSettings = '$settings/notifications';
+  static const openSourceLicenses = '$settings/licenses';
   static const pets = '/pets';
   static const healthRecords = '/health-records';
   static const allVetVisits = '$healthRecords/visits';

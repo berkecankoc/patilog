@@ -14,6 +14,8 @@ import 'package:patilog/core/error/failure.dart';
 import 'package:patilog/core/result/result.dart';
 import 'package:patilog/core/router/care_record_changes.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/core/services/external_link_launcher.dart';
+import 'package:patilog/core/services/url_external_link_launcher.dart';
 import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:patilog/features/medication/domain/entities/medication.dart';
 import 'package:patilog/features/medication/domain/entities/medication_period.dart';
@@ -596,4 +598,10 @@ void main() {
       );
     },
   );
+
+  test('external links share one URL launcher', () {
+    final launcher = getIt<ExternalLinkLauncher>();
+    expect(launcher, isA<UrlExternalLinkLauncher>());
+    expect(getIt<ExternalLinkLauncher>(), same(launcher));
+  });
 }

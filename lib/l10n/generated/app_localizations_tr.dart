@@ -82,6 +82,34 @@ class AppLocalizationsTr extends AppLocalizations {
   String get languageSaveFailed => 'Dil tercihi kaydedilemedi';
 
   @override
+  String get aboutTitle => 'Hakkında';
+
+  @override
+  String get privacyPolicy => 'Gizlilik politikası';
+
+  @override
+  String get sourceCode => 'Kaynak kodu';
+
+  @override
+  String get sourceCodeDescription => 'GNU GPL v3 veya sonrası ile açık kaynak';
+
+  @override
+  String get openSourceLicenses => 'Açık kaynak lisansları';
+
+  @override
+  String get appLegalese =>
+      '© 2026 Berke Can Koç\nGNU GPL v3 veya sonraki sürümleriyle lisanslanmıştır.\nHiçbir garanti verilmez.';
+
+  @override
+  String get linkOpenFailed => 'Bağlantı açılamadı.';
+
+  @override
+  String get copyLink => 'Bağlantıyı kopyala';
+
+  @override
+  String get linkCopied => 'Bağlantı kopyalandı';
+
+  @override
   String get cancel => 'Vazgeç';
 
   @override

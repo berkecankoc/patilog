@@ -242,6 +242,60 @@ abstract class AppLocalizations {
   /// **'Failed to save language preference'**
   String get languageSaveFailed;
 
+  /// Settings section with the privacy policy, source code and license links.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutTitle;
+
+  /// Opens the privacy policy web page in the browser.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
+  /// Opens the app's public source repository in the browser.
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get sourceCode;
+
+  /// Subtitle of the Source code link.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source under the GNU GPL v3 or later'**
+  String get sourceCodeDescription;
+
+  /// Opens the license notices of Patilog and its bundled packages.
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licenses'**
+  String get openSourceLicenses;
+
+  /// Copyright and license line on the open-source licenses page; keep the name unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'© 2026 Berke Can Koç\nLicensed under the GNU GPL v3 or later.\nProvided without any warranty.'**
+  String get appLegalese;
+
+  /// No browser could open an About link; a Copy link action is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the link.'**
+  String get linkOpenFailed;
+
+  /// Copies the link that could not be opened.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get copyLink;
+
+  /// Confirms that the link was copied to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get linkCopied;
+
   /// Cancels an operation or closes a confirmation without changing data.
   ///
   /// In en, this message translates to:

@@ -83,6 +83,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageSaveFailed => 'Failed to save language preference';
 
   @override
+  String get aboutTitle => 'About';
+
+  @override
+  String get privacyPolicy => 'Privacy policy';
+
+  @override
+  String get sourceCode => 'Source code';
+
+  @override
+  String get sourceCodeDescription =>
+      'Open source under the GNU GPL v3 or later';
+
+  @override
+  String get openSourceLicenses => 'Open-source licenses';
+
+  @override
+  String get appLegalese =>
+      '© 2026 Berke Can Koç\nLicensed under the GNU GPL v3 or later.\nProvided without any warranty.';
+
+  @override
+  String get linkOpenFailed => 'Couldn\'t open the link.';
+
+  @override
+  String get copyLink => 'Copy link';
+
+  @override
+  String get linkCopied => 'Link copied';
+
+  @override
   String get cancel => 'Cancel';
 
   @override

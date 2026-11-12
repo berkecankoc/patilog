@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:patilog/core/router/app_routes.dart';
@@ -11,8 +12,16 @@ import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:patilog/features/settings/presentation/cubit/settings_cubit.dart';
 import 'package:patilog/features/settings/presentation/cubit/settings_state.dart';
 
+const _sourceCodeUrl = 'https://github.com/berkecankoc/patilog';
+const _privacyPolicyUrl = 'https://berkecankoc.github.io/patilog-site/privacy/';
+const _turkishPrivacyPolicyUrl =
+    'https://berkecankoc.github.io/patilog-site/tr/privacy/';
+
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  /// Opens a web link outside the app; returns false when it could not.
+  final Future<bool> Function(Uri uri) openLink;
+
+  const SettingsPage({super.key, required this.openLink});
 
   @override
   Widget build(
@@ -28,6 +37,28 @@ class SettingsPage extends StatelessWidget {
         } else {
           context.go(AppRoutes.pets);
         }
+      }
+
+      Future<void> open(String url) async {
+        final uri = Uri.parse(url);
+        if (await openLink(uri) || !context.mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(strings.linkOpenFailed),
+              action: SnackBarAction(
+                label: strings.copyLink,
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: url));
+                  messenger.showSnackBar(
+                    SnackBar(content: Text(strings.linkCopied)),
+                  );
+                },
+              ),
+            ),
+          );
       }
 
       return PopScope(
@@ -232,6 +263,60 @@ class SettingsPage extends StatelessWidget {
                                 ],
                               ],
                             ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        AppSectionHeading(
+                          title: strings.aboutTitle,
+                          icon: Icons.info_outline,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Card(
+                          margin: EdgeInsets.zero,
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            children: [
+                              ListTile(
+                                title: Text(strings.privacyPolicy),
+                                trailing: const Icon(Icons.open_in_new),
+                                onTap: state.isBusy
+                                    ? null
+                                    : () => open(
+                                        Localizations.localeOf(context)
+                                                    .languageCode ==
+                                                'tr'
+                                            ? _turkishPrivacyPolicyUrl
+                                            : _privacyPolicyUrl,
+                                      ),
+                              ),
+                              const Divider(
+                                height: 1,
+                                indent: AppSpacing.md,
+                                endIndent: AppSpacing.md,
+                              ),
+                              ListTile(
+                                title: Text(strings.sourceCode),
+                                subtitle: Text(strings.sourceCodeDescription),
+                                trailing: const Icon(Icons.open_in_new),
+                                onTap: state.isBusy
+                                    ? null
+                                    : () => open(_sourceCodeUrl),
+                              ),
+                              const Divider(
+                                height: 1,
+                                indent: AppSpacing.md,
+                                endIndent: AppSpacing.md,
+                              ),
+                              ListTile(
+                                title: Text(strings.openSourceLicenses),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: state.isBusy
+                                    ? null
+                                    : () => context.push(
+                                        AppRoutes.openSourceLicenses,
+                                      ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
