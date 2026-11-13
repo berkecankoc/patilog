@@ -25,7 +25,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get remindersTitle => 'Hatırlatmalar';
 
   @override
-  String get remindersDescription => 'İlaç dozları ve planlanan aşılar';
+  String get remindersDescription =>
+      'İlaç dozları, planlanan aşılar ve öğünler';
 
   @override
   String get appearanceTitle => 'Görünüm';

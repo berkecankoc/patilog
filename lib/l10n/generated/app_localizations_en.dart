@@ -26,7 +26,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remindersDescription =>
-      'Medication doses and planned vaccinations';
+      'Medication doses, planned vaccinations and meals';
 
   @override
   String get appearanceTitle => 'Appearance';
