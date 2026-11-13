@@ -6,6 +6,8 @@ vaccinations, medications and feeding, with local reminders.
 
 The app is available in English and Turkish, with light and dark themes.
 
+Website: [berkecankoc.github.io/patilog-site](https://berkecankoc.github.io/patilog-site/) · [Privacy policy](https://berkecankoc.github.io/patilog-site/privacy/) · [Support](https://berkecankoc.github.io/patilog-site/support/)
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/overview-dark.png">
   <img src="docs/screenshots/overview-light.png" alt="Patilog screens: the pet list, today's medication doses, a cat's meal plan and its weight chart">
