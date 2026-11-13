@@ -6,6 +6,11 @@ vaccinations, medications and feeding, with local reminders.
 
 The app is available in English and Turkish, with light and dark themes.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/overview-dark.png">
+  <img src="docs/screenshots/overview-light.png" alt="Patilog screens: the pet list, today's medication doses, a cat's meal plan and its weight chart">
+</picture>
+
 ## Features
 
 - Pet profiles for dogs, cats, birds and other pets, with an optional photo
