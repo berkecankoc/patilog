@@ -10,7 +10,7 @@
   "@notificationsTitle": {"description": "Settings section for local notifications."},
   "remindersTitle": "Reminders",
   "@remindersTitle": {"description": "Opens reminder preferences from Settings."},
-  "remindersDescription": "Medication doses and planned vaccinations",
+  "remindersDescription": "Medication doses, planned vaccinations and meals",
   "@remindersDescription": {"description": "Description of the reminder preferences destination."},
   "appearanceTitle": "Appearance",
   "@appearanceTitle": {"description": "Section heading for theme choices."},

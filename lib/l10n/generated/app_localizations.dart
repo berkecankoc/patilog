@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// Description of the reminder preferences destination.
   ///
   /// In en, this message translates to:
-  /// **'Medication doses and planned vaccinations'**
+  /// **'Medication doses, planned vaccinations and meals'**
   String get remindersDescription;
 
   /// Section heading for theme choices.
