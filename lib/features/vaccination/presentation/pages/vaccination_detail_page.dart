@@ -131,7 +131,6 @@ class VaccinationDetailPage extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: AppLocalizations.of(context).editVaccination,
-                  color: theme.colorScheme.primary,
                   onPressed: busy ? null : () => _edit(context, vaccination),
                   icon: const Icon(Icons.edit_outlined),
                 ),

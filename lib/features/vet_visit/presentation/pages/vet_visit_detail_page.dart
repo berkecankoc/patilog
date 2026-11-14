@@ -235,7 +235,6 @@ class VetVisitDetailPage extends StatelessWidget {
                                                 tooltip: AppLocalizations.of(
                                                   context,
                                                 ).editVisit,
-                                                color: colors.primary,
                                                 onPressed: busy
                                                     ? null
                                                     : () =>

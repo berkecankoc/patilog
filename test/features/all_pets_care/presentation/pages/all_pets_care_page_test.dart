@@ -395,6 +395,37 @@ void main() {
     semantics.dispose();
   });
 
+  for (final dark in [false, true]) {
+    testWidgets('record edit buttons share the standard icon color, dark=$dark', (
+      tester,
+    ) async {
+      Color? editColor(String tooltip) => IconTheme.of(
+        tester.element(
+          find.descendant(
+            of: find.byTooltip(tooltip),
+            matching: find.byIcon(Icons.edit_outlined),
+          ),
+        ),
+      ).color;
+      when(() => app.vaccinations.getVaccinationById(any(), any())).thenAnswer(
+        (call) async => Success(
+          vaccines.firstWhere((v) => v.id == call.positionalArguments[1]),
+        ),
+      );
+      final colors = <Color?>[];
+      for (final (location, tooltip) in [
+        (AppRoutes.petDetail('pet'), 'Edit profile'),
+        (AppRoutes.vetVisitDetail('pet', 'visit-a'), 'Edit visit'),
+        (AppRoutes.vaccinationDetail('pet', 'late'), 'Edit vaccination'),
+      ]) {
+        await app.pump(tester, location: location, dark: dark);
+        colors.add(editColor(tooltip));
+      }
+      final theme = Theme.of(tester.element(find.byType(Scaffold).first));
+      expect(colors, everyElement(theme.colorScheme.onSurfaceVariant));
+    });
+  }
+
   testWidgets('pet filters survive switching roots without querying again', (
     tester,
   ) async {
