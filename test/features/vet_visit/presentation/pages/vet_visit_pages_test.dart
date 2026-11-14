@@ -187,6 +187,7 @@ void main() {
     Brightness brightness = Brightness.light,
     bool keyboard = false,
     EdgeInsets safePadding = EdgeInsets.zero,
+    Locale? locale,
   }) async {
     tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1;
@@ -199,6 +200,8 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(
       MaterialApp.router(
+        locale: locale,
+        supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
         routerConfig: router,
@@ -632,6 +635,47 @@ void main() {
         },
       );
     }
+  }
+
+  testWidgets('English cost defaults to USD and saves it unchanged', (
+    tester,
+  ) async {
+    await pumpRouter(tester);
+    await openAdd(tester);
+    await fill(tester, reasonField, 'Checkup');
+    await fill(tester, amountField, '40');
+    await save(tester);
+    final created =
+        verify(() => repository.createVetVisit(captureAny())).captured.single
+            as VetVisit;
+    expect(created.costMinorUnits, 4000);
+    expect(created.currency, VetVisitCurrency.usDollar);
+  });
+
+  for (final (locale, expected) in [
+    (const Locale('en'), VetVisitCurrency.usDollar),
+    (const Locale('tr'), VetVisitCurrency.turkishLira),
+  ]) {
+    testWidgets('new $locale visit starts with ${expected.code}', (
+      tester,
+    ) async {
+      await pumpRouter(
+        tester,
+        location: AppRoutes.addEditVetVisit(pet.id),
+        locale: locale,
+      );
+      expect(
+        tester
+            .widget<DropdownButtonFormField<VetVisitCurrency>>(
+              find.byType(
+                DropdownButtonFormField<VetVisitCurrency>,
+                skipOffstage: false,
+              ),
+            )
+            .initialValue,
+        expected,
+      );
+    });
   }
 
   testWidgets(

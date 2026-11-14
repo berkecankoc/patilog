@@ -63,8 +63,6 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
     final visit = widget.visit;
     _visitedOn = DateUtils.dateOnly(visit?.visitedOn ?? DateTime.now());
     _initialDate = _visitedOn;
-    _currency = visit?.currency ?? VetVisitCurrency.turkishLira;
-    _initialCurrency = _currency;
     _initialText = {
       _reason: visit?.reason ?? '',
       _clinic: visit?.clinicName ?? '',
@@ -83,6 +81,13 @@ class _VetVisitFormPageState extends State<VetVisitFormPage> {
     super.didChangeDependencies();
     if (_localizedAmount) return;
     _localizedAmount = true;
+    // Visits without a recorded cost start from the app language's currency.
+    _currency =
+        widget.visit?.currency ??
+        (Localizations.localeOf(context).languageCode == 'en'
+            ? VetVisitCurrency.usDollar
+            : VetVisitCurrency.turkishLira);
+    _initialCurrency = _currency;
     final cost = widget.visit?.costMinorUnits;
     final value = cost == null
         ? ''
