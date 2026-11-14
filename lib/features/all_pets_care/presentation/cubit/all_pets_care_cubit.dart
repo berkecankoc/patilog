@@ -63,6 +63,33 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
     }
   }
 
+  /// Returns whether the pin change was saved; a failed write keeps the list.
+  Future<bool> setPetPinned(String petId, {required bool pinned}) async {
+    if (isClosed || state.pinningPetIds.contains(petId)) return false;
+    emit(state.copyWith(pinningPetIds: {...state.pinningPetIds, petId}));
+    final result = await _repository.setPetPinned(petId, pinned: pinned);
+    if (isClosed) return result is Success<void>;
+    final pending = {...state.pinningPetIds}..remove(petId);
+    if (result is Error<void>) {
+      emit(state.copyWith(pinningPetIds: pending));
+      return false;
+    }
+    // Show the saved pin even if the reordering refresh below fails.
+    emit(
+      state.copyWith(
+        pinningPetIds: pending,
+        pets: state.pets.copyWith(
+          records: [
+            for (final pet in state.pets.records)
+              pet.id == petId ? pet.copyWith(isPinned: pinned) : pet,
+          ],
+        ),
+      ),
+    );
+    await loadPets();
+    return true;
+  }
+
   void removeDeletedPet(String petId) {
     if (isClosed) return;
     _deletedPets.add(petId);

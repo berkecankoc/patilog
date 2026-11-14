@@ -782,6 +782,42 @@ abstract class AppLocalizations {
   /// **'Other'**
   String get speciesOther;
 
+  /// Optional free-text species input shown when species is Other.
+  ///
+  /// In en, this message translates to:
+  /// **'Species name (optional)'**
+  String get customSpeciesOptional;
+
+  /// Example for the custom species input.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Rabbit'**
+  String get customSpeciesHint;
+
+  /// Custom species validation using visible Unicode characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep species name within {max} characters'**
+  String customSpeciesTooLong(int max);
+
+  /// Pet list button that moves the pet to the top.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin {petName}'**
+  String pinPet(String petName);
+
+  /// Pet list button that removes the pet from the pinned group.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin {petName}'**
+  String unpinPet(String petName);
+
+  /// Pin or unpin write failed; the list keeps its previous order.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update pin'**
+  String get petPinFailed;
+
   /// Male pet sex label.
   ///
   /// In en, this message translates to:

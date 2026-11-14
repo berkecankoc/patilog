@@ -10,6 +10,9 @@ abstract interface class PetLocalDataSource {
   Future<void> createPet(PetModel pet, {WeightEntryModel? weightEntry});
   Future<void> updatePet(PetModel pet, {WeightEntryModel? weightEntry});
   Future<void> deletePet(String id);
+
+  /// Newly pinned pets follow existing pins; repeating a pin keeps its place.
+  Future<void> setPetPinned(String id, {required bool pinned});
 }
 
 final class PetLocalDataSourceImpl implements PetLocalDataSource {
@@ -19,8 +22,9 @@ final class PetLocalDataSourceImpl implements PetLocalDataSource {
   // Do not read the legacy pets.weight column; history owns the current weight.
   static const _selectPetsWithWeight =
       '''
-    SELECT p.id, p.name, p.species, p.sex, p.reproductive_status,
-           p.breed, p.birth_date, p.microchip_id, p.image_path,
+    SELECT p.id, p.name, p.species, p.custom_species, p.sex,
+           p.reproductive_status, p.breed, p.birth_date, p.microchip_id,
+           p.image_path, p.pin_order IS NOT NULL AS is_pinned,
            (SELECT w.weight FROM ${DatabaseTables.weightEntries} w
             WHERE w.pet_id = p.id
             ORDER BY w.measured_at DESC, w.rowid DESC LIMIT 1) AS weight
@@ -75,8 +79,34 @@ final class PetLocalDataSourceImpl implements PetLocalDataSource {
   @override
   Future<List<PetModel>> getPets() async {
     try {
-      final rows = await db.rawQuery(_selectPetsWithWeight);
+      final rows = await db.rawQuery(
+        '$_selectPetsWithWeight '
+        'ORDER BY p.pin_order IS NULL, p.pin_order, p.rowid',
+      );
       return rows.map(PetModel.fromJson).toList();
+    } on DatabaseException {
+      throw const LocalDataSourceException();
+    }
+  }
+
+  @override
+  Future<void> setPetPinned(String id, {required bool pinned}) async {
+    try {
+      final affectedRows = await db.rawUpdate(
+        pinned
+            ? '''
+              UPDATE ${DatabaseTables.pets}
+              SET pin_order = COALESCE(
+                pin_order,
+                (SELECT COALESCE(MAX(pin_order), 0) + 1
+                 FROM ${DatabaseTables.pets})
+              )
+              WHERE id = ?
+            '''
+            : 'UPDATE ${DatabaseTables.pets} SET pin_order = NULL WHERE id = ?',
+        [id],
+      );
+      if (affectedRows == 0) throw const LocalDataNotFoundException();
     } on DatabaseException {
       throw const LocalDataSourceException();
     }

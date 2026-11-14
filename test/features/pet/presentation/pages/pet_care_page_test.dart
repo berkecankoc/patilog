@@ -498,6 +498,36 @@ void main() {
     },
   );
 
+  for (final size in [const Size(320, 568), const Size(640, 320)]) {
+    testWidgets('header shows a long custom species beside the name at $size', (
+      tester,
+    ) async {
+      final species = 'Long-eared rabbit ${'x' * 12}';
+      when(() => app.pets.getPetById('pet')).thenAnswer(
+        (_) async => Success(
+          Pet(
+            id: 'pet',
+            name: 'Simba',
+            species: PetSpecies.other,
+            customSpecies: species,
+            sex: PetSex.male,
+            reproductiveStatus: ReproductiveStatus.intact,
+          ),
+        ),
+      );
+      await app.pump(
+        tester,
+        location: AppRoutes.petDetail('pet'),
+        size: size,
+        scale: 2,
+      );
+      expect(find.text('Simba').hitTestable(), findsOneWidget);
+      expect(find.text(species), findsOneWidget);
+      expect(find.text('Other'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final dark in [false, true]) {
     for (final size in [const Size(320, 568), const Size(640, 320)]) {
       testWidgets(

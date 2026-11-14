@@ -18,11 +18,19 @@ void _openAddPet(BuildContext context) => context.push(AppRoutes.addEditPet);
 class PetListPage extends StatefulWidget {
   final List<Pet>? pets;
   final ValueChanged<Pet>? onOpenPet;
-  const PetListPage({super.key}) : pets = null, onOpenPet = null;
+  final Set<String> pinningPetIds;
+  final ValueChanged<Pet>? onTogglePin;
+  const PetListPage({super.key})
+    : pets = null,
+      onOpenPet = null,
+      pinningPetIds = const {},
+      onTogglePin = null;
   const PetListPage.fromRecords({
     super.key,
     required List<Pet> this.pets,
     required ValueChanged<Pet> this.onOpenPet,
+    this.pinningPetIds = const {},
+    this.onTogglePin,
   });
 
   @override
@@ -81,7 +89,12 @@ class _PetListPageState extends State<PetListPage> {
     if (widget.pets != null) {
       return widget.pets!.isEmpty
           ? const _PetWelcomeView()
-          : _PetListView(pets: widget.pets!, onOpenPet: widget.onOpenPet!);
+          : _PetListView(
+              pets: widget.pets!,
+              onOpenPet: widget.onOpenPet!,
+              pinningPetIds: widget.pinningPetIds,
+              onTogglePin: widget.onTogglePin,
+            );
     }
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context).myPets)),
@@ -238,7 +251,14 @@ class _PetWelcomeView extends StatelessWidget {
 class _PetListView extends StatelessWidget {
   final List<Pet> pets;
   final ValueChanged<Pet> onOpenPet;
-  const _PetListView({required this.pets, required this.onOpenPet});
+  final Set<String> pinningPetIds;
+  final ValueChanged<Pet>? onTogglePin;
+  const _PetListView({
+    required this.pets,
+    required this.onOpenPet,
+    this.pinningPetIds = const {},
+    this.onTogglePin,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -268,8 +288,13 @@ class _PetListView extends StatelessWidget {
                   ),
                   itemCount: pets.length,
                   itemBuilder: (context, index) => _PetListItem(
+                    key: ValueKey(pets[index].id),
                     pet: pets[index],
                     onTap: () => onOpenPet(pets[index]),
+                    onTogglePin: onTogglePin == null
+                        ? null
+                        : () => onTogglePin!(pets[index]),
+                    isPinning: pinningPetIds.contains(pets[index].id),
                   ),
                   separatorBuilder: (context, index) => VerticalGap.md,
                 ),
@@ -285,11 +310,22 @@ class _PetListView extends StatelessWidget {
 class _PetListItem extends StatelessWidget {
   final Pet pet;
   final VoidCallback onTap;
-  const _PetListItem({required this.pet, required this.onTap});
+
+  /// Null hides the pin control.
+  final VoidCallback? onTogglePin;
+  final bool isPinning;
+  const _PetListItem({
+    super.key,
+    required this.pet,
+    required this.onTap,
+    this.onTogglePin,
+    this.isPinning = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final strings = AppLocalizations.of(context);
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
@@ -308,7 +344,7 @@ class _PetListItem extends StatelessWidget {
                     Text(pet.name, style: theme.textTheme.titleMedium),
                     VerticalGap.xs,
                     Text(
-                      pet.speciesAndBreed(AppLocalizations.of(context)),
+                      pet.speciesAndBreed(strings),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -316,6 +352,19 @@ class _PetListItem extends StatelessWidget {
                   ],
                 ),
               ),
+              if (onTogglePin != null)
+                IconButton(
+                  isSelected: pet.isPinned,
+                  tooltip: pet.isPinned
+                      ? strings.unpinPet(pet.name)
+                      : strings.pinPet(pet.name),
+                  onPressed: isPinning ? null : onTogglePin,
+                  icon: const Icon(Icons.push_pin_outlined),
+                  selectedIcon: Icon(
+                    Icons.push_pin,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
               const ExcludeSemantics(child: Icon(Icons.chevron_right)),
             ],
           ),

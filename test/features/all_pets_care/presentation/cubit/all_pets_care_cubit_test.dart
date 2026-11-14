@@ -141,4 +141,49 @@ void main() {
       verify(repository.getPets).called(1);
     },
   );
+  group('pinning', () {
+    setUp(() async {
+      await cubit.loadPets();
+      clearInteractions(repository);
+    });
+
+    test('blocks repeats while saving, then reloads the saved order', () async {
+      final write = Completer<Result<void>>();
+      when(() => repository.setPetPinned('b', pinned: true))
+          .thenAnswer((_) => write.future);
+      final pinned = other.copyWith(isPinned: true);
+      when(repository.getPets).thenAnswer((_) async => Success([pinned, pet]));
+
+      final saving = cubit.setPetPinned('b', pinned: true);
+      expect(cubit.state.pinningPetIds, {'b'});
+      expect(await cubit.setPetPinned('b', pinned: true), isFalse);
+      write.complete(const Success(null));
+
+      expect(await saving, isTrue);
+      expect(cubit.state.pinningPetIds, isEmpty);
+      expect(cubit.state.pets.records, [pinned, pet]);
+      verify(() => repository.setPetPinned('b', pinned: true)).called(1);
+      verify(repository.getPets).called(1);
+    });
+
+    test('failed write keeps the list and order without a reload', () async {
+      when(() => repository.setPetPinned('b', pinned: true))
+          .thenAnswer((_) async => const Error(failure));
+
+      expect(await cubit.setPetPinned('b', pinned: true), isFalse);
+      expect(cubit.state.pinningPetIds, isEmpty);
+      expect(cubit.state.pets.records, [pet, other]);
+      verifyNever(repository.getPets);
+    });
+
+    test('saved pin stays visible when the reordering read fails', () async {
+      when(() => repository.setPetPinned('a', pinned: true))
+          .thenAnswer((_) async => const Success(null));
+      when(repository.getPets).thenAnswer((_) async => const Error(failure));
+
+      expect(await cubit.setPetPinned('a', pinned: true), isTrue);
+      expect(cubit.state.pets.records, [pet.copyWith(isPinned: true), other]);
+      expect(cubit.state.pets.error, 'Try again');
+    });
+  });
 }

@@ -12,4 +12,7 @@ abstract interface class PetRepository {
   /// Saves profile changes and an optional new measurement atomically.
   Future<Result<void>> updatePet(Pet pet, {WeightEntry? weightEntry});
   Future<Result<void>> deletePet(String id);
+
+  /// Changes list priority only; profile updates keep the current pin.
+  Future<Result<void>> setPetPinned(String id, {required bool pinned});
 }

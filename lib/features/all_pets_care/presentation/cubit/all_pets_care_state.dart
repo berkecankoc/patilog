@@ -46,10 +46,15 @@ final class AllPetsCareState extends Equatable {
   final AllPetsCareSection activeSection;
   final CareRecords<Pet> pets;
 
+  /// Pets whose pin change is being saved.
+  final Set<String> pinningPetIds;
+
   AllPetsCareState({
     this.activeSection = AllPetsCareSection.pets,
     CareRecords<Pet>? pets,
-  }) : pets = pets ?? CareRecords();
+    Set<String> pinningPetIds = const {},
+  }) : pets = pets ?? CareRecords(),
+       pinningPetIds = Set.unmodifiable(pinningPetIds);
 
   late final Map<String, Pet> petsById = Map.unmodifiable({
     for (final pet in pets.records) pet.id: pet,
@@ -58,11 +63,13 @@ final class AllPetsCareState extends Equatable {
   AllPetsCareState copyWith({
     AllPetsCareSection? activeSection,
     CareRecords<Pet>? pets,
+    Set<String>? pinningPetIds,
   }) => AllPetsCareState(
     activeSection: activeSection ?? this.activeSection,
     pets: pets ?? this.pets,
+    pinningPetIds: pinningPetIds ?? this.pinningPetIds,
   );
 
   @override
-  List<Object?> get props => [activeSection, pets];
+  List<Object?> get props => [activeSection, pets, pinningPetIds];
 }

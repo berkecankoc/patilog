@@ -584,4 +584,104 @@ void main() {
       );
     }
   }
+
+  Future<void> chooseSpecies(WidgetTester tester, String label) async {
+    final field = find.byType(
+      DropdownButtonFormField<PetSpecies>,
+      skipOffstage: false,
+    );
+    await tapFormControl(tester, field);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label).last);
+    await tester.pumpAndSettle();
+  }
+
+  final customSpeciesField = find.widgetWithText(
+    TextFormField,
+    'Species name (optional)',
+    skipOffstage: false,
+  );
+
+  testWidgets(
+    'Other offers a species name that survives species changes and saves trimmed',
+    (tester) async {
+      await pumpForm(tester, existing: null);
+      expect(customSpeciesField, findsNothing);
+      await enterFormText(
+        tester,
+        find.widgetWithText(TextFormField, 'Name', skipOffstage: false),
+        'Hops',
+      );
+      await chooseSpecies(tester, 'Other');
+      await enterFormText(tester, customSpeciesField, '  Rabbit ');
+      await chooseSpecies(tester, 'Dog');
+      expect(customSpeciesField, findsNothing);
+      await chooseSpecies(tester, 'Other');
+      expect(
+        tester.widget<TextFormField>(customSpeciesField).controller!.text,
+        '  Rabbit ',
+      );
+      await reviewForm(tester);
+      expect(find.text('Rabbit'), findsOneWidget);
+      await submitForm(tester);
+      expect(await routeResult, isTrue);
+      final params =
+          verify(() => create(captureAny())).captured.single
+              as CreatePetParams;
+      expect(params.species, PetSpecies.other);
+      expect(params.customSpecies, 'Rabbit');
+    },
+  );
+
+  testWidgets(
+    'editing a custom species to a listed species drops the name on save',
+    (tester) async {
+      const rabbit = Pet(
+        id: 'pet-1',
+        name: 'Hops',
+        species: PetSpecies.other,
+        customSpecies: 'Rabbit',
+        sex: PetSex.female,
+        reproductiveStatus: ReproductiveStatus.intact,
+      );
+      when(
+        () => update(rabbit, any()),
+      ).thenAnswer((_) async => const Success(null));
+      await pumpForm(tester, existing: rabbit);
+      expect(find.text('Rabbit'), findsOneWidget);
+      await chooseSpecies(tester, 'Cat');
+      await reviewForm(tester);
+      expect(find.text('Rabbit'), findsNothing);
+      expect(find.text('Cat'), findsOneWidget);
+      await submitForm(tester);
+      expect(await routeResult, isTrue);
+      final params =
+          verify(() => update(rabbit, captureAny())).captured.single
+              as UpdatePetParams;
+      expect(params.species, PetSpecies.cat);
+      expect(params.customSpecies, isNull);
+    },
+  );
+
+  testWidgets('custom species over 30 characters blocks saving', (
+    tester,
+  ) async {
+    await pumpForm(tester, existing: null);
+    await enterFormText(
+      tester,
+      find.widgetWithText(TextFormField, 'Name', skipOffstage: false),
+      'Hops',
+    );
+    await chooseSpecies(tester, 'Other');
+    await enterFormText(tester, customSpeciesField, '🐇' * 31);
+    await submitForm(tester);
+    expect(
+      find.text('Keep species name within 30 characters').hitTestable(),
+      findsOneWidget,
+    );
+    verifyNever(() => create(any()));
+    await enterFormText(tester, customSpeciesField, '🐇' * 30);
+    await submitForm(tester);
+    expect(await routeResult, isTrue);
+  });
 }
