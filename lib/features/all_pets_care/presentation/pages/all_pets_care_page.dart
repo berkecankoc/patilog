@@ -8,6 +8,7 @@ import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/router/care_record_changes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_feeding_icon.dart';
 import 'package:patilog/core/widgets/app_health_records_icon.dart';
@@ -95,14 +96,16 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     AllPetsCareSection.feeding => context.read<FeedingCubit>(),
     AllPetsCareSection.weightHistory => context.read<WeightHistoryCubit>(),
   };
-  bool get _busy => switch (_feature?.state) {
-    WeightHistoryLoaded(:final isDeleting) => isDeleting,
-    VetVisitsLoaded(:final isDeleting) => isDeleting,
-    VaccinationsLoaded(:final isDeleting) => isDeleting,
-    MedicationsLoaded(:final pendingAction) => pendingAction != null,
-    FeedingLoaded(:final pendingAction) => pendingAction != null,
-    _ => false,
-  };
+  bool get _busy =>
+      _cubit.state.deletingPetIds.isNotEmpty ||
+      switch (_feature?.state) {
+        WeightHistoryLoaded(:final isDeleting) => isDeleting,
+        VetVisitsLoaded(:final isDeleting) => isDeleting,
+        VaccinationsLoaded(:final isDeleting) => isDeleting,
+        MedicationsLoaded(:final pendingAction) => pendingAction != null,
+        FeedingLoaded(:final pendingAction) => pendingAction != null,
+        _ => false,
+      };
   bool get _loading => switch (_feature?.state) {
     WeightHistoryLoading() ||
     VetVisitLoading() ||
@@ -365,6 +368,44 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
       );
   }
 
+  /// Confirms and deletes a swiped pet; a failed delete springs the card back.
+  Future<bool> _deletePet(Pet pet) async {
+    if (_busy) return false;
+    final strings = AppLocalizations.of(context);
+    // Read before awaiting so cleanup survives leaving this page meanwhile.
+    final changes = CareRecordChanges.maybeOf(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AppConfirmationDialog(
+        title: strings.deletePetTitle,
+        message: strings.deletePetMessage(pet.name),
+        confirmLabel: strings.deleteAction,
+      ),
+    );
+    if (confirmed != true || !mounted) return false;
+    final deleted = await _cubit.deletePet(pet);
+    if (deleted) {
+      // Shares the profile deletion path: caches, filters and reminders
+      // update at once rather than after the list animation.
+      changes?.changed(pet.id, PetCareTab.profile, petDeleted: true);
+      return true;
+    }
+    if (!mounted) return false;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(strings.petDeleteFailed),
+          action: SnackBarAction(
+            label: strings.retryDeletion,
+            // Destructive retries ask for confirmation again.
+            onPressed: () => _deletePet(pet),
+          ),
+        ),
+      );
+    return false;
+  }
+
   Widget _content(AllPetsCareSection section, AllPetsCareState state) =>
       switch (section) {
         AllPetsCareSection.pets =>
@@ -380,6 +421,8 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                   onOpenPet: _openPet,
                   pinningPetIds: state.pinningPetIds,
                   onTogglePin: _togglePin,
+                  deletingPetIds: state.deletingPetIds,
+                  onDeletePet: _deletePet,
                 ),
         AllPetsCareSection.weightHistory => WeightHistoryPage(
           pets: state.pets.records,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -20,17 +21,26 @@ class PetListPage extends StatefulWidget {
   final ValueChanged<Pet>? onOpenPet;
   final Set<String> pinningPetIds;
   final ValueChanged<Pet>? onTogglePin;
+  final Set<String> deletingPetIds;
+
+  /// Confirms and deletes a swiped pet; returns whether it was deleted. The
+  /// owner removes deleted pets from [pets].
+  final Future<bool> Function(Pet pet)? onDeletePet;
   const PetListPage({super.key})
     : pets = null,
       onOpenPet = null,
       pinningPetIds = const {},
-      onTogglePin = null;
+      onTogglePin = null,
+      deletingPetIds = const {},
+      onDeletePet = null;
   const PetListPage.fromRecords({
     super.key,
     required List<Pet> this.pets,
     required ValueChanged<Pet> this.onOpenPet,
     this.pinningPetIds = const {},
     this.onTogglePin,
+    this.deletingPetIds = const {},
+    this.onDeletePet,
   });
 
   @override
@@ -94,6 +104,8 @@ class _PetListPageState extends State<PetListPage> {
               onOpenPet: widget.onOpenPet!,
               pinningPetIds: widget.pinningPetIds,
               onTogglePin: widget.onTogglePin,
+              deletingPetIds: widget.deletingPetIds,
+              onDeletePet: widget.onDeletePet,
             );
     }
     return Scaffold(
@@ -253,11 +265,15 @@ class _PetListView extends StatelessWidget {
   final ValueChanged<Pet> onOpenPet;
   final Set<String> pinningPetIds;
   final ValueChanged<Pet>? onTogglePin;
+  final Set<String> deletingPetIds;
+  final Future<bool> Function(Pet pet)? onDeletePet;
   const _PetListView({
     required this.pets,
     required this.onOpenPet,
     this.pinningPetIds = const {},
     this.onTogglePin,
+    this.deletingPetIds = const {},
+    this.onDeletePet,
   });
 
   @override
@@ -295,6 +311,10 @@ class _PetListView extends StatelessWidget {
                         ? null
                         : () => onTogglePin!(pets[index]),
                     isPinning: pinningPetIds.contains(pets[index].id),
+                    onDelete: onDeletePet == null
+                        ? null
+                        : () => onDeletePet!(pets[index]),
+                    isDeleting: deletingPetIds.contains(pets[index].id),
                   ),
                   separatorBuilder: (context, index) => VerticalGap.md,
                 ),
@@ -314,16 +334,65 @@ class _PetListItem extends StatelessWidget {
   /// Null hides the pin control.
   final VoidCallback? onTogglePin;
   final bool isPinning;
+
+  /// Null disables swipe deletion.
+  final Future<bool> Function()? onDelete;
+  final bool isDeleting;
   const _PetListItem({
     super.key,
     required this.pet,
     required this.onTap,
     this.onTogglePin,
     this.isPinning = false,
+    this.onDelete,
+    this.isDeleting = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final card = _card(context);
+    if (onDelete == null) return card;
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      // Swiping has no screen-reader equivalent; offer the same flow.
+      customSemanticsActions: {
+        CustomSemanticsAction(
+          label: AppLocalizations.of(context).deletePet,
+        ): () =>
+            onDelete!(),
+      },
+      child: Dismissible(
+        key: ValueKey(('delete-pet', pet.id)),
+        direction: DismissDirection.endToStart,
+        // The owner removes a deleted pet as soon as its write succeeds.
+        confirmDismiss: (_) => onDelete!(),
+        background: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.error,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: AppSpacing.lg),
+              child: isDeleting
+                  ? SizedBox.square(
+                      dimension: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colors.onError,
+                      ),
+                    )
+                  : Icon(Icons.delete_outline, color: colors.onError),
+            ),
+          ),
+        ),
+        child: card,
+      ),
+    );
+  }
+
+  Widget _card(BuildContext context) {
     final theme = Theme.of(context);
     final strings = AppLocalizations.of(context);
     return Card(

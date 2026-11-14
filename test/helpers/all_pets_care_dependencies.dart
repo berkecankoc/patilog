@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:patilog/core/di/injection.dart';
 import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/storage/image_storage.dart';
 import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:patilog/features/medication/domain/repositories/medication_repository.dart';
 import 'package:patilog/features/medication/domain/use_cases/calculate_medication_doses.dart';
@@ -9,6 +10,7 @@ import 'package:patilog/features/medication/presentation/cubit/medication_cubit.
 import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
 import 'package:patilog/features/vaccination/presentation/cubit/vaccination_cubit.dart';
 import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:patilog/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:patilog/features/vet_visit/domain/repositories/vet_visit_repository.dart';
 import 'package:patilog/core/services/id_generator.dart';
@@ -24,6 +26,8 @@ class _Visits extends Mock implements VetVisitRepository {}
 class _Vaccinations extends Mock implements VaccinationRepository {}
 
 class _Medications extends Mock implements MedicationRepository {}
+
+class _Images extends Mock implements ImageStorage {}
 
 /// Pet-only routing tests need the global root without unrelated care fixtures.
 void registerAllPetsCare(
@@ -96,7 +100,9 @@ void registerAllPetsCare(
       }
     });
   }
-  getIt.registerFactory<AllPetsCareCubit>(() => AllPetsCareCubit(pets));
+  getIt.registerFactory<AllPetsCareCubit>(
+    () => AllPetsCareCubit(pets, DeletePet(pets, _Images())),
+  );
   addTearDown(() async {
     if (getIt.isRegistered<AllPetsCareCubit>()) {
       await getIt.unregister<AllPetsCareCubit>();

@@ -49,12 +49,17 @@ final class AllPetsCareState extends Equatable {
   /// Pets whose pin change is being saved.
   final Set<String> pinningPetIds;
 
+  /// The pet being deleted from the list; at most one deletion runs at a time.
+  final Set<String> deletingPetIds;
+
   AllPetsCareState({
     this.activeSection = AllPetsCareSection.pets,
     CareRecords<Pet>? pets,
     Set<String> pinningPetIds = const {},
+    Set<String> deletingPetIds = const {},
   }) : pets = pets ?? CareRecords(),
-       pinningPetIds = Set.unmodifiable(pinningPetIds);
+       pinningPetIds = Set.unmodifiable(pinningPetIds),
+       deletingPetIds = Set.unmodifiable(deletingPetIds);
 
   late final Map<String, Pet> petsById = Map.unmodifiable({
     for (final pet in pets.records) pet.id: pet,
@@ -64,12 +69,19 @@ final class AllPetsCareState extends Equatable {
     AllPetsCareSection? activeSection,
     CareRecords<Pet>? pets,
     Set<String>? pinningPetIds,
+    Set<String>? deletingPetIds,
   }) => AllPetsCareState(
     activeSection: activeSection ?? this.activeSection,
     pets: pets ?? this.pets,
     pinningPetIds: pinningPetIds ?? this.pinningPetIds,
+    deletingPetIds: deletingPetIds ?? this.deletingPetIds,
   );
 
   @override
-  List<Object?> get props => [activeSection, pets, pinningPetIds];
+  List<Object?> get props => [
+    activeSection,
+    pets,
+    pinningPetIds,
+    deletingPetIds,
+  ];
 }

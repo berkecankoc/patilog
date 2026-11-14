@@ -3,14 +3,17 @@ import 'package:patilog/core/result/result.dart';
 import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
 import 'package:patilog/features/pet/domain/entities/pet.dart';
 import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/features/pet/domain/use_cases/delete_pet.dart';
 
 final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
   final PetRepository _repository;
+  final DeletePet _deletePet;
   int _request = 0;
   bool _dirty = false;
   final _deletedPets = <String>{};
 
-  AllPetsCareCubit(this._repository) : super(AllPetsCareState());
+  AllPetsCareCubit(this._repository, this._deletePet)
+    : super(AllPetsCareState());
 
   Future<void> activate(AllPetsCareSection section) async {
     if (isClosed) return;
@@ -88,6 +91,17 @@ final class AllPetsCareCubit extends Cubit<AllPetsCareState> {
     );
     await loadPets();
     return true;
+  }
+
+  /// Returns whether the pet was deleted; callers remove it after the list
+  /// animation through the shared pet-deletion change.
+  Future<bool> deletePet(Pet pet) async {
+    if (isClosed || state.deletingPetIds.isNotEmpty) return false;
+    emit(state.copyWith(deletingPetIds: {pet.id}));
+    final result = await _deletePet(pet);
+    if (isClosed) return result is Success<void>;
+    emit(state.copyWith(deletingPetIds: const {}));
+    return result is Success<void>;
   }
 
   void removeDeletedPet(String petId) {
