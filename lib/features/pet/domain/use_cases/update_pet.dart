@@ -11,6 +11,9 @@ import 'package:patilog/features/weight_history/domain/entities/weight_entry.dar
 final class UpdatePetParams {
   final String name;
   final PetSpecies species;
+
+  /// Ignored unless [species] is [PetSpecies.other].
+  final String? customSpecies;
   final PetSex sex;
   final ReproductiveStatus reproductiveStatus;
 
@@ -26,6 +29,7 @@ final class UpdatePetParams {
   const UpdatePetParams({
     required this.name,
     required this.species,
+    this.customSpecies,
     required this.sex,
     required this.reproductiveStatus,
     this.breed,
@@ -65,6 +69,7 @@ class UpdatePet {
       id: pet.id,
       name: params.name,
       species: params.species,
+      customSpecies: customSpeciesFor(params.species, params.customSpecies),
       sex: params.sex,
       reproductiveStatus: params.reproductiveStatus,
       breed: params.breed,
@@ -72,6 +77,7 @@ class UpdatePet {
       weight: params.weight,
       microchipId: params.microchipId,
       imagePath: finalImagePath,
+      isPinned: pet.isPinned,
     );
 
     final now = DateTime.now();

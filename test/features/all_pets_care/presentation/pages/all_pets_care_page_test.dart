@@ -235,6 +235,54 @@ void main() {
     },
   );
 
+  testWidgets(
+    'pinning reorders the directory and filters; a failed pin offers Retry',
+    (tester) async {
+      const ferret = Pet(
+        id: 'other',
+        name: 'Buddy',
+        species: PetSpecies.other,
+        customSpecies: 'Ferret',
+        sex: PetSex.female,
+        reproductiveStatus: ReproductiveStatus.intact,
+      );
+      pets = [simba, ferret];
+      var attempts = 0;
+      when(() => app.pets.setPetPinned('other', pinned: true)).thenAnswer((
+        _,
+      ) async {
+        if (++attempts == 1) return const Error(LocalDatabaseFailure('x'));
+        pets = [ferret.copyWith(isPinned: true), simba];
+        return const Success<void>(null);
+      });
+      await app.pump(tester, location: AppRoutes.pets);
+      expect(find.text('Ferret'), findsOneWidget);
+      double top(String name) => tester.getTopLeft(find.text(name)).dy;
+      expect(top('Simba'), lessThan(top('Buddy')));
+
+      await tester.tap(find.byTooltip('Pin Buddy'));
+      await tester.pumpAndSettle();
+      expect(find.text('Failed to update pin'), findsOneWidget);
+      expect(top('Simba'), lessThan(top('Buddy')));
+      verify(app.pets.getPets).called(1);
+
+      await tester.tap(find.widgetWithText(SnackBarAction, 'Retry'));
+      await tester.pumpAndSettle();
+      expect(top('Buddy'), lessThan(top('Simba')));
+      expect(find.byTooltip('Unpin Buddy'), findsOneWidget);
+      expect(find.byTooltip('Pin Simba'), findsOneWidget);
+      verify(app.pets.getPets).called(1);
+
+      await destination(tester, 'Vet visits');
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getTopLeft(find.text('Buddy · Ferret').last).dy,
+        lessThan(tester.getTopLeft(find.text('Simba · Cat').last).dy),
+      );
+      verifyNever(app.pets.getPets);
+    },
+  );
   testWidgets('pet filters survive switching roots without querying again', (
     tester,
   ) async {

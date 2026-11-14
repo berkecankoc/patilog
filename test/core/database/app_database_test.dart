@@ -29,7 +29,7 @@ void main() {
     'fresh installation creates care tables and enables foreign keys',
     () async {
       db = await openAppDatabase();
-      expect(await db!.getVersion(), 6);
+      expect(await db!.getVersion(), 7);
       expect(await db!.query(DatabaseTables.weightEntries), isEmpty);
       expect(await db!.query('vet_visits'), isEmpty);
       expect(await db!.query(DatabaseTables.vaccinations), isEmpty);
@@ -73,6 +73,49 @@ void main() {
       );
     },
   );
+
+  test('version 6 upgrade adds unpinned pets without custom species', () async {
+    final legacy = await databaseFactory.openDatabase(
+      join(directory.path, 'patilog.db'),
+      options: OpenDatabaseOptions(
+        version: 6,
+        onCreate: (db, _) => db.execute('''
+            CREATE TABLE pets (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              species TEXT NOT NULL,
+              sex TEXT NOT NULL,
+              reproductive_status TEXT NOT NULL,
+              breed TEXT,
+              birth_date TEXT,
+              microchip_id TEXT,
+              image_path TEXT
+            )
+          '''),
+      ),
+    );
+    final pet = {
+      'id': 'pet-1',
+      'name': 'Milo',
+      'species': 'other',
+      'sex': 'male',
+      'reproductive_status': 'intact',
+      'breed': 'Holland Lop',
+      'birth_date': '2024-05-01',
+      'microchip_id': 'chip-1',
+      'image_path': 'milo.jpg',
+    };
+    await legacy.insert('pets', pet);
+    final rowIds = await legacy.rawQuery('SELECT rowid FROM pets');
+    await legacy.close();
+
+    db = await openAppDatabase();
+    expect(await db!.getVersion(), 7);
+    expect(await db!.rawQuery('SELECT rowid FROM pets'), rowIds);
+    expect(await db!.query('pets'), [
+      {...pet, 'custom_species': null, 'pin_order': null},
+    ]);
+  });
 
   for (final legacyVersion in [1, 2, 3, 4, 5]) {
     test(
@@ -292,14 +335,16 @@ void main() {
         await legacy.close();
 
         db = await openAppDatabase();
-        expect(await db!.getVersion(), 6);
+        expect(await db!.getVersion(), 7);
         for (final table in legacyTables) {
           expect(await db!.rawQuery('SELECT rowid FROM $table'), rowIds[table]);
         }
         expect(await db!.query(DatabaseTables.feedingPlans), isEmpty);
         expect(await db!.query(DatabaseTables.feedingMeals), isEmpty);
         expect(await db!.query(DatabaseTables.feedingEntries), isEmpty);
-        expect(await db!.query('pets'), [pet]);
+        expect(await db!.query('pets'), [
+          {...pet, 'custom_species': null, 'pin_order': null},
+        ]);
         expect(await db!.query('weight_entries'), [weight]);
         expect(
           await db!.query(DatabaseTables.vaccinations),
@@ -333,7 +378,9 @@ void main() {
         await db!.close();
 
         db = await openAppDatabase();
-        expect(await db!.query('pets'), [pet]);
+        expect(await db!.query('pets'), [
+          {...pet, 'custom_species': null, 'pin_order': null},
+        ]);
         expect(await db!.query('weight_entries'), [weight]);
         expect(await db!.query('vet_visits'), [visit]);
         expect(await db!.query(DatabaseTables.vaccinations), [

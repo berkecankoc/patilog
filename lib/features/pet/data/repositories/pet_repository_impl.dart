@@ -63,6 +63,18 @@ final class PetRepositoryImpl implements PetRepository {
   }
 
   @override
+  Future<Result<void>> setPetPinned(String id, {required bool pinned}) async {
+    try {
+      await localDataSource.setPetPinned(id, pinned: pinned);
+      return const Success(null);
+    } on LocalDataSourceException {
+      return const Error(LocalDatabaseFailure('Failed to update pet pin'));
+    } on LocalDataNotFoundException {
+      return const Error(NotFoundFailure('Pet not found'));
+    }
+  }
+
+  @override
   Future<Result<void>> updatePet(Pet pet, {WeightEntry? weightEntry}) async {
     try {
       await localDataSource.updatePet(

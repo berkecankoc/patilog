@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' show join;
 
 const _databaseName = 'patilog.db';
-const _databaseVersion = 6;
+const _databaseVersion = 7;
 
 Future<Database> openAppDatabase() async {
   final dbPath = await getDatabasesPath();
@@ -29,7 +29,9 @@ Future<Database> openAppDatabase() async {
           breed TEXT,
           birth_date TEXT,
           microchip_id TEXT,
-          image_path TEXT
+          image_path TEXT,
+          custom_species TEXT,
+          pin_order INTEGER
         )
       ''');
       await db.execute('''
@@ -57,6 +59,15 @@ Future<Database> openAppDatabase() async {
         ''');
       }
       if (oldVersion < 6) await _createFeedingTables(db);
+      if (oldVersion < 7) {
+        await db.execute(
+          'ALTER TABLE ${DatabaseTables.pets} ADD COLUMN custom_species TEXT',
+        );
+        // Null means unpinned; increasing values keep pins in pin order.
+        await db.execute(
+          'ALTER TABLE ${DatabaseTables.pets} ADD COLUMN pin_order INTEGER',
+        );
+      }
     },
   );
 }

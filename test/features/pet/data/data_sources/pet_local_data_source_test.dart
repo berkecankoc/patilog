@@ -296,4 +296,101 @@ void main() {
       verifyZeroInteractions(images);
     },
   );
+
+  test(
+    'pins list first in pin order and survive profile updates until unpinned',
+    () async {
+      PetModel named(String id) => PetModel(
+        id: id,
+        name: id,
+        species: PetSpecies.dog,
+        sex: PetSex.male,
+        reproductiveStatus: ReproductiveStatus.intact,
+      );
+      Future<List<String>> order() async =>
+          (await source.getPets()).map((pet) => pet.id).toList();
+      for (final id in ['a', 'b', 'c']) {
+        await source.createPet(named(id));
+      }
+      expect(await order(), ['a', 'b', 'c']);
+
+      await source.setPetPinned('c', pinned: true);
+      await source.setPetPinned('b', pinned: true);
+      await source.setPetPinned('c', pinned: true);
+      expect(await order(), ['c', 'b', 'a']);
+      expect((await source.getPetById('c')).isPinned, isTrue);
+      expect((await source.getPetById('a')).isPinned, isFalse);
+
+      // A stale unpinned snapshot from a profile form keeps the pin.
+      await source.updatePet(
+        PetModel.fromEntity(named('c').toEntity().copyWith(name: 'Updated')),
+      );
+      expect((await source.getPetById('c')).isPinned, isTrue);
+      expect((await source.getPetById('c')).name, 'Updated');
+
+      await source.setPetPinned('c', pinned: false);
+      await source.setPetPinned('c', pinned: false);
+      expect(await order(), ['b', 'a', 'c']);
+      await source.setPetPinned('c', pinned: true);
+      expect(await order(), ['b', 'c', 'a']);
+    },
+  );
+
+  test('pinning a missing pet reports it as missing', () async {
+    for (final pinned in [true, false]) {
+      await expectLater(
+        source.setPetPinned('missing', pinned: pinned),
+        throwsA(isA<LocalDataNotFoundException>()),
+      );
+    }
+  });
+
+  test(
+    'real pet use cases keep a trimmed custom species only for Other',
+    () async {
+      final repository = PetRepositoryImpl(source);
+      final ids = SequenceIds();
+      final images = MockImageStorage();
+      expect(
+        await CreatePet(repository, ids, images)(
+          const CreatePetParams(
+            name: 'Hops',
+            species: PetSpecies.other,
+            customSpecies: '  Rabbit ',
+            sex: PetSex.female,
+            reproductiveStatus: ReproductiveStatus.intact,
+          ),
+        ),
+        const Success<void>(null),
+      );
+      final created =
+          (await repository.getPets() as Success<List<Pet>>).data.single;
+      expect(created.customSpecies, 'Rabbit');
+
+      final update = UpdatePet(repository, images, ids);
+      for (final (species, customSpecies, expected) in [
+        (PetSpecies.other, '   ', null),
+        (PetSpecies.other, 'Ferret', 'Ferret'),
+        (PetSpecies.dog, 'Ferret', null),
+      ]) {
+        expect(
+          await update(
+            created,
+            UpdatePetParams(
+              name: created.name,
+              species: species,
+              customSpecies: customSpecies,
+              sex: created.sex,
+              reproductiveStatus: created.reproductiveStatus,
+            ),
+          ),
+          const Success<void>(null),
+        );
+        final stored = await source.getPetById(created.id);
+        expect(stored.species, species);
+        expect(stored.customSpecies, expected);
+      }
+      verifyZeroInteractions(images);
+    },
+  );
 }

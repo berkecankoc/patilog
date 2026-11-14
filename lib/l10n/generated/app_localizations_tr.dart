@@ -369,6 +369,30 @@ class AppLocalizationsTr extends AppLocalizations {
   String get speciesOther => 'Diğer';
 
   @override
+  String get customSpeciesOptional => 'Tür adı (isteğe bağlı)';
+
+  @override
+  String get customSpeciesHint => 'örn. Tavşan';
+
+  @override
+  String customSpeciesTooLong(int max) {
+    return 'Tür adı en fazla $max karakter olabilir';
+  }
+
+  @override
+  String pinPet(String petName) {
+    return '$petName profilini sabitle';
+  }
+
+  @override
+  String unpinPet(String petName) {
+    return '$petName profilini sabitlemeden çıkar';
+  }
+
+  @override
+  String get petPinFailed => 'Sabitleme güncellenemedi';
+
+  @override
   String get sexMale => 'Erkek';
 
   @override

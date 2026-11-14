@@ -280,4 +280,37 @@ void main() {
       },
     );
   });
+
+  group('setPetPinned', () {
+    test('returns Success<void> when data source succeeds', () async {
+      when(
+        () => localDataSource.setPetPinned(pet.id, pinned: true),
+      ).thenAnswer((_) async {});
+
+      final result = await repository.setPetPinned(pet.id, pinned: true);
+
+      expect(result, const Success<void>(null));
+      verify(
+        () => localDataSource.setPetPinned(pet.id, pinned: true),
+      ).called(1);
+    });
+
+    test('maps data source failures', () async {
+      when(
+        () => localDataSource.setPetPinned(pet.id, pinned: false),
+      ).thenThrow(const LocalDataSourceException());
+      expect(
+        await repository.setPetPinned(pet.id, pinned: false),
+        const Error<void>(LocalDatabaseFailure('Failed to update pet pin')),
+      );
+
+      when(
+        () => localDataSource.setPetPinned(pet.id, pinned: false),
+      ).thenThrow(const LocalDataNotFoundException());
+      expect(
+        await repository.setPetPinned(pet.id, pinned: false),
+        const Error<void>(NotFoundFailure('Pet not found')),
+      );
+    });
+  });
 }

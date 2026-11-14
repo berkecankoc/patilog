@@ -315,14 +315,22 @@ class _PetCarePageState extends State<PetCarePage>
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      Text(
-                                        pet.species.label(strings),
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
+                                      // Custom species names must not crowd out the pet name.
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 160,
+                                        ),
+                                        child: Text(
+                                          pet.speciesLabel(strings),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
                                       ),
                                     ],
                                   )
@@ -342,7 +350,7 @@ class _PetCarePageState extends State<PetCarePage>
                                             ),
                                       ),
                                       Text(
-                                        pet.species.label(strings),
+                                        pet.speciesLabel(strings),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: theme.textTheme.bodySmall

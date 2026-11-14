@@ -42,6 +42,7 @@ void main() {
       'birth_date': '2022-07-11',
       'microchip_id': '123456789',
       'image_path': 'fluffy.jpg',
+      'custom_species': null,
     });
   });
 
@@ -95,6 +96,27 @@ void main() {
     expect(result.weight, isNull);
     expect(result.microchipId, isNull);
     expect(result.imagePath, isNull);
+  });
+
+  test('reads custom species and pin state but never writes the pin', () {
+    final result = PetModel.fromJson({
+      'id': 'pet-1',
+      'name': 'Hops',
+      'species': 'other',
+      'custom_species': 'Rabbit',
+      'sex': 'female',
+      'reproductive_status': 'unknown',
+      'is_pinned': 1,
+    });
+
+    expect(result.customSpecies, 'Rabbit');
+    expect(result.isPinned, isTrue);
+    expect(result.toEntity().customSpecies, 'Rabbit');
+    expect(result.toEntity().isPinned, isTrue);
+    expect(result.toJson()['custom_species'], 'Rabbit');
+    expect(result.toJson().keys, isNot(contains('pin_order')));
+    expect(result.toJson().keys, isNot(contains('is_pinned')));
+    expect(PetModel.fromJson({...result.toJson()}).isPinned, isFalse);
   });
 
   test('converts numeric weight to double', () {

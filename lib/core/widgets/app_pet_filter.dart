@@ -41,7 +41,7 @@ class AppPetFilter extends StatelessWidget {
           DropdownMenuItem(
             value: pet.id,
             child: Text(
-              '${pet.name} · ${pet.species.label(strings)}',
+              '${pet.name} · ${pet.speciesLabel(strings)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

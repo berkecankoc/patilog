@@ -347,6 +347,24 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
     );
   }
 
+  Future<void> _togglePin(Pet pet) async {
+    if (_busy) return;
+    final saved = await _cubit.setPetPinned(pet.id, pinned: !pet.isPinned);
+    if (saved || !mounted) return;
+    final strings = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(strings.petPinFailed),
+          action: SnackBarAction(
+            label: strings.retry,
+            onPressed: () => _togglePin(pet),
+          ),
+        ),
+      );
+  }
+
   Widget _content(AllPetsCareSection section, AllPetsCareState state) =>
       switch (section) {
         AllPetsCareSection.pets =>
@@ -360,6 +378,8 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
               : PetListPage.fromRecords(
                   pets: state.pets.records,
                   onOpenPet: _openPet,
+                  pinningPetIds: state.pinningPetIds,
+                  onTogglePin: _togglePin,
                 ),
         AllPetsCareSection.weightHistory => WeightHistoryPage(
           pets: state.pets.records,

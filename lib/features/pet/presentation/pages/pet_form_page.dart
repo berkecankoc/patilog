@@ -127,8 +127,10 @@ class PetFormPage extends StatefulWidget {
 
 class _PetFormPageState extends State<PetFormPage> {
   static const _nameMaxLength = 20;
+  static const _customSpeciesMaxLength = 30;
 
   final _nameController = TextEditingController();
+  final _customSpeciesController = TextEditingController();
   final _breedController = TextEditingController();
   final _weightController = TextEditingController();
   final _microchipIdController = TextEditingController();
@@ -147,6 +149,10 @@ class _PetFormPageState extends State<PetFormPage> {
   AppLocalizations get _strings => AppLocalizations.of(context);
   String? _initialWeightText;
 
+  // Text typed for Other is kept while browsing species but saved only for Other.
+  String get _customSpeciesText =>
+      _species == PetSpecies.other ? _customSpeciesController.text : '';
+
   bool get _hasChanges {
     final pet = widget.pet;
     return _nameController.text != (pet?.name ?? '') ||
@@ -154,6 +160,7 @@ class _PetFormPageState extends State<PetFormPage> {
         _weightController.text != _initialWeightText ||
         _microchipIdController.text != (pet?.microchipId ?? '') ||
         _species != (pet?.species ?? PetSpecies.dog) ||
+        _customSpeciesText != (pet?.customSpecies ?? '') ||
         _sex != (pet?.sex ?? PetSex.male) ||
         _reproductiveStatus !=
             (pet?.reproductiveStatus ?? ReproductiveStatus.intact) ||
@@ -173,6 +180,7 @@ class _PetFormPageState extends State<PetFormPage> {
 
     if (pet != null) {
       _nameController.text = pet.name;
+      _customSpeciesController.text = pet.customSpecies ?? '';
       _breedController.text = pet.breed ?? '';
       if (pet.birthDate != null) {
         _birthDate = pet.birthDate;
@@ -196,6 +204,7 @@ class _PetFormPageState extends State<PetFormPage> {
   @override
   void dispose() {
     _nameController.dispose();
+    _customSpeciesController.dispose();
     _breedController.dispose();
     _weightController.dispose();
     _microchipIdController.dispose();
@@ -214,6 +223,7 @@ class _PetFormPageState extends State<PetFormPage> {
 
     final name = _nameController.text.trim();
     final species = _species;
+    final customSpecies = customSpeciesFor(species, _customSpeciesText);
     final sex = _sex;
     final reproductiveStatus = _reproductiveStatus;
 
@@ -234,6 +244,7 @@ class _PetFormPageState extends State<PetFormPage> {
       final createParams = CreatePetParams(
         name: name,
         species: species,
+        customSpecies: customSpecies,
         sex: sex,
         reproductiveStatus: reproductiveStatus,
         breed: breed,
@@ -248,6 +259,7 @@ class _PetFormPageState extends State<PetFormPage> {
       final updateParams = UpdatePetParams(
         name: name,
         species: species,
+        customSpecies: customSpecies,
         sex: sex,
         reproductiveStatus: reproductiveStatus,
         breed: breed,
@@ -388,6 +400,24 @@ class _PetFormPageState extends State<PetFormPage> {
             },
             decoration: InputDecoration(labelText: _strings.species),
           ),
+
+          if (_species == PetSpecies.other) ...[
+            VerticalGap.md,
+            TextFormField(
+              controller: _customSpeciesController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: _strings.customSpeciesOptional,
+                hintText: _strings.customSpeciesHint,
+                errorMaxLines: 3,
+              ),
+              validator: (value) =>
+                  (value ?? '').trim().characters.length >
+                      _customSpeciesMaxLength
+                  ? _strings.customSpeciesTooLong(_customSpeciesMaxLength)
+                  : null,
+            ),
+          ],
 
           VerticalGap.md,
 
@@ -576,7 +606,9 @@ class _PetFormPageState extends State<PetFormPage> {
                     VerticalGap.md,
                     AppDetailField(
                       label: _strings.species,
-                      value: _species.label(_strings),
+                      value:
+                          customSpeciesFor(_species, _customSpeciesText) ??
+                          _species.label(_strings),
                     ),
                     VerticalGap.md,
                     AppDetailField(

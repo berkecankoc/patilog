@@ -370,6 +370,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get speciesOther => 'Other';
 
   @override
+  String get customSpeciesOptional => 'Species name (optional)';
+
+  @override
+  String get customSpeciesHint => 'e.g. Rabbit';
+
+  @override
+  String customSpeciesTooLong(int max) {
+    return 'Keep species name within $max characters';
+  }
+
+  @override
+  String pinPet(String petName) {
+    return 'Pin $petName';
+  }
+
+  @override
+  String unpinPet(String petName) {
+    return 'Unpin $petName';
+  }
+
+  @override
+  String get petPinFailed => 'Failed to update pin';
+
+  @override
   String get sexMale => 'Male';
 
   @override

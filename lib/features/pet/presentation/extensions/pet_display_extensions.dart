@@ -27,8 +27,11 @@ extension ReproductiveStatusLabel on ReproductiveStatus {
 }
 
 extension PetDisplay on Pet {
+  String speciesLabel(AppLocalizations strings) =>
+      customSpecies ?? species.label(strings);
+
   String speciesAndBreed(AppLocalizations strings) => [
-    species.label(strings),
+    speciesLabel(strings),
     if (breed?.trim().isNotEmpty ?? false) breed!,
   ].join(' · ');
 }
