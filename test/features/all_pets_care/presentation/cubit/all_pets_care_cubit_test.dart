@@ -5,12 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:patilog/core/error/failure.dart';
 import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/storage/image_storage.dart';
 import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_cubit.dart';
 import 'package:patilog/features/all_pets_care/presentation/cubit/all_pets_care_state.dart';
 import 'package:patilog/features/pet/domain/entities/pet.dart';
 import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
+import 'package:patilog/features/pet/domain/use_cases/delete_pet.dart';
 
 class MockPets extends Mock implements PetRepository {}
+
+class MockImages extends Mock implements ImageStorage {}
 
 void main() {
   const pet = Pet(
@@ -34,7 +38,7 @@ void main() {
     repository = MockPets();
     when(repository.getPets)
         .thenAnswer((_) async => const Success([pet, other]));
-    cubit = AllPetsCareCubit(repository);
+    cubit = AllPetsCareCubit(repository, DeletePet(repository, MockImages()));
   });
   tearDown(() => cubit.close());
 
@@ -184,6 +188,30 @@ void main() {
       expect(await cubit.setPetPinned('a', pinned: true), isTrue);
       expect(cubit.state.pets.records, [pet.copyWith(isPinned: true), other]);
       expect(cubit.state.pets.error, 'Try again');
+    });
+  });
+
+  group('deletion', () {
+    test('blocks concurrent deletes and clears the pending pet', () async {
+      final write = Completer<Result<void>>();
+      when(() => repository.deletePet('a')).thenAnswer((_) => write.future);
+      final deleting = cubit.deletePet(pet);
+      expect(cubit.state.deletingPetIds, {'a'});
+      expect(await cubit.deletePet(other), isFalse);
+      write.complete(const Success(null));
+      expect(await deleting, isTrue);
+      expect(cubit.state.deletingPetIds, isEmpty);
+      verify(() => repository.deletePet('a')).called(1);
+      verifyNever(() => repository.deletePet('b'));
+    });
+
+    test('failed delete reports false and keeps the directory', () async {
+      await cubit.loadPets();
+      when(() => repository.deletePet('a'))
+          .thenAnswer((_) async => const Error(failure));
+      expect(await cubit.deletePet(pet), isFalse);
+      expect(cubit.state.deletingPetIds, isEmpty);
+      expect(cubit.state.pets.records, [pet, other]);
     });
   });
 }

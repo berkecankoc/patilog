@@ -9,6 +9,7 @@ import 'package:patilog/core/widgets/app_detail_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:patilog/core/utils/weight_utils.dart';
+import 'package:patilog/core/widgets/app_weight_unit.dart';
 import 'package:patilog/core/widgets/app_gap.dart';
 import 'package:patilog/core/widgets/app_date_field.dart';
 import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
@@ -41,6 +42,7 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
   bool _allowPop = false;
   bool _confirmingDiscard = false;
   String? _initialWeightText;
+  late final WeightUnit _unit;
 
   bool get _hasChanges =>
       _weightController.text != _initialWeightText ||
@@ -59,10 +61,12 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialWeightText != null) return;
+    _unit = AppWeightUnit.of(context);
     _initialWeightText = widget.entry == null
         ? ''
-        : localizedWeight(
+        : localizedWeightIn(
             widget.entry!.weight,
+            _unit,
             Localizations.localeOf(context),
           );
     _weightController.text = _initialWeightText!;
@@ -84,8 +88,11 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
     if (widget.entry != null && !_hasChanges) return;
     setState(() => _saveError = null);
     FocusScope.of(context).unfocus();
-    final weight = parseWeight(_weightController.text)!;
     final entry = widget.entry;
+    // Untouched text keeps the stored value instead of a unit-rounded copy.
+    final weight = _weightController.text == _initialWeightText
+        ? entry!.weight
+        : toKilograms(parseWeight(_weightController.text)!, _unit);
     if (entry == null) {
       cubit.createWeightEntry(
         petId: widget.petId,
@@ -148,7 +155,7 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
         onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
         decoration: InputDecoration(
           labelText: AppLocalizations.of(context).weight,
-          suffixText: 'kg',
+          suffixText: _unit.symbol,
           errorMaxLines: 3,
         ),
         validator: (value) {
@@ -246,7 +253,7 @@ class _WeightEntryFormPageState extends State<WeightEntryFormPage> {
                       children: [
                         AppDetailField(
                           label: AppLocalizations.of(context).weight,
-                          value: '${_weightController.text} kg',
+                          value: '${_weightController.text} ${_unit.symbol}',
                         ),
                         VerticalGap.md,
                         AppDetailField(

@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:patilog/core/utils/weight_utils.dart';
+import 'package:patilog/core/widgets/app_weight_unit.dart';
 import 'package:patilog/core/widgets/app_gap.dart';
 import 'package:patilog/core/widgets/app_date_field.dart';
 import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
@@ -148,6 +149,7 @@ class _PetFormPageState extends State<PetFormPage> {
   bool _confirmingDiscard = false;
   AppLocalizations get _strings => AppLocalizations.of(context);
   String? _initialWeightText;
+  late final WeightUnit _weightUnit;
 
   // Text typed for Other is kept while browsing species but saved only for Other.
   String get _customSpeciesText =>
@@ -194,10 +196,15 @@ class _PetFormPageState extends State<PetFormPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialWeightText != null) return;
+    _weightUnit = AppWeightUnit.of(context);
     final weight = widget.pet?.weight;
     _initialWeightText = weight == null
         ? ''
-        : localizedWeight(weight, Localizations.localeOf(context));
+        : localizedWeightIn(
+            weight,
+            _weightUnit,
+            Localizations.localeOf(context),
+          );
     _weightController.text = _initialWeightText!;
   }
 
@@ -233,7 +240,12 @@ class _PetFormPageState extends State<PetFormPage> {
     final birthDate = _birthDate;
 
     final weightText = _weightController.text.trim();
-    final weight = weightText.isEmpty ? null : parseWeight(weightText)!;
+    // Untouched text keeps the stored value instead of a unit-rounded copy.
+    final weight = weightText.isEmpty
+        ? null
+        : _weightController.text == _initialWeightText
+        ? widget.pet!.weight
+        : toKilograms(parseWeight(weightText)!, _weightUnit);
 
     final microchipIdText = _microchipIdController.text.trim();
     final microchipId = microchipIdText.isEmpty ? null : microchipIdText;
@@ -499,7 +511,7 @@ class _PetFormPageState extends State<PetFormPage> {
             onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
             decoration: InputDecoration(
               labelText: _strings.weightOptional,
-              suffixText: 'kg',
+              suffixText: _weightUnit.symbol,
               errorMaxLines: 5,
             ),
             validator: (value) {

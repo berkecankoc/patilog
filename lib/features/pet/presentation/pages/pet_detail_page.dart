@@ -9,6 +9,7 @@ import 'package:patilog/core/router/pet_care_changes.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
 import 'package:patilog/core/theme/app_spacing.dart';
 import 'package:patilog/core/l10n/app_number_formats.dart';
+import 'package:patilog/core/widgets/app_weight_unit.dart';
 import 'package:patilog/core/widgets/app_gap.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/error_view.dart';
@@ -181,7 +182,11 @@ class _PetView extends StatelessWidget {
                         strings.currentWeight,
                         pet.weight == null
                             ? null
-                            : '${localizedWeight(pet.weight!, Localizations.localeOf(context))} kg',
+                            : localizedWeightWithUnit(
+                                pet.weight!,
+                                AppWeightUnit.of(context),
+                                Localizations.localeOf(context),
+                              ),
                       ),
                       (
                         Icons.memory_outlined,

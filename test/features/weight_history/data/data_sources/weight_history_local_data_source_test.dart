@@ -82,7 +82,7 @@ void main() {
   });
 
   test(
-    'create and update persist three decimals without changing tie order',
+    'create and update persist six decimals without changing tie order',
     () async {
       WeightEntryModel value(double weight) => WeightEntryModel(
         id: entry.id,
@@ -90,10 +90,10 @@ void main() {
         weight: weight,
         measuredAt: measuredAt,
       );
-      await source.createWeightEntry(value(5.4326));
+      await source.createWeightEntry(value(5.4326789));
       expect(
         (await db.query(DatabaseTables.weightEntries)).single['weight'],
-        5.433,
+        5.432679,
       );
       await source.createWeightEntry(
         WeightEntryModel(
@@ -103,10 +103,10 @@ void main() {
           measuredAt: measuredAt,
         ),
       );
-      await source.updateWeightEntry(value(5.4324));
+      await source.updateWeightEntry(value(5.4326784));
       final stored = await source.getWeightEntries(entry.petId);
       expect(stored.map((e) => e.id), ['tie', entry.id]);
-      expect(stored.map((e) => e.weight), [0.001, 5.432]);
+      expect(stored.map((e) => e.weight), [0.001, 5.432678]);
       expect(stored.every((e) => e.measuredAt == measuredAt), isTrue);
     },
   );

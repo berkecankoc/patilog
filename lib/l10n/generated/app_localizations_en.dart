@@ -77,6 +77,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLoadFailed => 'Failed to load settings';
 
   @override
+  String get weightUnitTitle => 'Weight unit';
+
+  @override
+  String get weightUnitKilograms => 'Kilograms (kg)';
+
+  @override
+  String get weightUnitPounds => 'Pounds (lb)';
+
+  @override
+  String get weightUnitDescription =>
+      'Used to enter and show weights. Saved measurements are converted, not changed.';
+
+  @override
+  String get weightUnitLoadFailed => 'Failed to load weight unit';
+
+  @override
+  String get weightUnitSaveFailed => 'Failed to save weight unit';
+
+  @override
   String get themeSaveFailed => 'Failed to save theme preference';
 
   @override
@@ -507,7 +526,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String weightChartChange(String change) {
-    return 'Change in this period: $change kg';
+    return 'Change in this period: $change';
   }
 
   @override
@@ -1231,17 +1250,17 @@ class AppLocalizationsEn extends AppLocalizations {
     String date,
     String petName,
   ) {
-    return 'Remove the $weight kg measurement from $date for $petName?';
+    return 'Remove the $weight measurement from $date for $petName?';
   }
 
   @override
   String deleteMeasurementMessage(String weight, String date) {
-    return 'Remove the $weight kg measurement from $date?';
+    return 'Remove the $weight measurement from $date?';
   }
 
   @override
   String deleteMeasurementTooltip(String weight, String date) {
-    return 'Delete $weight kg measurement from $date';
+    return 'Delete $weight measurement from $date';
   }
 
   @override

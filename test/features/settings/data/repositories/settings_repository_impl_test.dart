@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:patilog/core/error/failure.dart';
 import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 import 'package:patilog/features/settings/domain/entities/language_preference.dart';
@@ -219,5 +220,66 @@ void main() {
     expect(completed, isFalse);
     write.complete();
     expect(await result, const Success<void>(null));
+  });
+
+  group('weight unit', () {
+    const unitKey = 'settings.weight_unit';
+    setUp(() {
+      when(() => preferences.getAll(allowList: {unitKey})).thenAnswer(
+        (_) async => {
+          if (values.containsKey(unitKey)) unitKey: values[unitKey],
+        },
+      );
+      when(() => preferences.setString(unitKey, any())).thenAnswer((
+        call,
+      ) async {
+        values[unitKey] = call.positionalArguments[1] as String;
+      });
+    });
+
+    for (final unit in WeightUnit.values) {
+      test('${unit.name} survives repository recreation', () async {
+        expect(await repository.setWeightUnit(unit), const Success<void>(null));
+        expect(
+          await SettingsRepositoryImpl(preferences).getWeightUnit(),
+          Success(unit),
+        );
+        expect(values, {'unrelated.setting': true, unitKey: unit.name});
+      });
+    }
+
+    for (final stored in [null, '', 'lb', 42]) {
+      test('invalid $stored stays in kilograms without rewriting', () async {
+        if (stored != null) values[unitKey] = stored;
+        final original = Map.of(values);
+        expect(
+          await repository.getWeightUnit(),
+          const Success(WeightUnit.kilogram),
+        );
+        expect(values, original);
+        verifyNever(() => preferences.setString(unitKey, any()));
+      });
+    }
+
+    test('read and write failures retain the persisted unit', () async {
+      values[unitKey] = 'pound';
+      when(
+        () => preferences.getAll(allowList: {unitKey}),
+      ).thenThrow(PlatformException(code: 'read_failed'));
+      expect(
+        await repository.getWeightUnit(),
+        const Error<WeightUnit>(
+          PreferencesStorageFailure('Failed to load weight unit'),
+        ),
+      );
+      when(
+        () => preferences.setString(unitKey, 'kilogram'),
+      ).thenThrow(PlatformException(code: 'write_failed'));
+      expect(
+        await repository.setWeightUnit(WeightUnit.kilogram),
+        const Error<void>(PreferencesStorageFailure('Failed to save weight unit')),
+      );
+      expect(values[unitKey], 'pound');
+    });
   });
 }

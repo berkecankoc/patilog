@@ -12,6 +12,7 @@ import 'package:patilog/features/notification/domain/use_cases/resolve_notificat
 import 'package:patilog/core/router/app_router.dart';
 import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/storage/image_storage.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 import 'package:patilog/features/settings/domain/entities/language_preference.dart';
 import 'package:patilog/features/settings/domain/repositories/settings_repository.dart';
@@ -35,6 +36,9 @@ class SettingsTestHarness {
   final repository = MockSettingsRepository();
   ThemePreference stored = ThemePreference.system;
   LanguagePreference storedLanguage = LanguagePreference.system;
+  WeightUnit storedWeightUnit = WeightUnit.kilogram;
+  bool failWeightUnitLoad = false;
+  bool failWeightUnitSave = false;
   bool failLanguageLoad = false;
   bool failLanguageSave = false;
   Completer<Result<LanguagePreference>>? pendingLanguageLoad;
@@ -51,6 +55,7 @@ class SettingsTestHarness {
     registerFallbackValue(DateTime(2026));
     registerFallbackValue(ThemePreference.system);
     registerFallbackValue(LanguagePreference.system);
+    registerFallbackValue(WeightUnit.kilogram);
     registerFallbackValue(sample);
     registerFallbackValue(sample.periods.single);
     registerFallbackValue(
@@ -109,6 +114,20 @@ class SettingsTestHarness {
         storedLanguage = call.positionalArguments.single as LanguagePreference;
       }
       return result;
+    });
+    when(repository.getWeightUnit).thenAnswer(
+      (_) async => failWeightUnitLoad
+          ? const Error(PreferencesStorageFailure('Failed to load weight unit'))
+          : Success(storedWeightUnit),
+    );
+    when(() => repository.setWeightUnit(any())).thenAnswer((call) async {
+      if (failWeightUnitSave) {
+        return const Error<void>(
+          PreferencesStorageFailure('Failed to save weight unit'),
+        );
+      }
+      storedWeightUnit = call.positionalArguments.single as WeightUnit;
+      return const Success<void>(null);
     });
     when(() => repository.setThemePreference(any())).thenAnswer((call) async {
       final result = pendingSave != null

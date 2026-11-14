@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:patilog/core/di/injection.dart';
@@ -283,6 +284,148 @@ void main() {
       verifyNever(app.pets.getPets);
     },
   );
+  testWidgets(
+    'swiping a pet asks first; failures spring back and retry confirms again',
+    (tester) async {
+      var attempts = 0;
+      when(() => app.pets.deletePet('other')).thenAnswer((_) async {
+        if (++attempts == 1) return const Error(LocalDatabaseFailure('x'));
+        pets = [simba];
+        return const Success<void>(null);
+      });
+      await app.pump(tester, location: AppRoutes.pets);
+      Future<void> swipe() async {
+        await tester.drag(find.text('Buddy'), const Offset(-500, 0));
+        await tester.pumpAndSettle();
+      }
+
+      await swipe();
+      expect(find.text('Delete pet?'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Buddy'), findsOneWidget);
+      verifyNever(() => app.pets.deletePet(any()));
+
+      await swipe();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('Failed to delete pet'), findsOneWidget);
+      expect(find.text('Buddy'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(SnackBarAction, 'Retry deletion'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete pet?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('Buddy'), findsNothing);
+      expect(find.text('Simba'), findsOneWidget);
+      verify(() => app.pets.deletePet('other')).called(2);
+
+      await destination(tester, 'Vet visits');
+      expect(find.text('Checkup B'), findsNothing);
+      expect(find.text('Checkup A'), findsOneWidget);
+      verify(app.pets.getPets).called(1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('leaving during the card animation still removes the pet', (
+    tester,
+  ) async {
+    when(
+      () => app.pets.deletePet('other'),
+    ).thenAnswer((_) async => const Success<void>(null));
+    await app.pump(tester, location: AppRoutes.pets);
+    await tester.drag(find.text('Buddy'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+    // The write has finished; the card's collapse animation has not.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await destination(tester, 'Vet visits');
+    expect(find.text('Checkup B'), findsNothing);
+    expect(find.text('Checkup A'), findsOneWidget);
+    await destination(tester, 'My pets');
+    expect(find.text('Buddy'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('screen readers delete through the same confirmed action', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    when(
+      () => app.pets.deletePet('other'),
+    ).thenAnswer((_) async => const Success<void>(null));
+    await app.pump(tester, location: AppRoutes.pets);
+    const delete = CustomSemanticsAction(label: 'Delete pet');
+    final id = CustomSemanticsAction.getIdentifier(delete);
+    final owner = tester.binding.renderViews.first.owner!.semanticsOwner!;
+    final nodes = <SemanticsNode>[];
+    void collect(SemanticsNode node) {
+      final data = node.getSemanticsData();
+      if (data.customSemanticsActionIds?.contains(id) ?? false) {
+        nodes.add(node);
+      }
+      node.visitChildren((child) {
+        collect(child);
+        return true;
+      });
+    }
+
+    collect(owner.rootSemanticsNode!);
+    expect(nodes, hasLength(2));
+    bool mentions(SemanticsNode node, String text) {
+      var found = node.getSemanticsData().label.contains(text);
+      node.visitChildren((child) {
+        found = found || mentions(child, text);
+        return !found;
+      });
+      return found;
+    }
+
+    final buddy = nodes.singleWhere((node) => mentions(node, 'Buddy'));
+    owner.performAction(buddy.id, SemanticsAction.customAction, id);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Buddy'), findsNothing);
+    expect(find.text('Simba'), findsOneWidget);
+    verify(() => app.pets.deletePet('other')).called(1);
+    semantics.dispose();
+  });
+
+  for (final dark in [false, true]) {
+    testWidgets('record edit buttons share the standard icon color, dark=$dark', (
+      tester,
+    ) async {
+      Color? editColor(String tooltip) => IconTheme.of(
+        tester.element(
+          find.descendant(
+            of: find.byTooltip(tooltip),
+            matching: find.byIcon(Icons.edit_outlined),
+          ),
+        ),
+      ).color;
+      when(() => app.vaccinations.getVaccinationById(any(), any())).thenAnswer(
+        (call) async => Success(
+          vaccines.firstWhere((v) => v.id == call.positionalArguments[1]),
+        ),
+      );
+      final colors = <Color?>[];
+      for (final (location, tooltip) in [
+        (AppRoutes.petDetail('pet'), 'Edit profile'),
+        (AppRoutes.vetVisitDetail('pet', 'visit-a'), 'Edit visit'),
+        (AppRoutes.vaccinationDetail('pet', 'late'), 'Edit vaccination'),
+      ]) {
+        await app.pump(tester, location: location, dark: dark);
+        colors.add(editColor(tooltip));
+      }
+      final theme = Theme.of(tester.element(find.byType(Scaffold).first));
+      expect(colors, everyElement(theme.colorScheme.onSurfaceVariant));
+    });
+  }
+
   testWidgets('pet filters survive switching roots without querying again', (
     tester,
   ) async {

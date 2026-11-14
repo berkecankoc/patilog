@@ -77,6 +77,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsLoadFailed => 'Ayarlar yüklenemedi';
 
   @override
+  String get weightUnitTitle => 'Ağırlık birimi';
+
+  @override
+  String get weightUnitKilograms => 'Kilogram (kg)';
+
+  @override
+  String get weightUnitPounds => 'Libre (lb)';
+
+  @override
+  String get weightUnitDescription =>
+      'Ağırlık girişinde ve gösteriminde kullanılır. Kayıtlı ölçümler değişmez, yalnızca dönüştürülerek gösterilir.';
+
+  @override
+  String get weightUnitLoadFailed => 'Ağırlık birimi yüklenemedi';
+
+  @override
+  String get weightUnitSaveFailed => 'Ağırlık birimi kaydedilemedi';
+
+  @override
   String get themeSaveFailed => 'Tema tercihi kaydedilemedi';
 
   @override
@@ -506,7 +525,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String weightChartChange(String change) {
-    return 'Bu dönemdeki değişim: $change kg';
+    return 'Bu dönemdeki değişim: $change';
   }
 
   @override
@@ -1231,17 +1250,17 @@ class AppLocalizationsTr extends AppLocalizations {
     String date,
     String petName,
   ) {
-    return '$petName için $date tarihli $weight kg ölçümü silinsin mi?';
+    return '$petName için $date tarihli $weight ölçümü silinsin mi?';
   }
 
   @override
   String deleteMeasurementMessage(String weight, String date) {
-    return '$date tarihindeki $weight kg ölçümü silinsin mi?';
+    return '$date tarihindeki $weight ölçümü silinsin mi?';
   }
 
   @override
   String deleteMeasurementTooltip(String weight, String date) {
-    return '$date tarihindeki $weight kg ölçümü sil';
+    return '$date tarihindeki $weight ölçümü sil';
   }
 
   @override

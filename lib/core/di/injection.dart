@@ -241,7 +241,7 @@ Future<void> setupDependencies() async {
   );
 
   getIt.registerFactory<AllPetsCareCubit>(
-    () => AllPetsCareCubit(getIt<PetRepository>()),
+    () => AllPetsCareCubit(getIt<PetRepository>(), getIt<DeletePet>()),
   );
 
   getIt.registerFactory<WeightHistoryCubit>(
