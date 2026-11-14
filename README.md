@@ -15,8 +15,10 @@ Website: [berkecankoc.github.io/patilog-site](https://berkecankoc.github.io/pati
 
 ## Features
 
-- Pet profiles for dogs, cats, birds and other pets, with an optional photo
-- Weight history with a chart; the pet's current weight is the latest measurement
+- Pet profiles for dogs, cats, birds and other pets (with your own species name),
+  with an optional photo; pin pets to the top of the list
+- Weight history with a chart, in kilograms or pounds; the pet's current weight
+  is the latest measurement
 - Vet visits and vaccinations, including next-dose plans
 - Medications with daily or every-N-days schedules and per-dose tracking
 - Feeding plans with daily meal tracking (grams offered) and history
