@@ -12,6 +12,7 @@ import 'package:patilog/core/database/database_tables.dart';
 import 'package:patilog/core/di/injection.dart';
 import 'package:patilog/core/error/failure.dart';
 import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/core/router/care_record_changes.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
 import 'package:patilog/core/services/external_link_launcher.dart';
@@ -291,6 +292,7 @@ void main() {
     () async {
       const key = 'settings.theme_preference';
       const languageKey = 'settings.language_preference';
+      const weightUnitKey = 'settings.weight_unit';
       final preferences = MockPreferences();
       when(
         () => preferences.getAll(allowList: {key}),
@@ -298,6 +300,9 @@ void main() {
       when(
         () => preferences.getAll(allowList: {languageKey}),
       ).thenAnswer((_) async => {languageKey: 'turkish'});
+      when(
+        () => preferences.getAll(allowList: {weightUnitKey}),
+      ).thenAnswer((_) async => {weightUnitKey: 'pound'});
       when(() => preferences.setString(key, 'light')).thenAnswer((_) async {});
       await getIt.unregister<SharedPreferencesAsync>();
       getIt.registerSingleton<SharedPreferencesAsync>(preferences);
@@ -311,12 +316,14 @@ void main() {
       await first.load();
       expect(first.state.themePreference, ThemePreference.dark);
       expect(first.state.languagePreference, LanguagePreference.turkish);
+      expect(first.state.weightUnit, WeightUnit.pound);
       await first.setThemePreference(ThemePreference.light);
       expect(first.state.themePreference, ThemePreference.light);
       expect(first.state.languagePreference, LanguagePreference.turkish);
       expect(second.state, const SettingsState());
       verify(() => preferences.getAll(allowList: {key})).called(1);
       verify(() => preferences.getAll(allowList: {languageKey})).called(1);
+      verify(() => preferences.getAll(allowList: {weightUnitKey})).called(1);
       verify(() => preferences.setString(key, 'light')).called(1);
     },
   );

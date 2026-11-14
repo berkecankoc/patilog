@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:patilog/core/error/failure.dart';
 import 'package:patilog/core/l10n/app_number_formats.dart';
+import 'package:patilog/core/widgets/app_weight_unit.dart';
 import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/router/care_record_changes.dart';
 import 'package:patilog/core/router/pet_care_changes.dart';
@@ -114,8 +115,9 @@ class _WeightHistoryPageState extends State<WeightHistoryPage> {
       return;
     }
     final strings = AppLocalizations.of(context);
-    final weight = localizedWeight(
+    final weight = localizedWeightWithUnit(
       entry.weight,
+      AppWeightUnit.of(context),
       Localizations.localeOf(context),
     );
     final date = MaterialLocalizations.of(context)
@@ -222,7 +224,11 @@ class _WeightHistoryPageState extends State<WeightHistoryPage> {
                   pet: pet,
                   title: entry == null
                       ? strings.noMeasurements
-                      : '${localizedWeight(entry.weight, Localizations.localeOf(context))} kg',
+                      : localizedWeightWithUnit(
+                          entry.weight,
+                          AppWeightUnit.of(context),
+                          Localizations.localeOf(context),
+                        ),
                   icon: Icons.monitor_weight_outlined,
                   details: entry == null
                       ? null
@@ -416,7 +422,11 @@ class _Measurements extends StatelessWidget {
                         ),
                         VerticalGap.sm,
                         Text(
-                          '${localizedWeight(latest.weight, Localizations.localeOf(context))} kg',
+                          localizedWeightWithUnit(
+                            latest.weight,
+                            AppWeightUnit.of(context),
+                            Localizations.localeOf(context),
+                          ),
                           style: theme.textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -474,7 +484,11 @@ class _Measurements extends StatelessWidget {
                   ),
                   minVerticalPadding: AppSpacing.md,
                   title: Text(
-                    '${localizedWeight(entry.weight, Localizations.localeOf(context))} kg',
+                    localizedWeightWithUnit(
+                      entry.weight,
+                      AppWeightUnit.of(context),
+                      Localizations.localeOf(context),
+                    ),
                   ),
                   subtitle: Text(date),
                   onTap: onEdit == null ? null : () => onEdit!(entry),
@@ -490,8 +504,9 @@ class _Measurements extends StatelessWidget {
                       : IconButton(
                           tooltip: AppLocalizations.of(context)
                               .deleteMeasurementTooltip(
-                                localizedWeight(
+                                localizedWeightWithUnit(
                                   entry.weight,
+                                  AppWeightUnit.of(context),
                                   Localizations.localeOf(context),
                                 ),
                                 date,

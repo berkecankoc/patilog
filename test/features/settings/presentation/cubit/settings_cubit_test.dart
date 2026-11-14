@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:patilog/core/error/failure.dart';
 import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 import 'package:patilog/features/settings/domain/entities/language_preference.dart';
 import 'package:patilog/features/settings/domain/repositories/settings_repository.dart';
@@ -19,6 +20,7 @@ void main() {
     themePreference: ThemePreference.light,
     hasLoadedTheme: true,
     hasLoadedLanguage: true,
+    hasLoadedWeightUnit: true,
   );
   const readError = Error<ThemePreference>(
     PreferencesStorageFailure('Read failed'),
@@ -28,6 +30,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(ThemePreference.system);
     registerFallbackValue(LanguagePreference.system);
+    registerFallbackValue(WeightUnit.kilogram);
   });
   setUp(() {
     repository = MockSettingsRepository();
@@ -42,6 +45,12 @@ void main() {
     ).thenAnswer((_) async => const Success(ThemePreference.light));
     when(
       () => repository.setThemePreference(any()),
+    ).thenAnswer((_) async => const Success<void>(null));
+    when(
+      repository.getWeightUnit,
+    ).thenAnswer((_) async => const Success(WeightUnit.kilogram));
+    when(
+      () => repository.setWeightUnit(any()),
     ).thenAnswer((_) async => const Success<void>(null));
   });
 
@@ -59,7 +68,11 @@ void main() {
     (const Success(ThemePreference.light), light),
     (
       readError,
-      const SettingsState(hasLoadedLanguage: true, loadError: 'Read failed'),
+      const SettingsState(
+        hasLoadedLanguage: true,
+        hasLoadedWeightUnit: true,
+        loadError: 'Read failed',
+      ),
     ),
   ]) {
     blocTest<SettingsCubit, SettingsState>(
@@ -80,6 +93,7 @@ void main() {
         themePreference: ThemePreference.dark,
         hasLoadedTheme: true,
         hasLoadedLanguage: true,
+        hasLoadedWeightUnit: true,
       ),
     ),
     (
@@ -114,7 +128,11 @@ void main() {
     final retry = cubit.load();
     expect(
       cubit.state,
-      const SettingsState(hasLoadedLanguage: true, isLoading: true),
+      const SettingsState(
+        hasLoadedLanguage: true,
+        hasLoadedWeightUnit: true,
+        isLoading: true,
+      ),
     );
     pending.complete(const Success(ThemePreference.dark));
     await retry;
@@ -124,6 +142,7 @@ void main() {
         themePreference: ThemePreference.dark,
         hasLoadedTheme: true,
         hasLoadedLanguage: true,
+        hasLoadedWeightUnit: true,
       ),
     );
     verify(repository.getThemePreference).called(2);
@@ -164,7 +183,11 @@ void main() {
       await cubit.setThemePreference(ThemePreference.system);
       expect(
         cubit.state,
-        const SettingsState(hasLoadedTheme: true, hasLoadedLanguage: true),
+        const SettingsState(
+          hasLoadedTheme: true,
+          hasLoadedLanguage: true,
+          hasLoadedWeightUnit: true,
+        ),
       );
       verify(
         () => repository.setThemePreference(ThemePreference.system),
@@ -226,6 +249,7 @@ void main() {
           themePreference: ThemePreference.dark,
           hasLoadedTheme: true,
           hasLoadedLanguage: true,
+          hasLoadedWeightUnit: true,
         ),
       );
       verify(
@@ -234,6 +258,7 @@ void main() {
       verify(repository.getThemePreference).called(1);
       await cubit.retrySave();
       verify(repository.getLanguagePreference).called(1);
+      verify(repository.getWeightUnit).called(1);
       verifyNoMoreInteractions(repository);
     },
   );
@@ -250,7 +275,11 @@ void main() {
     await cubit.retrySave();
     expect(
       cubit.state,
-      const SettingsState(hasLoadedTheme: true, hasLoadedLanguage: true),
+      const SettingsState(
+        hasLoadedTheme: true,
+        hasLoadedLanguage: true,
+        hasLoadedWeightUnit: true,
+      ),
     );
     verify(() => repository.setThemePreference(ThemePreference.dark)).called(1);
     verify(
@@ -278,11 +307,19 @@ void main() {
       await cubit.retrySave();
       expect(
         loading,
-        const SettingsState(hasLoadedLanguage: true, isLoading: true),
+        const SettingsState(
+          hasLoadedLanguage: true,
+          hasLoadedWeightUnit: true,
+          isLoading: true,
+        ),
       );
       expect(
         cubit.state,
-        const SettingsState(hasLoadedLanguage: true, loadError: 'Read failed'),
+        const SettingsState(
+          hasLoadedLanguage: true,
+          hasLoadedWeightUnit: true,
+          loadError: 'Read failed',
+        ),
       );
       verify(
         () => repository.setThemePreference(ThemePreference.dark),
@@ -498,4 +535,58 @@ void main() {
       },
     );
   }
+
+  group('weight unit', () {
+    test('loads, saves and skips an already confirmed unit', () async {
+      when(
+        repository.getWeightUnit,
+      ).thenAnswer((_) async => const Success(WeightUnit.pound));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      expect(cubit.state.weightUnit, WeightUnit.pound);
+      expect(cubit.state.hasLoaded, isTrue);
+      await cubit.setWeightUnit(WeightUnit.pound);
+      verifyNever(() => repository.setWeightUnit(any()));
+      await cubit.setWeightUnit(WeightUnit.kilogram);
+      expect(cubit.state.weightUnit, WeightUnit.kilogram);
+      verify(() => repository.setWeightUnit(WeightUnit.kilogram)).called(1);
+    });
+
+    test('failed read keeps kilograms and reports the unit error', () async {
+      when(repository.getWeightUnit).thenAnswer(
+        (_) async => const Error(PreferencesStorageFailure('Unit failed')),
+      );
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      expect(cubit.state.weightUnit, WeightUnit.kilogram);
+      expect(cubit.state.hasLoadedWeightUnit, isFalse);
+      expect(cubit.state.loadError, 'Unit failed');
+      await cubit.setWeightUnit(WeightUnit.kilogram);
+      expect(cubit.state.hasLoadedWeightUnit, isTrue);
+      expect(cubit.state.loadError, isNull);
+    });
+
+    test('failed save keeps the previous unit and retries its target', () async {
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load();
+      when(
+        () => repository.setWeightUnit(WeightUnit.pound),
+      ).thenAnswer((_) async => writeError);
+      await cubit.setWeightUnit(WeightUnit.pound);
+      expect(cubit.state.weightUnit, WeightUnit.kilogram);
+      expect(cubit.state.failedWeightUnit, WeightUnit.pound);
+      expect(cubit.state.saveError, 'Write failed');
+      when(
+        () => repository.setWeightUnit(WeightUnit.pound),
+      ).thenAnswer((_) async => const Success<void>(null));
+      await cubit.retrySave();
+      expect(cubit.state.weightUnit, WeightUnit.pound);
+      expect(cubit.state.failedWeightUnit, isNull);
+      expect(cubit.state.saveError, isNull);
+      verify(() => repository.setWeightUnit(WeightUnit.pound)).called(2);
+    });
+  });
 }

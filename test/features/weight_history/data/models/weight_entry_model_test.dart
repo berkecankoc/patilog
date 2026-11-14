@@ -27,23 +27,27 @@ void main() {
     expect(model.toJson(), json);
   });
 
-  test('stores weights at gram precision without changing the measurement', () {
-    for (final (input, expected) in [
-      (5.4326, 5.433),
-      (5.4324, 5.432),
-      (0.001, 0.001),
-      (0.1 + 0.2, 0.3),
-    ]) {
-      final value = WeightEntryModel(
-        id: model.id,
-        petId: model.petId,
-        weight: input,
-        measuredAt: model.measuredAt,
-      );
-      expect(value.toJson(), {...json, 'weight': expected});
-      expect(value.weight, input);
-    }
-  });
+  test(
+    'stores weights at milligram precision without changing the measurement',
+    () {
+      for (final (input, expected) in [
+        (5.4326789, 5.432679),
+        (5.4326784, 5.432678),
+        (0.000001, 0.000001),
+        (0.1 + 0.2, 0.3),
+        (10.5 * 0.45359237, 4.76272),
+      ]) {
+        final value = WeightEntryModel(
+          id: model.id,
+          petId: model.petId,
+          weight: input,
+          measuredAt: model.measuredAt,
+        );
+        expect(value.toJson(), {...json, 'weight': expected});
+        expect(value.weight, input);
+      }
+    },
+  );
 
   test('deserializes a stored measurement', () {
     expect(WeightEntryModel.fromJson(json), model);

@@ -232,15 +232,15 @@ void main() {
             species: PetSpecies.cat,
             sex: PetSex.female,
             reproductiveStatus: ReproductiveStatus.intact,
-            weight: 4.1236,
+            weight: 4.1234567,
           ),
         ),
         const Success<void>(null),
       );
       final initial =
           (await repository.getPets() as Success<List<Pet>>).data.single;
-      expect(initial.weight, 4.124);
-      for (final weight in [4.124000000000001, 4.5678]) {
+      expect(initial.weight, 4.123457);
+      for (final weight in [4.123457000000001, 4.5678912]) {
         expect(
           await update(
             initial,
@@ -256,8 +256,8 @@ void main() {
         );
       }
       final stored = await history.getWeightEntries(initial.id);
-      expect(stored.map((e) => e.weight), [4.568, 4.124]);
-      expect((await source.getPetById(initial.id)).weight, 4.568);
+      expect(stored.map((e) => e.weight), [4.567891, 4.123457]);
+      expect((await source.getPetById(initial.id)).weight, 4.567891);
       expect((await source.getPetById(initial.id)).name, 'Updated');
       verifyZeroInteractions(images);
     },

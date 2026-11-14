@@ -12,6 +12,8 @@ import 'package:patilog/core/router/app_router.dart';
 import 'package:patilog/core/storage/image_storage.dart';
 import 'package:patilog/core/theme/app_theme.dart';
 import 'package:patilog/core/widgets/app_keyboard.dart';
+import 'package:patilog/core/widgets/app_weight_unit.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 import 'package:patilog/features/settings/domain/entities/language_preference.dart';
 import 'package:patilog/features/settings/presentation/cubit/settings_cubit.dart';
@@ -50,34 +52,42 @@ class MyApp extends StatelessWidget {
               BlocSelector<
                 SettingsCubit,
                 SettingsState,
-                ({ThemePreference theme, LanguagePreference language})
+                ({
+                  ThemePreference theme,
+                  LanguagePreference language,
+                  WeightUnit weightUnit,
+                })
               >(
                 selector: (state) => (
                   theme: state.themePreference,
                   language: state.languagePreference,
+                  weightUnit: state.weightUnit,
                 ),
-                builder: (_, preference) => MaterialApp.router(
-                  title: 'Patilog',
-                  locale: preference.language.locale,
-                  supportedLocales: appSupportedLocales,
-                  localizationsDelegates:
-                      AppLocalizations.localizationsDelegates,
-                  localeListResolutionCallback: resolveAppLocale,
-                  theme: AppTheme.light,
-                  darkTheme: AppTheme.dark,
-                  themeMode: switch (preference.theme) {
-                    ThemePreference.system => ThemeMode.system,
-                    ThemePreference.light => ThemeMode.light,
-                    ThemePreference.dark => ThemeMode.dark,
-                  },
-                  routerConfig: appRouter,
-                  builder: (_, child) => NotificationRuntime(
-                    child: NotificationNavigation(
-                      router: appRouter,
-                      observers: appNavigationObservers,
-                      routeChanges: appNavigationChanges,
-                      resolve: getIt<ResolveNotificationTarget>(),
-                      child: AppKeyboard(child: child!),
+                builder: (_, preference) => AppWeightUnit(
+                  unit: preference.weightUnit,
+                  child: MaterialApp.router(
+                    title: 'Patilog',
+                    locale: preference.language.locale,
+                    supportedLocales: appSupportedLocales,
+                    localizationsDelegates:
+                        AppLocalizations.localizationsDelegates,
+                    localeListResolutionCallback: resolveAppLocale,
+                    theme: AppTheme.light,
+                    darkTheme: AppTheme.dark,
+                    themeMode: switch (preference.theme) {
+                      ThemePreference.system => ThemeMode.system,
+                      ThemePreference.light => ThemeMode.light,
+                      ThemePreference.dark => ThemeMode.dark,
+                    },
+                    routerConfig: appRouter,
+                    builder: (_, child) => NotificationRuntime(
+                      child: NotificationNavigation(
+                        router: appRouter,
+                        observers: appNavigationObservers,
+                        routeChanges: appNavigationChanges,
+                        resolve: getIt<ResolveNotificationTarget>(),
+                        child: AppKeyboard(child: child!),
+                      ),
                     ),
                   ),
                 ),

@@ -1,4 +1,5 @@
 import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/features/settings/domain/entities/language_preference.dart';
 import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 
@@ -12,4 +13,9 @@ abstract interface class SettingsRepository {
   Future<Result<LanguagePreference>> getLanguagePreference();
 
   Future<Result<void>> setLanguagePreference(LanguagePreference preference);
+
+  /// Missing or unrecognized stored values return [WeightUnit.kilogram].
+  Future<Result<WeightUnit>> getWeightUnit();
+
+  Future<Result<void>> setWeightUnit(WeightUnit unit);
 }

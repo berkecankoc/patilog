@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:patilog/core/l10n/app_number_formats.dart';
 import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
+import 'package:patilog/core/widgets/app_weight_unit.dart';
 import 'package:patilog/core/widgets/app_gap.dart';
 import 'package:patilog/core/widgets/app_section_heading.dart';
 import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
@@ -29,7 +31,21 @@ class _WeightHistoryChartState extends State<WeightHistoryChart> {
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context);
     final dates = MaterialLocalizations.of(context);
-    final points = weightChartEntries(widget.entries, _range, DateTime.now());
+    final unit = AppWeightUnit.of(context);
+    // Plot in the display unit so bounds, ticks and labels use its values.
+    final points = [
+      for (final entry in weightChartEntries(
+        widget.entries,
+        _range,
+        DateTime.now(),
+      ))
+        WeightEntry(
+          id: entry.id,
+          petId: entry.petId,
+          weight: fromKilograms(entry.weight, unit),
+          measuredAt: entry.measuredAt,
+        ),
+    ];
     String label(WeightChartRange range) => switch (range) {
       WeightChartRange.month => strings.weightChartOneMonth,
       WeightChartRange.threeMonths => strings.weightChartThreeMonths,
@@ -97,13 +113,13 @@ class _WeightHistoryChartState extends State<WeightHistoryChart> {
               if (points.length > 1) ...[
                 Text(
                   strings.weightChartChange(
-                    '${points.last.weight > points.first.weight ? '+' : ''}${localizedWeight(points.last.weight - points.first.weight, locale)}',
+                    '${points.last.weight > points.first.weight ? '+' : ''}${localizedWeight(points.last.weight - points.first.weight, locale)} ${unit.symbol}',
                   ),
                   style: theme.textTheme.bodyMedium,
                 ),
                 VerticalGap.md,
               ],
-              _WeightPlot(points: points),
+              _WeightPlot(points: points, unit: unit),
               VerticalGap.md,
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,9 +158,11 @@ class _WeightHistoryChartState extends State<WeightHistoryChart> {
 }
 
 class _WeightPlot extends StatelessWidget {
+  /// Weights are already converted to [unit].
   final List<WeightEntry> points;
+  final WeightUnit unit;
 
-  const _WeightPlot({required this.points});
+  const _WeightPlot({required this.points, required this.unit});
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +233,7 @@ class _WeightPlot extends StatelessWidget {
                   rightTitles: const AxisTitles(),
                   bottomTitles: const AxisTitles(),
                   leftTitles: AxisTitles(
-                    axisNameWidget: Text('kg', style: axisStyle),
+                    axisNameWidget: Text(unit.symbol, style: axisStyle),
                     axisNameSize: scaler.scale(18) + AppSpacing.sm,
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -269,7 +287,7 @@ class _WeightPlot extends StatelessWidget {
                     getTooltipItems: (spots) => [
                       for (final spot in spots)
                         LineTooltipItem(
-                          '${localizedWeight(points[spot.spotIndex].weight, locale)} kg\n${dates.formatShortDate(points[spot.spotIndex].measuredAt.toLocal())}',
+                          '${localizedWeight(points[spot.spotIndex].weight, locale)} ${unit.symbol}\n${dates.formatShortDate(points[spot.spotIndex].measuredAt.toLocal())}',
                           theme.textTheme.bodyMedium!.copyWith(
                             color: theme.colorScheme.onInverseSurface,
                             fontSize: scaler.scale(

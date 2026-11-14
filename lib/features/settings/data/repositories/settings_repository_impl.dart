@@ -1,5 +1,6 @@
 import 'package:patilog/core/error/failure.dart';
 import 'package:patilog/core/result/result.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/features/settings/domain/entities/language_preference.dart';
 import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
 import 'package:patilog/features/settings/domain/repositories/settings_repository.dart';
@@ -9,6 +10,7 @@ final class SettingsRepositoryImpl implements SettingsRepository {
   final SharedPreferencesAsync preferences;
   static const _themePreferenceKey = 'settings.theme_preference';
   static const _languagePreferenceKey = 'settings.language_preference';
+  static const _weightUnitKey = 'settings.weight_unit';
 
   const SettingsRepositoryImpl(this.preferences);
 
@@ -40,6 +42,33 @@ final class SettingsRepositoryImpl implements SettingsRepository {
     } on Exception {
       return const Error(
         PreferencesStorageFailure('Failed to save language preference'),
+      );
+    }
+  }
+
+  @override
+  Future<Result<WeightUnit>> getWeightUnit() async {
+    try {
+      final values = await preferences.getAll(allowList: {_weightUnitKey});
+      return Success(switch (values[_weightUnitKey]) {
+        'pound' => WeightUnit.pound,
+        _ => WeightUnit.kilogram,
+      });
+    } on Exception {
+      return const Error(
+        PreferencesStorageFailure('Failed to load weight unit'),
+      );
+    }
+  }
+
+  @override
+  Future<Result<void>> setWeightUnit(WeightUnit unit) async {
+    try {
+      await preferences.setString(_weightUnitKey, unit.name);
+      return const Success(null);
+    } on Exception {
+      return const Error(
+        PreferencesStorageFailure('Failed to save weight unit'),
       );
     }
   }

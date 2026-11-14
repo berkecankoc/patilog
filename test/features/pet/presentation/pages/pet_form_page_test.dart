@@ -12,7 +12,9 @@ import 'package:patilog/core/error/failure.dart';
 import 'package:patilog/core/result/result.dart';
 import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/core/widgets/app_keyboard.dart';
+import 'package:patilog/core/widgets/app_weight_unit.dart';
 import 'package:patilog/features/pet/domain/entities/pet.dart';
 import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
 import 'package:patilog/features/pet/domain/use_cases/create_pet.dart';
@@ -78,6 +80,7 @@ void main() {
     bool keyboard = false,
     Brightness brightness = Brightness.light,
     TargetPlatform platform = TargetPlatform.android,
+    WeightUnit unit = WeightUnit.kilogram,
   }) async {
     tester.view.physicalSize = Size(width, 720);
     tester.view.devicePixelRatio = 1;
@@ -111,7 +114,10 @@ void main() {
             textScaler: TextScaler.linear(scale),
             viewInsets: EdgeInsets.only(bottom: keyboard ? 280 : 0),
           ),
-          child: AppKeyboard(child: child!),
+          child: AppWeightUnit(
+            unit: unit,
+            child: AppKeyboard(child: child!),
+          ),
         ),
       ),
     );
@@ -683,5 +689,42 @@ void main() {
     await enterFormText(tester, customSpeciesField, '🐇' * 30);
     await submitForm(tester);
     expect(await routeResult, isTrue);
+  });
+
+  final poundWeightField = find.widgetWithText(
+    TextFormField,
+    'Weight (optional)',
+    skipOffstage: false,
+  );
+
+  testWidgets('pound edits keep untouched kilograms', (tester) async {
+    await pumpForm(tester, unit: WeightUnit.pound);
+    await revealFormField(tester, poundWeightField);
+    expect(
+      tester.widget<TextFormField>(poundWeightField).controller!.text,
+      '26.455',
+    );
+    expect(
+      find.descendant(of: poundWeightField, matching: find.text('lb')),
+      findsOneWidget,
+    );
+    await changeName(tester);
+    await submitForm(tester);
+    expect(await routeResult, isTrue);
+    final params =
+        verify(() => update(pet, captureAny())).captured.single
+            as UpdatePetParams;
+    expect(params.weight, 12);
+  });
+
+  testWidgets('pound edits convert new input to kilograms', (tester) async {
+    await pumpForm(tester, unit: WeightUnit.pound);
+    await enterFormText(tester, poundWeightField, '20');
+    await submitForm(tester);
+    expect(await routeResult, isTrue);
+    final params =
+        verify(() => update(pet, captureAny())).captured.single
+            as UpdatePetParams;
+    expect(params.weight, 9.071847);
   });
 }

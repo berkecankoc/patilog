@@ -20,6 +20,8 @@ import 'package:patilog/core/router/pet_care_tab.dart';
 import 'package:patilog/core/services/id_generator.dart';
 import 'package:patilog/core/storage/image_storage.dart';
 import 'package:patilog/core/theme/app_theme.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
+import 'package:patilog/core/widgets/app_weight_unit.dart';
 import 'package:patilog/features/pet/domain/entities/pet.dart';
 import 'package:patilog/features/pet/domain/repositories/pet_repository.dart';
 import 'package:patilog/features/pet/domain/use_cases/create_pet.dart';
@@ -105,6 +107,7 @@ void main() {
     double height = 720,
     double scale = 1,
     bool keyboard = false,
+    WeightUnit unit = WeightUnit.kilogram,
   }) async {
     tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1;
@@ -116,18 +119,23 @@ void main() {
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(
-      MaterialApp.router(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
-        routerConfig: router,
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(scale),
-            viewInsets: EdgeInsets.only(bottom: keyboard ? 280 : 0),
-          ),
-          child: RepositoryProvider<ImageStorage>.value(
-            value: MockImageStorage(),
-            child: child!,
+      AppWeightUnit(
+        unit: unit,
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          theme: brightness == Brightness.light
+              ? AppTheme.light
+              : AppTheme.dark,
+          routerConfig: router,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(scale),
+              viewInsets: EdgeInsets.only(bottom: keyboard ? 280 : 0),
+            ),
+            child: RepositoryProvider<ImageStorage>.value(
+              value: MockImageStorage(),
+              child: child!,
+            ),
           ),
         ),
       ),
@@ -814,6 +822,69 @@ void main() {
     expect(updated.last.petId, entry.petId);
     expect(updated.last.measuredAt, entry.measuredAt);
     verifyNever(() => repository.createWeightEntry(any()));
+  });
+
+  testWidgets('pounds convert history, chart and deletion text', (
+    tester,
+  ) async {
+    await pumpRouter(tester, unit: WeightUnit.pound);
+    expect(find.text('9.921 lb'), findsNWidgets(2));
+    await tester.tap(find.byKey(const ValueKey(WeightChartRange.all)));
+    await tester.pumpAndSettle();
+    expect(find.text('lb'), findsOneWidget);
+    expect(find.textContaining('kg'), findsNothing);
+    await scrollToMeasurement(tester, '9.921 lb');
+    await tester.tap(
+      find.byTooltip('Delete 9.921 lb measurement from Jan 12, 2025'),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Remove the 9.921 lb measurement from Jan 12, 2025?'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('pound entries save kilograms; untouched edits keep the value', (
+    tester,
+  ) async {
+    when(
+      () => repository.createWeightEntry(any()),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      () => repository.updateWeightEntry(any()),
+    ).thenAnswer((_) async => const Success(null));
+    await pumpRouter(tester, unit: WeightUnit.pound);
+    await openAddForm(tester);
+    final field = find.byType(TextFormField, skipOffstage: false).first;
+    expect(
+      find.descendant(of: field, matching: find.text('lb')),
+      findsOneWidget,
+    );
+    await enterFormText(tester, field, '10.5');
+    await reviewForm(tester);
+    expect(find.text('10.5 lb'), findsOneWidget);
+    await save(tester);
+    final created =
+        verify(() => repository.createWeightEntry(captureAny())).captured.single
+            as WeightEntry;
+    expect(created.weight, 4.76272);
+
+    await openMeasurement(tester, '9.921 lb');
+    await tester.pumpAndSettle();
+    await tapFormControl(
+      tester,
+      find.byTooltip('Measurement date: choose date', skipOffstage: false),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('11').last);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await save(tester);
+    final updated =
+        verify(() => repository.updateWeightEntry(captureAny())).captured.single
+            as WeightEntry;
+    expect(updated.weight, 4.5);
+    expect(updated.measuredAt, DateTime(2025, 1, 11));
   });
 
   testWidgets('measurement date can be changed before saving', (tester) async {

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/utils/weight_utils.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_section_heading.dart';
 import 'package:patilog/features/settings/domain/entities/theme_preference.dart';
@@ -104,11 +105,18 @@ class SettingsPage extends StatelessWidget {
                       ),
                       child: AppErrorFeedback(
                         message:
-                            !state.hasLoadedTheme && !state.hasLoadedLanguage
+                            [
+                                  state.hasLoadedTheme,
+                                  state.hasLoadedLanguage,
+                                  state.hasLoadedWeightUnit,
+                                ].where((loaded) => !loaded).length >
+                                1
                             ? strings.settingsLoadFailed
                             : !state.hasLoadedTheme
                             ? strings.themeLoadFailed
-                            : strings.languageLoadFailed,
+                            : !state.hasLoadedLanguage
+                            ? strings.languageLoadFailed
+                            : strings.weightUnitLoadFailed,
                         retryLabel: strings.retry,
                         onRetry: cubit.load,
                       ),
@@ -121,6 +129,8 @@ class SettingsPage extends StatelessWidget {
                       child: AppErrorFeedback(
                         message: state.failedLanguagePreference != null
                             ? strings.languageSaveFailed
+                            : state.failedWeightUnit != null
+                            ? strings.weightUnitSaveFailed
                             : strings.themeSaveFailed,
                         retryLabel: strings.retry,
                         onRetry: cubit.retrySave,
@@ -259,6 +269,64 @@ class SettingsPage extends StatelessWidget {
                                         preference == LanguagePreference.system
                                         ? Text(strings.followDeviceLanguage)
                                         : null,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        AppSectionHeading(
+                          title: strings.weightUnitTitle,
+                          icon: Icons.monitor_weight_outlined,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          strings.weightUnitDescription,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Card(
+                          margin: EdgeInsets.zero,
+                          clipBehavior: Clip.antiAlias,
+                          child: RadioGroup<WeightUnit>(
+                            groupValue: state.weightUnit,
+                            onChanged: (value) {
+                              if (value != null && !cubit.state.isBusy) {
+                                cubit.setWeightUnit(value);
+                              }
+                            },
+                            child: Column(
+                              children: [
+                                for (final unit in WeightUnit.values) ...[
+                                  if (unit != WeightUnit.values.first)
+                                    const Divider(
+                                      height: 1,
+                                      indent: AppSpacing.md,
+                                      endIndent: AppSpacing.md,
+                                    ),
+                                  RadioListTile<WeightUnit>(
+                                    value: unit,
+                                    enabled: !state.isBusy,
+                                    controlAffinity:
+                                        ListTileControlAffinity.trailing,
+                                    titleAlignment:
+                                        ListTileTitleAlignment.center,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.md,
+                                      vertical: AppSpacing.sm,
+                                    ),
+                                    title: Text(switch (unit) {
+                                      WeightUnit.kilogram =>
+                                        strings.weightUnitKilograms,
+                                      WeightUnit.pound =>
+                                        strings.weightUnitPounds,
+                                    }),
                                   ),
                                 ],
                               ],

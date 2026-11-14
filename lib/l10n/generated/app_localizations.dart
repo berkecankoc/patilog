@@ -224,11 +224,47 @@ abstract class AppLocalizations {
   /// **'Failed to load language preference'**
   String get languageLoadFailed;
 
-  /// Both theme and language storage reads failed.
+  /// More than one settings storage read failed.
   ///
   /// In en, this message translates to:
   /// **'Failed to load settings'**
   String get settingsLoadFailed;
+
+  /// Section heading for the weight display and entry unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight unit'**
+  String get weightUnitTitle;
+
+  /// Weight unit choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Kilograms (kg)'**
+  String get weightUnitKilograms;
+
+  /// Weight unit choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Pounds (lb)'**
+  String get weightUnitPounds;
+
+  /// Explains that switching units does not alter stored measurements.
+  ///
+  /// In en, this message translates to:
+  /// **'Used to enter and show weights. Saved measurements are converted, not changed.'**
+  String get weightUnitDescription;
+
+  /// Weight unit storage read failed; kilograms are used and a Retry action is available.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load weight unit'**
+  String get weightUnitLoadFailed;
+
+  /// Weight unit storage write failed; the previous unit is retained.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save weight unit'**
+  String get weightUnitSaveFailed;
 
   /// Theme storage write failed; the previous theme is retained.
   ///
@@ -644,7 +680,7 @@ abstract class AppLocalizations {
   /// **'Current weight'**
   String get currentWeight;
 
-  /// Optional initial or updated pet weight in kg.
+  /// Optional initial or updated pet weight in the selected unit.
   ///
   /// In en, this message translates to:
   /// **'Weight (optional)'**
@@ -1031,7 +1067,7 @@ abstract class AppLocalizations {
   /// Difference between the last and first plotted daily measurements; no health judgement is implied.
   ///
   /// In en, this message translates to:
-  /// **'Change in this period: {change} kg'**
+  /// **'Change in this period: {change}'**
   String weightChartChange(String change);
 
   /// No description provided for @weightChartSinglePoint.
@@ -2411,7 +2447,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteMeasurementForPetMessage.
   ///
   /// In en, this message translates to:
-  /// **'Remove the {weight} kg measurement from {date} for {petName}?'**
+  /// **'Remove the {weight} measurement from {date} for {petName}?'**
   String deleteMeasurementForPetMessage(
     String weight,
     String date,
@@ -2421,13 +2457,13 @@ abstract class AppLocalizations {
   /// Care UI: deleteMeasurementMessage. User content and formatted values are passed unchanged.
   ///
   /// In en, this message translates to:
-  /// **'Remove the {weight} kg measurement from {date}?'**
+  /// **'Remove the {weight} measurement from {date}?'**
   String deleteMeasurementMessage(String weight, String date);
 
   /// Care UI: deleteMeasurementTooltip. User content and formatted values are passed unchanged.
   ///
   /// In en, this message translates to:
-  /// **'Delete {weight} kg measurement from {date}'**
+  /// **'Delete {weight} measurement from {date}'**
   String deleteMeasurementTooltip(String weight, String date);
 
   /// Care UI: deleteVisitMessage. User content and formatted values are passed unchanged.

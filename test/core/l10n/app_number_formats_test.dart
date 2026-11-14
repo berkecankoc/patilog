@@ -20,6 +20,18 @@ void main() {
     },
   );
 
+  test('weights display in the selected unit with its symbol', () {
+    expect(
+      localizedWeightWithUnit(4.76272, WeightUnit.pound, turkishLocale),
+      '10,5 lb',
+    );
+    expect(
+      localizedWeightWithUnit(4.5, WeightUnit.kilogram, englishLocale),
+      '4.5 kg',
+    );
+    expect(localizedWeightIn(4.5, WeightUnit.pound, englishLocale), '9.921');
+  });
+
   test(
     'money formatting keeps exact minor units and does not convert currency',
     () {
