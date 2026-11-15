@@ -98,6 +98,7 @@ void main() {
       () => android.createNotificationChannel(any()),
     ).thenAnswer((_) async {});
     when(android.canScheduleExactNotifications).thenAnswer((_) async => false);
+    when(android.getNotificationChannels).thenAnswer((_) async => []);
     when(android.requestNotificationsPermission).thenAnswer((_) async => true);
     when(android.requestExactAlarmsPermission).thenAnswer((_) async => false);
     when(
@@ -329,6 +330,40 @@ void main() {
   );
 
   test(
+    'reports reminder categories turned off in Android system settings',
+    () async {
+      var status = await source.getPermissionStatus();
+      expect(status.medicationRemindersBlocked, isFalse);
+      expect(status.vaccinationRemindersBlocked, isFalse);
+      expect(status.feedingRemindersBlocked, isFalse);
+      when(android.getNotificationChannels).thenAnswer(
+        (_) async => const [
+          AndroidNotificationChannel(
+            'medication_reminders',
+            'Medication',
+            importance: Importance.low,
+          ),
+          AndroidNotificationChannel(
+            'vaccination_reminders',
+            'Vaccination',
+            importance: Importance.none,
+          ),
+          AndroidNotificationChannel(
+            'other_channel',
+            'Other',
+            importance: Importance.none,
+          ),
+        ],
+      );
+      status = await source.getPermissionStatus();
+      expect(status.canShowNotifications, isTrue);
+      expect(status.medicationRemindersBlocked, isFalse);
+      expect(status.vaccinationRemindersBlocked, isTrue);
+      expect(status.feedingRemindersBlocked, isFalse);
+    },
+  );
+
+  test(
     'iOS requests alerts/sound only and never asks for Android alarm permission',
     () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
@@ -343,7 +378,7 @@ void main() {
     },
   );
 
-  for (final missing in ['display', 'exact', 'ios']) {
+  for (final missing in ['display', 'exact', 'channels', 'ios']) {
     test(
       'missing $missing permission state is an error rather than denial',
       () async {
@@ -353,6 +388,8 @@ void main() {
           when(
             android.canScheduleExactNotifications,
           ).thenAnswer((_) async => null);
+        } else if (missing == 'channels') {
+          when(android.getNotificationChannels).thenAnswer((_) async => null);
         } else {
           debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
           when(ios.checkPermissions).thenAnswer((_) async => null);

@@ -64,15 +64,28 @@ class NotificationSettingsPage extends StatelessWidget {
     Widget? iconWidget,
     required bool value,
     required ValueChanged<bool>? onChanged,
+    bool blockedInSystem = false,
   }) => LayoutBuilder(
     builder: (context, constraints) {
       final compact =
           constraints.maxWidth < 320 &&
           MediaQuery.textScalerOf(context).scale(16) > 20;
+      final description = blockedInSystem
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(subtitle),
+                Text(
+                  AppLocalizations.of(context).reminderCategoryBlocked,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+            )
+          : Text(subtitle);
       if (!compact) {
         return SwitchListTile(
           title: Text(title),
-          subtitle: Text(subtitle),
+          subtitle: description,
           secondary: iconWidget ?? Icon(icon),
           value: value,
           onChanged: onChanged,
@@ -99,7 +112,7 @@ class NotificationSettingsPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                Text(subtitle),
+                description,
                 Align(
                   alignment: AlignmentDirectional.centerEnd,
                   child: Switch(value: value, onChanged: onChanged),
@@ -125,6 +138,22 @@ class NotificationSettingsPage extends StatelessWidget {
           preferences?.vaccinationRemindersEnabled == true ||
           preferences?.feedingRemindersEnabled == true;
       final blocked = anyOn && state.permissions?.canShowNotifications == false;
+      // Per-category blocks only matter while the app may show notifications.
+      final shown = state.permissions?.canShowNotifications == true;
+      final medicationBlocked =
+          shown &&
+          preferences?.medicationRemindersEnabled == true &&
+          state.permissions!.medicationRemindersBlocked;
+      final vaccinationBlocked =
+          shown &&
+          preferences?.vaccinationRemindersEnabled == true &&
+          state.permissions!.vaccinationRemindersBlocked;
+      final feedingBlocked =
+          shown &&
+          preferences?.feedingRemindersEnabled == true &&
+          state.permissions!.feedingRemindersBlocked;
+      final categoriesBlocked =
+          medicationBlocked || vaccinationBlocked || feedingBlocked;
       final inexact =
           (preferences?.medicationRemindersEnabled == true ||
               preferences?.feedingRemindersEnabled == true) &&
@@ -241,6 +270,7 @@ class NotificationSettingsPage extends StatelessWidget {
                                         preferences
                                             ?.medicationRemindersEnabled ??
                                         false,
+                                    blockedInSystem: medicationBlocked,
                                     onChanged: enabled
                                         ? (value) => cubit.setPreferences(
                                             _preferences(
@@ -267,6 +297,7 @@ class NotificationSettingsPage extends StatelessWidget {
                                         preferences
                                             ?.vaccinationRemindersEnabled ??
                                         false,
+                                    blockedInSystem: vaccinationBlocked,
                                     onChanged: enabled
                                         ? (value) => cubit.setPreferences(
                                             _preferences(
@@ -293,6 +324,7 @@ class NotificationSettingsPage extends StatelessWidget {
                                     value:
                                         preferences?.feedingRemindersEnabled ??
                                         false,
+                                    blockedInSystem: feedingBlocked,
                                     onChanged: enabled
                                         ? (value) => cubit.setPreferences(
                                             _preferences(cubit, feeding: value),
@@ -342,6 +374,47 @@ class NotificationSettingsPage extends StatelessWidget {
                                 context,
                               ).sharedVaccinationScheduleHint,
                             ),
+                            if (categoriesBlocked) ...[
+                              const SizedBox(height: AppSpacing.lg),
+                              Card(
+                                margin: EdgeInsets.zero,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSpacing.md),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      AppSectionHeading(
+                                        title: AppLocalizations.of(
+                                          context,
+                                        ).reminderCategoriesBlocked,
+                                        icon: Icons.notifications_off_outlined,
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        ).reminderCategoriesBlockedHint,
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      FilledButton.tonal(
+                                        onPressed: state.isBusy
+                                            ? null
+                                            : () => cubit.perform(
+                                                NotificationAction
+                                                    .openSettings,
+                                              ),
+                                        child: Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          ).openDeviceSettings,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                             if (blocked || inexact) ...[
                               const SizedBox(height: AppSpacing.lg),
                               Card(
