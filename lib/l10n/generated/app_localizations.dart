@@ -2354,6 +2354,24 @@ abstract class AppLocalizations {
   /// **'Open device settings'**
   String get openDeviceSettings;
 
+  /// notification_settings_page.dart: shown under a reminder toggle whose Android notification category is off in system settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Turned off in device settings'**
+  String get reminderCategoryBlocked;
+
+  /// notification_settings_page.dart: card title when one or more enabled reminder categories are off in system settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Some reminders are turned off'**
+  String get reminderCategoriesBlocked;
+
+  /// notification_settings_page.dart: card text when one or more enabled reminder categories are off in system settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn these categories back on in the device\'s notification settings to receive them.'**
+  String get reminderCategoriesBlockedHint;
+
   /// notification_settings_page.dart: title: 'Upcoming reminders'
   ///
   /// In en, this message translates to:

@@ -1196,6 +1196,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openDeviceSettings => 'Open device settings';
 
   @override
+  String get reminderCategoryBlocked => 'Turned off in device settings';
+
+  @override
+  String get reminderCategoriesBlocked => 'Some reminders are turned off';
+
+  @override
+  String get reminderCategoriesBlockedHint =>
+      'Turn these categories back on in the device\'s notification settings to receive them.';
+
+  @override
   String get upcomingReminders => 'Upcoming reminders';
 
   @override

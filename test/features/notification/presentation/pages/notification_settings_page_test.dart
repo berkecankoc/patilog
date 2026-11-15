@@ -203,6 +203,70 @@ void main() {
     },
   );
   testWidgets(
+    'a category turned off in system settings keeps its preference and offers device settings',
+    (tester) async {
+      app.notifications.preferences = NotificationPreferences(
+        medicationRemindersEnabled: true,
+        vaccinationRemindersEnabled: true,
+      );
+      app.notifications.permission = const NotificationPermissionStatus(
+        canShowNotifications: true,
+        canScheduleExactAlarms: true,
+        requiresExactAlarmPermission: true,
+        vaccinationRemindersBlocked: true,
+        // Disabled in the app, so its system state is not reported.
+        feedingRemindersBlocked: true,
+      );
+      await open(tester);
+      expect(
+        find.descendant(
+          of: toggle('Vaccination reminders'),
+          matching: find.text('Turned off in device settings'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Turned off in device settings'), findsOneWidget);
+      expect(
+        tester.widget<SwitchListTile>(toggle('Vaccination reminders')).value,
+        isTrue,
+      );
+      expect(find.text('Notifications are blocked'), findsNothing);
+      await tester.ensureVisible(find.text('Some reminders are turned off'));
+      await tester.pumpAndSettle();
+      app.notifications.permission = const NotificationPermissionStatus(
+        canShowNotifications: true,
+        canScheduleExactAlarms: true,
+        requiresExactAlarmPermission: true,
+      );
+      await tester.tap(find.text('Open device settings'));
+      await tester.pumpAndSettle();
+      verify(app.notifications.repository.openNotificationSettings).called(1);
+      expect(find.text('Turned off in device settings'), findsNothing);
+      expect(find.text('Some reminders are turned off'), findsNothing);
+      expect(app.notifications.preferences.vaccinationRemindersEnabled, isTrue);
+      verifyNever(() => app.notifications.repository.savePreferences(any()));
+    },
+  );
+  testWidgets(
+    'blocked app notifications take precedence over category warnings',
+    (tester) async {
+      app.notifications.preferences = NotificationPreferences(
+        vaccinationRemindersEnabled: true,
+      );
+      app.notifications.permission = const NotificationPermissionStatus(
+        canShowNotifications: false,
+        canScheduleExactAlarms: true,
+        requiresExactAlarmPermission: true,
+        vaccinationRemindersBlocked: true,
+      );
+      await open(tester);
+      await tester.ensureVisible(find.text('Notifications are blocked'));
+      await tester.pumpAndSettle();
+      expect(find.text('Turned off in device settings'), findsNothing);
+      expect(find.text('Some reminders are turned off'), findsNothing);
+    },
+  );
+  testWidgets(
     'normal medication scheduling remains enabled when exact access is denied',
     (tester) async {
       app.notifications.permission = const NotificationPermissionStatus(
@@ -347,6 +411,42 @@ void main() {
       );
       expect(button.bottom, lessThanOrEqualTo(348));
       expect(button.top, greaterThanOrEqualTo(0));
+    },
+  );
+
+  testWidgets(
+    'category warnings stay readable and actionable on a narrow large-text screen',
+    (tester) async {
+      app.notifications.preferences = NotificationPreferences(
+        feedingRemindersEnabled: true,
+      );
+      app.notifications.permission = const NotificationPermissionStatus(
+        canShowNotifications: true,
+        canScheduleExactAlarms: true,
+        requiresExactAlarmPermission: true,
+        feedingRemindersBlocked: true,
+      );
+      await open(tester, size: const Size(320, 568), scale: 1.8);
+      final warning = find.text('Turned off in device settings');
+      await tester.ensureVisible(warning);
+      await tester.pumpAndSettle();
+      expect(warning.hitTestable(), findsOneWidget);
+      expect(
+        tester.renderObject<RenderParagraph>(warning).didExceedMaxLines,
+        isFalse,
+      );
+      final action = find.text('Open device settings');
+      await tester.scrollUntilVisible(
+        action,
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(action.hitTestable(), findsOneWidget);
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      verify(app.notifications.repository.openNotificationSettings).called(1);
+      expect(tester.takeException(), isNull);
     },
   );
 

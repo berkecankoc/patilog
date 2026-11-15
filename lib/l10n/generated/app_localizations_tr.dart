@@ -1196,6 +1196,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get openDeviceSettings => 'Cihaz ayarlarını aç';
 
   @override
+  String get reminderCategoryBlocked => 'Cihaz ayarlarında kapalı';
+
+  @override
+  String get reminderCategoriesBlocked => 'Bazı hatırlatmalar kapalı';
+
+  @override
+  String get reminderCategoriesBlockedHint =>
+      'Bu hatırlatmaları almak için cihazın bildirim ayarlarında ilgili kategorileri yeniden açın.';
+
+  @override
   String get upcomingReminders => 'Yaklaşan hatırlatmalar';
 
   @override

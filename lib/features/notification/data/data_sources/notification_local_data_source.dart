@@ -112,13 +112,22 @@ final class NotificationLocalDataSourceImpl
     if (_android) {
       final enabled = await _androidPlugin.areNotificationsEnabled();
       final exact = await _androidPlugin.canScheduleExactNotifications();
-      if (enabled == null || exact == null) {
+      final channels = await _androidPlugin.getNotificationChannels();
+      if (enabled == null || exact == null || channels == null) {
         throw const NotificationPlatformException();
       }
+      // Channels that do not exist yet are not blocked.
+      final blocked = {
+        for (final channel in channels)
+          if (channel.importance == Importance.none) channel.id,
+      };
       return NotificationPermissionStatus(
         canShowNotifications: enabled,
         canScheduleExactAlarms: exact,
         requiresExactAlarmPermission: true,
+        medicationRemindersBlocked: blocked.contains(_medicationChannelId),
+        vaccinationRemindersBlocked: blocked.contains(_vaccinationChannelId),
+        feedingRemindersBlocked: blocked.contains(_feedingChannelId),
       );
     }
     final permissions = await _iosPlugin.checkPermissions();
