@@ -6,6 +6,8 @@ vaccinations, medications and feeding, with local reminders.
 
 The app is available in English and Turkish, with light and dark themes.
 
+Download: [App Store](https://apps.apple.com/app/patilog/id6834049616) · Google Play (in closed testing)
+
 Website: [berkecankoc.github.io/patilog-site](https://berkecankoc.github.io/patilog-site/) · [Privacy policy](https://berkecankoc.github.io/patilog-site/privacy/) · [Support](https://berkecankoc.github.io/patilog-site/support/)
 
 <picture>
