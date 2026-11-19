@@ -6,6 +6,7 @@ import 'package:patilog/features/feeding/presentation/cubit/feeding_form_cubit.d
 import 'package:patilog/features/feeding/presentation/cubit/feeding_form_state.dart';
 import 'package:patilog/features/feeding/presentation/cubit/feeding_state.dart';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:patilog/core/database/database_tables.dart';
@@ -63,6 +64,8 @@ class MockPreferences extends Mock implements SharedPreferencesAsync {}
 class MockNotifications extends Mock implements NotificationLocalDataSource {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  const pathProvider = MethodChannel('plugins.flutter.io/path_provider');
   late Directory directory;
 
   setUpAll(() {
@@ -73,12 +76,21 @@ void main() {
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('injection-');
     await databaseFactory.setDatabasesPath(directory.path);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathProvider, (call) async {
+          if (call.method == 'getApplicationDocumentsDirectory') {
+            return directory.path;
+          }
+          throw MissingPluginException();
+        });
     await setupDependencies();
   });
 
   tearDown(() async {
     if (getIt.isRegistered<Database>()) await getIt<Database>().close();
     await getIt.reset();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathProvider, null);
     await directory.delete(recursive: true);
   });
 

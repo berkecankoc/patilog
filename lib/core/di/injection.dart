@@ -57,6 +57,7 @@ import 'package:patilog/features/weight_history/data/data_sources/weight_history
 import 'package:patilog/features/weight_history/data/repositories/weight_history_repository_impl.dart';
 import 'package:patilog/features/weight_history/domain/repositories/weight_history_repository.dart';
 import 'package:patilog/features/weight_history/presentation/cubit/weight_history_cubit.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -101,8 +102,10 @@ Future<void> setupDependencies() async {
     () => const UrlExternalLinkLauncher(),
   );
 
+  // Resolved once per launch so photo paths resolve synchronously.
+  final documents = await getApplicationDocumentsDirectory();
   getIt.registerLazySingleton<ImageStorage>(
-    () => LocalImageStorage(getIt<IdGenerator>()),
+    () => LocalImageStorage(getIt<IdGenerator>(), documents.path),
   );
 
   getIt.registerLazySingleton<PetLocalDataSource>(

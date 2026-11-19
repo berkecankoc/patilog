@@ -28,6 +28,7 @@ import 'package:patilog/features/pet/presentation/cubit/pet_state.dart';
 import 'package:patilog/features/pet/presentation/pages/pet_form_page.dart';
 import 'package:patilog/features/pet/presentation/pages/pet_detail_page.dart';
 import 'package:patilog/features/pet/presentation/pages/pet_list_page.dart';
+import 'package:patilog/features/pet/presentation/widgets/pet_image.dart';
 
 class MockRepository extends Mock implements PetRepository {}
 
@@ -87,7 +88,7 @@ void main() {
   }) async {
     final imageStorage = MockImageStorage();
     when(() => imageStorage.resolvePath(any())).thenAnswer(
-      (invocation) async => invocation.positionalArguments.first as String,
+      (invocation) => invocation.positionalArguments.first as String,
     );
     tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1;
@@ -186,7 +187,8 @@ void main() {
         final image = (await tester.runAsync(() => picture.toImage(1, 1)))!;
         picture.dispose();
         PaintingBinding.instance.imageCache.putIfAbsent(
-          FileImage(file),
+          // The form's 120 logical-pixel photo at this harness's pixel ratio 1.
+          PetPhotoImage(file, 120),
           () => OneFrameImageStreamCompleter(
             Future.value(ImageInfo(image: image)),
           ),
@@ -320,7 +322,8 @@ void main() {
           final image = (await tester.runAsync(() => picture.toImage(1, 1)))!;
           picture.dispose();
           PaintingBinding.instance.imageCache.putIfAbsent(
-            FileImage(file),
+            // The form's 120 logical-pixel photo at this harness's pixel ratio 1.
+            PetPhotoImage(file, 120),
             () => OneFrameImageStreamCompleter(
               Future.value(ImageInfo(image: image)),
             ),

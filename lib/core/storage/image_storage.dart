@@ -6,5 +6,5 @@ abstract interface class ImageStorage {
   Future<void> delete(String path);
 
   /// Resolves a filename or legacy absolute path in the current storage directory.
-  Future<String> resolvePath(String storedPath);
+  String resolvePath(String storedPath);
 }

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:patilog/core/error/exception.dart';
@@ -13,8 +12,6 @@ class FixedIdGenerator implements IdGenerator {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-  const channel = MethodChannel('plugins.flutter.io/path_provider');
   late Directory root;
   late LocalImageStorage storage;
   late String imageDirectory;
@@ -24,21 +21,10 @@ void main() {
     root = await Directory.systemTemp.createTemp('pet-images-');
     documentsPath = p.join(root.path, 'container', 'Documents');
     imageDirectory = p.join(documentsPath, 'pet_images');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-          if (call.method == 'getApplicationDocumentsDirectory') {
-            return documentsPath;
-          }
-          throw MissingPluginException();
-        });
-    storage = LocalImageStorage(FixedIdGenerator());
+    storage = LocalImageStorage(FixedIdGenerator(), documentsPath);
   });
 
-  tearDown(() async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
-    await root.delete(recursive: true);
-  });
+  tearDown(() => root.delete(recursive: true));
 
   test('save copies the file and returns a portable filename', () async {
     final source = await File(
@@ -48,12 +34,8 @@ void main() {
     final saved = await storage.save(source.path);
 
     expect(saved, 'saved-photo.png');
-    expect(await storage.resolvePath(saved), p.join(imageDirectory, saved));
-    expect(await File(await storage.resolvePath(saved)).readAsBytes(), [
-      1,
-      2,
-      3,
-    ]);
+    expect(storage.resolvePath(saved), p.join(imageDirectory, saved));
+    expect(await File(storage.resolvePath(saved)).readAsBytes(), [1, 2, 3]);
     expect(await source.exists(), isTrue);
   });
 
@@ -65,29 +47,23 @@ void main() {
       ).writeAsBytes([1, 2, 3]);
       final saved = await storage.save(source.path);
       final reference = saved;
-      final oldPath = await storage.resolvePath(saved);
+      final oldPath = storage.resolvePath(saved);
       final moved = await Directory(
         p.join(root.path, 'container'),
       ).rename(p.join(root.path, 'new-container'));
       documentsPath = p.join(moved.path, 'Documents');
-      final current = LocalImageStorage(FixedIdGenerator());
+      final current = LocalImageStorage(FixedIdGenerator(), documentsPath);
 
       expect(await File(oldPath).exists(), isFalse);
-      expect(await File(await current.resolvePath(reference)).readAsBytes(), [
+      expect(await File(current.resolvePath(reference)).readAsBytes(), [
         1,
         2,
         3,
       ]);
-      expect(
-        await current.resolvePath(oldPath),
-        await current.resolvePath(reference),
-      );
+      expect(current.resolvePath(oldPath), current.resolvePath(reference));
 
       await current.delete(oldPath);
-      expect(
-        await File(await current.resolvePath(reference)).exists(),
-        isFalse,
-      );
+      expect(await File(current.resolvePath(reference)).exists(), isFalse);
     },
   );
 
@@ -99,7 +75,7 @@ void main() {
 
     await storage.delete(saved);
 
-    expect(await File(await storage.resolvePath(saved)).exists(), isFalse);
+    expect(await File(storage.resolvePath(saved)).exists(), isFalse);
     expect(await source.exists(), isTrue);
   });
 
@@ -113,17 +89,4 @@ void main() {
       throwsA(isA<ImageStorageException>()),
     );
   });
-
-  test(
-    'resolve reports failure when the platform directory is unavailable',
-    () async {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (_) async => null);
-
-      await expectLater(
-        storage.resolvePath('photo.png'),
-        throwsA(isA<ImageStorageException>()),
-      );
-    },
-  );
 }
