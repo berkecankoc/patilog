@@ -48,8 +48,7 @@ void main() {
           final repository = MockPetRepository();
           final imageStorage = MockImageStorage();
           when(() => imageStorage.resolvePath(any())).thenAnswer(
-            (invocation) async =>
-                invocation.positionalArguments.first as String,
+            (invocation) => invocation.positionalArguments.first as String,
           );
           when(
             () => repository.getPetById(pet.id),
