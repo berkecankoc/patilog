@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
 import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
@@ -35,12 +36,16 @@ void main() {
     final notice = Builder(
       builder: (context) => Column(
         children: [
-          if (ReminderBlockedNotice.shows(
-            context,
-            category,
-            hasReminders: hasReminders,
-          ))
-            ReminderBlockedNotice(category: category),
+          AppFeedbackArea(
+            children: [
+              if (ReminderBlockedNotice.shows(
+                context,
+                category,
+                hasReminders: hasReminders,
+              ))
+                ReminderBlockedNotice(category: category),
+            ],
+          ),
           const Expanded(child: SizedBox(key: Key('content'))),
         ],
       ),
@@ -165,7 +170,7 @@ void main() {
     h.preferences = NotificationPreferences(medicationRemindersEnabled: true);
     h.permission = denied;
     await pump(tester);
-    final notice = tester.getSize(find.byType(ReminderBlockedNotice));
+    final notice = tester.getSize(find.byType(AppFeedbackArea));
     final content = tester.getSize(find.byKey(const Key('content')));
     final body = tester.getSize(find.byType(Column).first);
     expect(notice.height, greaterThan(0));
@@ -181,10 +186,10 @@ void main() {
     h.preferences = NotificationPreferences(medicationRemindersEnabled: true);
     h.permission = denied;
     await pump(tester, textScale: 3);
-    final notice = tester.getSize(find.byType(ReminderBlockedNotice));
+    final notice = tester.getSize(find.byType(AppFeedbackArea));
     expect(
       notice.height,
-      lessThanOrEqualTo(568 * ReminderBlockedNotice.maxHeightFraction),
+      lessThanOrEqualTo(568 * AppFeedbackArea.maxHeightFraction),
     );
     expect(
       tester.getSize(find.byKey(const Key('content'))).height,

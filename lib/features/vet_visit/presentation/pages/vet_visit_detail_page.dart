@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/theme/app_spacing.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_detail_field.dart';
 import 'package:patilog/core/widgets/app_gap.dart';
@@ -168,26 +169,27 @@ class VetVisitDetailPage extends StatelessWidget {
                     ) =>
                       Column(
                         children: [
-                          if (deleteError != null || refreshError != null)
-                            Flexible(
-                              child: AppErrorFeedback(
-                                message: deleteError != null
-                                    ? AppLocalizations.of(
-                                        context,
-                                      ).visitDeleteFailed
-                                    : AppLocalizations.of(
-                                        context,
-                                      ).visitLoadFailed,
-                                retryLabel: deleteError != null
-                                    ? AppLocalizations.of(context).retryDeletion
-                                    : AppLocalizations.of(context).retry,
-                                onRetry: deleteError != null
-                                    ? () => _delete(context, visit)
-                                    : () => context
-                                          .read<VetVisitCubit>()
-                                          .loadVetVisit(petId, visitId),
-                              ),
-                            ),
+                          AppFeedbackArea(
+                            children: [
+                              if (deleteError != null || refreshError != null)
+                                AppErrorFeedback(
+                                  message: deleteError != null
+                                      ? AppLocalizations.of(context)
+                                            .visitDeleteFailed
+                                      : AppLocalizations.of(context)
+                                            .visitLoadFailed,
+                                  retryLabel: deleteError != null
+                                      ? AppLocalizations.of(context)
+                                            .retryDeletion
+                                      : AppLocalizations.of(context).retry,
+                                  onRetry: deleteError != null
+                                      ? () => _delete(context, visit)
+                                      : () => context
+                                            .read<VetVisitCubit>()
+                                            .loadVetVisit(petId, visitId),
+                                ),
+                            ],
+                          ),
                           Expanded(
                             child: SingleChildScrollView(
                               padding: const EdgeInsets.all(AppSpacing.lg),

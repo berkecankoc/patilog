@@ -7,6 +7,7 @@ import 'package:patilog/core/router/care_record_changes.dart';
 import 'package:patilog/core/router/pet_care_changes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_pet_filter.dart';
 import 'package:patilog/core/widgets/app_pet_picker.dart';
@@ -178,22 +179,22 @@ class _VetVisitListPageState extends State<VetVisitListPage> {
         .toList();
     return Column(
       children: [
-        if (state.deleteError != null && state.deletionVisit != null)
-          Flexible(
-            child: AppErrorFeedback(
-              message: strings.visitDeleteFailed,
-              retryLabel: strings.retryDeletion,
-              onRetry: busy ? null : () => _delete(state.deletionVisit!),
-            ),
-          )
-        else if (state.refreshError != null)
-          Flexible(
-            child: AppErrorFeedback(
-              message: strings.visitsLoadFailed,
-              retryLabel: strings.retry,
-              onRetry: busy ? null : _reload,
-            ),
-          ),
+        AppFeedbackArea(
+          children: [
+            if (state.deleteError != null && state.deletionVisit != null)
+              AppErrorFeedback(
+                message: strings.visitDeleteFailed,
+                retryLabel: strings.retryDeletion,
+                onRetry: busy ? null : () => _delete(state.deletionVisit!),
+              )
+            else if (state.refreshError != null)
+              AppErrorFeedback(
+                message: strings.visitsLoadFailed,
+                retryLabel: strings.retry,
+                onRetry: busy ? null : _reload,
+              ),
+          ],
+        ),
         Expanded(
           child: _global && widget.petsLoaded && widget.pets.isEmpty
               ? CareEmptyView(

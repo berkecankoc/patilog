@@ -10,6 +10,7 @@ import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/theme/app_spacing.dart';
 import 'package:patilog/core/widgets/app_detail_field.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_form_actions.dart';
 import 'package:patilog/core/widgets/app_gap.dart';
@@ -254,48 +255,48 @@ class VaccinationDetailPage extends StatelessWidget {
                     :final deleteError,
                     :final refreshError,
                   ) =>
-                    LayoutBuilder(
-                      builder: (context, constraints) => Column(
+                    // Builds the notice check with this subtree's context.
+                    Builder(
+                      builder: (context) => Column(
                         children: [
-                          if (ReminderBlockedNotice.shows(
-                            context,
-                            ReminderCategory.vaccination,
-                            hasReminders:
-                                vaccination.status ==
-                                    VaccinationStatus.planned &&
-                                !DateUtils.dateOnly(vaccination.date).isBefore(
-                                  DateUtils.dateOnly(DateTime.now()),
+                          AppFeedbackArea(
+                            children: [
+                              if (ReminderBlockedNotice.shows(
+                                context,
+                                ReminderCategory.vaccination,
+                                hasReminders:
+                                    vaccination.status ==
+                                        VaccinationStatus.planned &&
+                                    !DateUtils.dateOnly(vaccination.date)
+                                        .isBefore(
+                                          DateUtils.dateOnly(DateTime.now()),
+                                        ),
+                              ))
+                                const ReminderBlockedNotice(
+                                  category: ReminderCategory.vaccination,
                                 ),
-                          ))
-                            const ReminderBlockedNotice(
-                              category: ReminderCategory.vaccination,
-                            ),
-                          if (deleteError != null || refreshError != null)
-                            ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxHeight: constraints.maxHeight * 0.75,
-                              ),
-                              child: AppErrorFeedback(
-                                message: deleteError != null
-                                    ? AppLocalizations.of(
-                                        context,
-                                      ).vaccinationDeleteFailed
-                                    : AppLocalizations.of(
-                                        context,
-                                      ).vaccinationLoadFailed,
-                                retryLabel: deleteError != null
-                                    ? AppLocalizations.of(context).retryDeletion
-                                    : AppLocalizations.of(context).retry,
-                                onRetry: deleteError != null
-                                    ? () => _delete(context, vaccination)
-                                    : () => context
-                                          .read<VaccinationCubit>()
-                                          .loadVaccination(
-                                            petId,
-                                            vaccinationId,
-                                          ),
-                              ),
-                            ),
+                              if (deleteError != null || refreshError != null)
+                                AppErrorFeedback(
+                                  message: deleteError != null
+                                      ? AppLocalizations.of(context)
+                                            .vaccinationDeleteFailed
+                                      : AppLocalizations.of(context)
+                                            .vaccinationLoadFailed,
+                                  retryLabel: deleteError != null
+                                      ? AppLocalizations.of(context)
+                                            .retryDeletion
+                                      : AppLocalizations.of(context).retry,
+                                  onRetry: deleteError != null
+                                      ? () => _delete(context, vaccination)
+                                      : () => context
+                                            .read<VaccinationCubit>()
+                                            .loadVaccination(
+                                              petId,
+                                              vaccinationId,
+                                            ),
+                                ),
+                            ],
+                          ),
                           Expanded(
                             child: SingleChildScrollView(
                               padding: const EdgeInsets.all(AppSpacing.lg),

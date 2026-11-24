@@ -7,6 +7,7 @@ import 'package:patilog/core/router/care_record_changes.dart';
 import 'package:patilog/core/router/pet_care_changes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_pet_filter.dart';
 import 'package:patilog/core/widgets/app_pet_picker.dart';
@@ -389,64 +390,65 @@ class _MedicationListPageState extends State<MedicationListPage> {
                               : const Center(child: CircularProgressIndicator())
                         : Column(
                             children: [
-                              if (ReminderBlockedNotice.shows(
-                                context,
-                                ReminderCategory.medication,
-                                hasReminders: loaded.medications.any(
-                                  (m) =>
-                                      (!_global ||
-                                          _filterId == null ||
-                                          m.petId == _filterId) &&
-                                      m.statusOn(loaded.currentTime) !=
-                                          MedicationStatus.completed,
-                                ),
-                              ))
-                                const ReminderBlockedNotice(
-                                  category: ReminderCategory.medication,
-                                ),
-                              if (loaded.actionError != null ||
-                                  loaded.refreshError != null)
-                                Flexible(
-                                  child: AppErrorFeedback(
-                                    message: loaded.actionError != null
-                                        ? medicationActionError(
-                                            strings,
-                                            loaded.failedAction,
-                                          )
-                                        : strings.medicationsLoadFailed,
-                                    retryLabel: loaded.failedAction != null
-                                        ? (_global
-                                              ? strings.retryDoseRecord
-                                              : strings.retryAction)
-                                        : strings.retry,
-                                    onRetry: busy
-                                        ? null
-                                        : () {
-                                            final action = loaded.failedAction;
-                                            if (action != null) {
-                                              performMedicationAction(
-                                                context,
-                                                _cubit,
-                                                action,
-                                              );
-                                            } else {
-                                              _reload();
-                                            }
-                                          },
-                                  ),
-                                ),
-                              if (_tab == 0 && loaded.doses.error != null)
-                                Flexible(
-                                  child: AppErrorFeedback(
-                                    message: strings.doseLoadFailed,
-                                    retryLabel: strings.retryDoseRecords,
-                                    onRetry: busy
-                                        ? null
-                                        : () => _cubit.loadDoses(
-                                            loaded.doses.date,
-                                          ),
-                                  ),
-                                ),
+                              AppFeedbackArea(
+                                children: [
+                                  if (ReminderBlockedNotice.shows(
+                                    context,
+                                    ReminderCategory.medication,
+                                    hasReminders: loaded.medications.any(
+                                      (m) =>
+                                          (!_global ||
+                                              _filterId == null ||
+                                              m.petId == _filterId) &&
+                                          m.statusOn(loaded.currentTime) !=
+                                              MedicationStatus.completed,
+                                    ),
+                                  ))
+                                    const ReminderBlockedNotice(
+                                      category: ReminderCategory.medication,
+                                    ),
+                                  if (loaded.actionError != null ||
+                                      loaded.refreshError != null)
+                                    AppErrorFeedback(
+                                      message: loaded.actionError != null
+                                          ? medicationActionError(
+                                              strings,
+                                              loaded.failedAction,
+                                            )
+                                          : strings.medicationsLoadFailed,
+                                      retryLabel: loaded.failedAction != null
+                                          ? (_global
+                                                ? strings.retryDoseRecord
+                                                : strings.retryAction)
+                                          : strings.retry,
+                                      onRetry: busy
+                                          ? null
+                                          : () {
+                                              final action =
+                                                  loaded.failedAction;
+                                              if (action != null) {
+                                                performMedicationAction(
+                                                  context,
+                                                  _cubit,
+                                                  action,
+                                                );
+                                              } else {
+                                                _reload();
+                                              }
+                                            },
+                                    ),
+                                  if (_tab == 0 && loaded.doses.error != null)
+                                    AppErrorFeedback(
+                                      message: strings.doseLoadFailed,
+                                      retryLabel: strings.retryDoseRecords,
+                                      onRetry: busy
+                                          ? null
+                                          : () => _cubit.loadDoses(
+                                              loaded.doses.date,
+                                            ),
+                                    ),
+                                ],
+                              ),
                               if (!_global) _selector(busy),
                               Expanded(
                                 child: noPets
