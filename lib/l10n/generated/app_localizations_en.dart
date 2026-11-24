@@ -1741,6 +1741,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'These meals will be removed from the plan. Recorded feedings stay unchanged.';
 
   @override
+  String get feedingDeletePlanTitle => 'Delete feeding plan?';
+
+  @override
+  String get feedingDeletePlanMessage =>
+      'Meal times, plan history and meal reminders for this pet will be removed. Recorded feedings stay in History.';
+
+  @override
+  String get feedingPlanDeleteFailed => 'Failed to delete feeding plan';
+
+  @override
+  String get deleteFeedingPlan => 'Delete feeding plan';
+
+  @override
   String get feedingFirstPlanHint =>
       'Your first plan can start today or later.';
 

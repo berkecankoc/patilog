@@ -328,6 +328,50 @@ void main() {
     },
   );
 
+  test('deleting plans removes every version and keeps recorded meals as manual entries', () async {
+    await source.createFeedingPlan(plan());
+    await source.createFeedingPlan(plan(id: 'next', start: day(1)));
+    await source.createFeedingPlan(plan(id: 'other', petId: 'pet-2'));
+    await source.createFeedingEntry(
+      entry(mealId: 'plan-meal', scheduledDate: day()),
+    );
+    await source.createFeedingEntry(
+      entry(
+        id: 'other-entry',
+        petId: 'pet-2',
+        mealId: 'other-meal',
+        scheduledDate: day(),
+      ),
+    );
+    await expectLater(source.deleteFeedingPlans('pet-3'), missing);
+
+    await source.deleteFeedingPlans('pet-1');
+
+    expect(await source.getFeedingPlans('pet-1'), isEmpty);
+    final kept = (await entries()).single;
+    expect(kept.id, 'entry');
+    expect(kept.mealId, isNull);
+    expect(kept.scheduledDate, isNull);
+    expect(kept.amountGrams, 20.5);
+    expect(kept.givenAt.isAtSameMomentAs(clock), isTrue);
+    expect(kept.foodName, 'Food');
+    expect(
+      await source.getPlannedFeedingEntries(
+        'pet-1',
+        fromDate: day(-1),
+        toDate: day(1),
+      ),
+      isEmpty,
+    );
+    expect((await source.getFeedingPlans('pet-2')).single.id, 'other');
+    expect((await entries('pet-2')).single.mealId, 'other-meal');
+    expect(
+      (await db.query(DatabaseTables.feedingMeals)).single['id'],
+      'other-meal',
+    );
+    await expectLater(source.deleteFeedingPlans('pet-1'), missing);
+  });
+
   test('the initial future plan can move to today', () async {
     await source.createFeedingPlan(plan(start: day(3)));
     await source.updateFeedingPlan(plan());

@@ -167,3 +167,10 @@ final class CancelFeedingPlanAction extends FeedingAction {
   @override
   List<Object?> get props => [petId, planId];
 }
+
+/// Removes every plan version of the pet; recorded meals stay as manual entries.
+final class DeleteFeedingPlansAction extends FeedingAction {
+  const DeleteFeedingPlansAction(super.petId);
+  @override
+  List<Object?> get props => [petId];
+}

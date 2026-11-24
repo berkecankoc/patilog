@@ -14,6 +14,7 @@ abstract interface class FeedingLocalDataSource {
   Future<void> createFeedingPlan(FeedingPlanModel plan);
   Future<void> updateFeedingPlan(FeedingPlanModel plan);
   Future<void> deleteFeedingPlan(String petId, String planId);
+  Future<void> deleteFeedingPlans(String petId);
   Future<List<FeedingEntryModel>> getFeedingEntries(
     String petId, {
     required DateTime from,
@@ -205,6 +206,28 @@ final class FeedingLocalDataSourceImpl implements FeedingLocalDataSource {
           whereArgs: [planId, petId],
         );
       });
+
+  @override
+  Future<void> deleteFeedingPlans(String petId) => _transaction((txn) async {
+    if ((await _readPlans(txn, petId: petId)).isEmpty) {
+      throw const LocalDataNotFoundException();
+    }
+    // Unlinking keeps recorded meals as manual entries in history and charts.
+    await txn.rawUpdate(
+      'UPDATE ${DatabaseTables.feedingEntries} '
+      'SET meal_id = NULL, scheduled_date = NULL '
+      'WHERE pet_id = ? AND meal_id IN ('
+      'SELECT m.id FROM ${DatabaseTables.feedingMeals} m '
+      'JOIN ${DatabaseTables.feedingPlans} p ON p.id = m.plan_id '
+      'WHERE p.pet_id = ?)',
+      [petId, petId],
+    );
+    await txn.delete(
+      DatabaseTables.feedingPlans,
+      where: 'pet_id = ?',
+      whereArgs: [petId],
+    );
+  });
 
   @override
   Future<List<FeedingEntryModel>> getFeedingEntries(

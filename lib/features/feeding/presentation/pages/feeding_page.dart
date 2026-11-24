@@ -237,7 +237,8 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
   Future<void> _perform(FeedingAction action) async {
     if (_busy || _confirming || !_ownerAvailable(action.petId)) return;
     if (action is DeleteFeedingEntryAction ||
-        action is CancelFeedingPlanAction) {
+        action is CancelFeedingPlanAction ||
+        action is DeleteFeedingPlansAction) {
       _confirming = true;
       final confirmed = await showDialog<bool>(
         context: context,
@@ -251,17 +252,20 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
                 (p) => p.petId == action.petId && p.id != action.planId,
               );
           return AppConfirmationDialog(
-            title: action is DeleteFeedingEntryAction
-                ? s.feedingDeleteTitle
-                : s.feedingCancelPlanTitle,
-            message: action is DeleteFeedingEntryAction
-                ? s.feedingDeleteMessage
-                : previous
-                ? s.feedingCancelPlanMessage
-                : s.feedingCancelFirstPlanMessage,
-            confirmLabel: action is DeleteFeedingEntryAction
-                ? s.deleteAction
-                : s.cancelChanges,
+            title: switch (action) {
+              DeleteFeedingEntryAction() => s.feedingDeleteTitle,
+              DeleteFeedingPlansAction() => s.feedingDeletePlanTitle,
+              _ => s.feedingCancelPlanTitle,
+            },
+            message: switch (action) {
+              DeleteFeedingEntryAction() => s.feedingDeleteMessage,
+              DeleteFeedingPlansAction() => s.feedingDeletePlanMessage,
+              _ when previous => s.feedingCancelPlanMessage,
+              _ => s.feedingCancelFirstPlanMessage,
+            },
+            confirmLabel: action is CancelFeedingPlanAction
+                ? s.cancelChanges
+                : s.deleteAction,
           );
         },
       );
@@ -525,6 +529,14 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
                             template: visible,
                           ),
                     icon: const Icon(Icons.edit_outlined),
+                  ),
+                if (visible != null)
+                  IconButton(
+                    tooltip: s.deleteFeedingPlan,
+                    onPressed: busy
+                        ? null
+                        : () => _perform(DeleteFeedingPlansAction(owner)),
+                    icon: const Icon(Icons.delete_outline),
                   ),
               ],
             ),
@@ -1007,6 +1019,7 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
                       message: switch (state.failedAction) {
                         DeleteFeedingEntryAction() => s.feedingDeleteFailed,
                         CancelFeedingPlanAction() => s.feedingPlanCancelFailed,
+                        DeleteFeedingPlansAction() => s.feedingPlanDeleteFailed,
                         _ => s.feedingSaveFailed,
                       },
                       onRetry: _busy || state.isRefreshing

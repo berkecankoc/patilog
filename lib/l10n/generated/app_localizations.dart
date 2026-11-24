@@ -3156,6 +3156,30 @@ abstract class AppLocalizations {
   /// **'These meals will be removed from the plan. Recorded feedings stay unchanged.'**
   String get feedingCancelFirstPlanMessage;
 
+  /// No description provided for @feedingDeletePlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete feeding plan?'**
+  String get feedingDeletePlanTitle;
+
+  /// No description provided for @feedingDeletePlanMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal times, plan history and meal reminders for this pet will be removed. Recorded feedings stay in History.'**
+  String get feedingDeletePlanMessage;
+
+  /// No description provided for @feedingPlanDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete feeding plan'**
+  String get feedingPlanDeleteFailed;
+
+  /// No description provided for @deleteFeedingPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete feeding plan'**
+  String get deleteFeedingPlan;
+
   /// No description provided for @feedingFirstPlanHint.
   ///
   /// In en, this message translates to:
