@@ -72,6 +72,12 @@ final class FeedingRepositoryImpl implements FeedingRepository {
       );
 
   @override
+  Future<Result<void>> deleteFeedingPlans(String petId) => _result(
+    () => localDataSource.deleteFeedingPlans(petId),
+    'Failed to delete feeding plan',
+  );
+
+  @override
   Future<Result<List<FeedingEntry>>> getFeedingEntries(
     String petId, {
     required DateTime from,

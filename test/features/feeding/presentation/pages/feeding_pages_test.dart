@@ -444,6 +444,52 @@ void main() {
   });
 
   testWidgets(
+    'deleting the plan asks first, keeps recorded meals and re-asks on Retry',
+    (tester) async {
+      app.plans = [plan()];
+      app.entries = [entry(mealId: 'plan-meal')];
+      await app.pump(tester, location: AppRoutes.feeding('pet'));
+      await switchView(tester, 1);
+      final delete = find.byTooltip('Delete feeding plan');
+      await reveal(tester, delete);
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Meal times, plan history and meal reminders for this pet will be removed. Recorded feedings stay in History.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(app.plans, hasLength(1));
+      verifyNever(() => app.feeding.deleteFeedingPlans(any()));
+
+      app.failDeletePlans = true;
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('Failed to delete feeding plan'), findsOneWidget);
+      expect(app.plans, hasLength(1));
+
+      app.failDeletePlans = false;
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete feeding plan?'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(app.plans, isEmpty);
+      expect(app.entries.single.mealId, isNull);
+      expect(app.entries.single.scheduledDate, isNull);
+      expect(find.text('Failed to delete feeding plan'), findsNothing);
+      expect(delete, findsNothing);
+      expect(find.text('Create plan'), findsWidgets);
+      verify(() => app.feeding.deleteFeedingPlans('pet')).called(2);
+    },
+  );
+
+  testWidgets(
     'every meal can be removed when another remains; duplicate times are rejected',
     (tester) async {
       await app.pump(tester, location: AppRoutes.addEditFeedingPlan('pet'));

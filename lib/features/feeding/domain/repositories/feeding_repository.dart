@@ -30,6 +30,10 @@ abstract interface class FeedingRepository {
   /// Cancels only an unstarted version; earlier versions and all entries remain.
   Future<Result<void>> deleteFeedingPlan(String petId, String planId);
 
+  /// Atomically removes every plan version and meal time for the pet. Recorded
+  /// meals remain as manual entries with their actual time, amount and text.
+  Future<Result<void>> deleteFeedingPlans(String petId);
+
   /// Actual givenAt instants in [from, before), newest first. Ties prefer latest
   /// insertion; correcting content does not change insertion order. Requires
   /// from < before; callers supply instants bounding the desired local days.

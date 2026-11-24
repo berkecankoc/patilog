@@ -24,6 +24,7 @@ class FeedingTestHarness extends PetCareTestHarness {
   bool failLoad = false;
   bool failSave = false;
   bool failDeleteEntry = false;
+  bool failDeletePlans = false;
   Completer<Result<void>>? pendingSave;
 
   @override
@@ -178,6 +179,30 @@ class FeedingTestHarness extends PetCareTestHarness {
             e.petId == call.positionalArguments[0] &&
             e.id == call.positionalArguments[1],
       );
+      return const Success(null);
+    });
+    when(() => feeding.deleteFeedingPlans(any())).thenAnswer((call) async {
+      if (failDeletePlans) {
+        return const Error(LocalDatabaseFailure('Delete failed'));
+      }
+      final petId = call.positionalArguments.single as String;
+      final mealIds = {
+        for (final plan in plans.where((p) => p.petId == petId))
+          for (final meal in plan.meals) meal.id,
+      };
+      plans.removeWhere((p) => p.petId == petId);
+      for (final (index, entry) in entries.indexed.toList()) {
+        if (entry.petId == petId && mealIds.contains(entry.mealId)) {
+          entries[index] = FeedingEntry(
+            id: entry.id,
+            petId: entry.petId,
+            amountGrams: entry.amountGrams,
+            givenAt: entry.givenAt,
+            foodName: entry.foodName,
+            notes: entry.notes,
+          );
+        }
+      }
       return const Success(null);
     });
     when(() => feeding.deleteFeedingPlan(any(), any())).thenAnswer((

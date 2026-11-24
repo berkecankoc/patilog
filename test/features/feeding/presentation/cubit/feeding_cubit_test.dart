@@ -570,6 +570,46 @@ void main() {
     },
   );
 
+  test(
+    'deleting plans removes every version and unlinks recorded meals locally',
+    () async {
+      stubReads(plans: [plan, next], entries: [recorded], planned: [recorded]);
+      when(() => repository.deleteFeedingPlans('pet'))
+          .thenAnswer((_) async => const Error(failure));
+      final cubit = makeCubit();
+      addTearDown(cubit.close);
+      await cubit.load(petId: 'pet');
+      clearInteractions(repository);
+      await cubit.performAction(const DeleteFeedingPlansAction('other'));
+      const action = DeleteFeedingPlansAction('pet');
+      await cubit.performAction(action);
+      var state = cubit.state as FeedingLoaded;
+      expect(state.failedAction, action);
+      expect(state.plans, [plan, next]);
+      expect(state.entries, [recorded]);
+
+      when(() => repository.deleteFeedingPlans('pet'))
+          .thenAnswer((_) async => const Success(null));
+      await cubit.performAction(action);
+      state = cubit.state as FeedingLoaded;
+      expect(state.actionFailure, isNull);
+      expect(state.lastMutation, action);
+      expect(state.plans, isEmpty);
+      expect(state.plannedEntries, isEmpty);
+      expect(state.meals, isEmpty);
+      expect(state.entries, [
+        FeedingEntry(
+          id: 'entry',
+          petId: 'pet',
+          amountGrams: 25,
+          givenAt: DateTime(2026, 11, 1, 10),
+        ),
+      ]);
+      verify(() => repository.deleteFeedingPlans('pet')).called(2);
+      verifyNoMoreInteractions(repository);
+    },
+  );
+
   test('future and historical days cannot use today quick recording', () async {
     final cubit = makeCubit();
     addTearDown(cubit.close);

@@ -272,6 +272,9 @@ final class FeedingCubit extends Cubit<FeedingState> {
         action.petId,
         planId,
       ),
+      DeleteFeedingPlansAction() => _repository.deleteFeedingPlans(
+        action.petId,
+      ),
     };
     if (isClosed) return;
     switch (result) {
@@ -331,6 +334,28 @@ final class FeedingCubit extends Cubit<FeedingState> {
             );
           case CancelFeedingPlanAction(:final planId):
             plans.removeWhere((p) => p.petId == action.petId && p.id == planId);
+          case DeleteFeedingPlansAction():
+            final mealIds = {
+              for (final plan in plans)
+                if (plan.petId == action.petId)
+                  for (final meal in plan.meals) meal.id,
+            };
+            plans.removeWhere((p) => p.petId == action.petId);
+            FeedingEntry unlinked(FeedingEntry e) =>
+                e.petId == action.petId && mealIds.contains(e.mealId)
+                ? FeedingEntry(
+                    id: e.id,
+                    petId: e.petId,
+                    amountGrams: e.amountGrams,
+                    givenAt: e.givenAt,
+                    foodName: e.foodName,
+                    notes: e.notes,
+                  )
+                : e;
+            entries = entries.map(unlinked).toList();
+            planned.removeWhere(
+              (e) => e.petId == action.petId && mealIds.contains(e.mealId),
+            );
         }
         emit(
           loaded.copyWith(
@@ -389,6 +414,8 @@ final class FeedingCubit extends Cubit<FeedingState> {
               p.id == planId &&
               feedingDayNumber(p.startDate) > feedingDayNumber(now()),
         );
+      case DeleteFeedingPlansAction():
+        return loaded.plans.any((p) => p.petId == action.petId);
     }
   }
 

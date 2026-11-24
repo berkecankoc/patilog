@@ -1703,6 +1703,19 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu öğünler plandan kaldırılacak. Beslenme kayıtları değişmez.';
 
   @override
+  String get feedingDeletePlanTitle => 'Beslenme planı silinsin mi?';
+
+  @override
+  String get feedingDeletePlanMessage =>
+      'Bu dostun öğün saatleri, plan geçmişi ve öğün hatırlatmaları silinecek. Beslenme kayıtları Geçmiş\'te kalır.';
+
+  @override
+  String get feedingPlanDeleteFailed => 'Beslenme planı silinemedi';
+
+  @override
+  String get deleteFeedingPlan => 'Beslenme planını sil';
+
+  @override
   String get feedingFirstPlanHint =>
       'İlk planın bugün veya sonrasında başlayabilir.';
 

@@ -122,6 +122,7 @@ void main() {
       when(
         () => source.deleteFeedingPlan('pet', 'plan'),
       ).thenAnswer((_) async {});
+      when(() => source.deleteFeedingPlans('pet')).thenAnswer((_) async {});
       when(
         () => source.deleteFeedingEntry('pet', 'entry'),
       ).thenAnswer((_) async {});
@@ -145,6 +146,7 @@ void main() {
         await repository.deleteFeedingPlan('pet', 'plan'),
         isA<Success<void>>(),
       );
+      expect(await repository.deleteFeedingPlans('pet'), isA<Success<void>>());
       expect(
         await repository.deleteFeedingEntry('pet', 'entry'),
         isA<Success<void>>(),
@@ -154,6 +156,7 @@ void main() {
       verify(() => source.createFeedingEntry(entry)).called(1);
       verify(() => source.updateFeedingEntry(entry)).called(1);
       verify(() => source.deleteFeedingPlan('pet', 'plan')).called(1);
+      verify(() => source.deleteFeedingPlans('pet')).called(1);
       verify(() => source.deleteFeedingEntry('pet', 'entry')).called(1);
       verifyNoMoreInteractions(source);
     },
