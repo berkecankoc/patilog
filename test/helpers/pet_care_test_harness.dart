@@ -1,3 +1,5 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:patilog/core/l10n/app_locale.dart';
 import 'package:patilog/features/weight_history/domain/entities/weight_entry.dart';
@@ -401,6 +403,7 @@ class PetCareTestHarness {
     double bottomInset = 0,
     GlobalKey? captureKey,
     Locale locale = englishLocale,
+    NotificationCubit? notifications,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -432,7 +435,12 @@ class PetCareTestHarness {
               padding: EdgeInsets.only(bottom: bottomInset),
               viewPadding: EdgeInsets.only(bottom: bottomInset),
             ),
-            child: AppKeyboard(child: child!),
+            child: notifications == null
+                ? AppKeyboard(child: child!)
+                : BlocProvider<NotificationCubit>.value(
+                    value: notifications,
+                    child: AppKeyboard(child: child!),
+                  ),
           ),
         ),
       ),

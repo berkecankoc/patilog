@@ -545,5 +545,16 @@
   "feedingChannelDescription": "Planlanan öğün saatleri",
   "notificationFeedingBody": "{time} saatinde {amount} g mama ver.",
   "notificationFeedingFoodBody": "{time} saatinde {amount} g {food} ver.",
-  "feedingEntrySummary": "{date} · {amount} g"
+  "feedingEntrySummary": "{date} · {amount} g",
+  "reminderOfferMedicationTitle": "İlaç hatırlatmaları açılsın mı?",
+  "reminderOfferMedicationMessage": "Patilog, planlanan her doz saatinde size bildirim gönderebilir. Bunu istediğiniz zaman Ayarlar → Bildirimler bölümünden değiştirebilirsiniz.",
+  "reminderOfferVaccinationTitle": "Aşı hatırlatmaları açılsın mı?",
+  "reminderOfferVaccinationMessage": "Patilog, planlanan aşılardan önce size bildirim gönderebilir. Gün ve saati Ayarlar → Bildirimler bölümünden seçebilirsiniz.",
+  "reminderOfferFeedingTitle": "Beslenme hatırlatmaları açılsın mı?",
+  "reminderOfferFeedingMessage": "Patilog, günlük plandaki her öğün saatinde size bildirim gönderebilir. Bunu istediğiniz zaman Ayarlar → Bildirimler bölümünden değiştirebilirsiniz.",
+  "reminderOfferNotNow": "Şimdi değil",
+  "reminderOfferTurnOn": "Aç",
+  "medicationRemindersBlockedNotice": "İlaç hatırlatmaları gelemez: bildirimler cihaz ayarlarında kapalı.",
+  "vaccinationRemindersBlockedNotice": "Aşı hatırlatmaları gelemez: bildirimler cihaz ayarlarında kapalı.",
+  "feedingRemindersBlockedNotice": "Beslenme hatırlatmaları gelemez: bildirimler cihaz ayarlarında kapalı."
 }

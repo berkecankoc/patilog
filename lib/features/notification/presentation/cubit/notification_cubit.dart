@@ -8,6 +8,7 @@ import 'package:patilog/features/notification/domain/entities/notification_permi
 import 'package:patilog/features/notification/domain/entities/notification_plan.dart';
 import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
 import 'package:patilog/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
 import 'package:patilog/features/notification/domain/repositories/notification_repository.dart';
 import 'package:patilog/features/notification/domain/use_cases/load_notification_data.dart';
 import 'package:patilog/features/notification/domain/use_cases/plan_notification_reminders.dart';
@@ -28,6 +29,7 @@ final class NotificationCubit extends Cubit<NotificationState> {
   bool _closing = false;
   int _revision = 0;
   DateTime? _lastClockCheck;
+  bool _failedSaveRequestsExactAlarm = true;
   ({
     String petId,
     bool petDeleted,
@@ -266,11 +268,46 @@ final class NotificationCubit extends Cubit<NotificationState> {
     });
   }
 
-  Future<void> setPreferences(NotificationPreferences value) {
+  /// Offers a disabled category once after a saved record that can remind on
+  /// [lastDay] or later; null means the record has no end.
+  Future<void> offerReminders(ReminderCategory category, {DateTime? lastDay}) {
+    if (_stopped) return Future.value();
+    return _enqueue(() async {
+      final preferences = state.preferences;
+      if (preferences == null ||
+          preferences.isEnabled(category) ||
+          preferences.offeredCategories.contains(category) ||
+          lastDay != null &&
+              calendarDayNumber(lastDay) < calendarDayNumber(now())) {
+        return;
+      }
+      emit(state.copyWith(reminderOffer: category));
+    });
+  }
+
+  /// Accepting asks only for notification permission; precise timing stays a
+  /// Settings choice so a saved record does not lead to a system page.
+  Future<void> answerReminderOffer({required bool accepted}) {
+    final category = state.reminderOffer;
+    final preferences = state.preferences;
+    if (_stopped || category == null) return Future.value();
+    emit(state.copyWith(clearReminderOffer: true));
+    if (preferences == null) return Future.value();
+    return setPreferences(
+      preferences.answerOffer(category, accepted: accepted),
+      requestExactAlarm: false,
+    );
+  }
+
+  Future<void> setPreferences(
+    NotificationPreferences value, {
+    bool requestExactAlarm = true,
+  }) {
     final previous = state.preferences;
     if (_stopped || state.isSaving || previous == null || previous == value) {
       return Future.value();
     }
+    _failedSaveRequestsExactAlarm = requestExactAlarm;
     emit(state.copyWith(isBusy: true, isSaving: true, clearSaveError: true));
     final revision = ++_revision;
     return _enqueue(() async {
@@ -293,7 +330,8 @@ final class NotificationCubit extends Cubit<NotificationState> {
         }
         if (permission
             case Success<NotificationPermissionStatus>(data: final status)
-            when (medicationOn || feedingOn) &&
+            when requestExactAlarm &&
+                (medicationOn || feedingOn) &&
                 status.canShowNotifications &&
                 status.requiresExactAlarmPermission &&
                 !status.canScheduleExactAlarms) {
@@ -330,7 +368,10 @@ final class NotificationCubit extends Cubit<NotificationState> {
 
   Future<void> retrySave() => state.failedPreferences == null
       ? Future.value()
-      : setPreferences(state.failedPreferences!);
+      : setPreferences(
+          state.failedPreferences!,
+          requestExactAlarm: _failedSaveRequestsExactAlarm,
+        );
 
   Future<void> perform(NotificationAction action) {
     if (_stopped || state.isBusy) return Future.value();
@@ -340,8 +381,7 @@ final class NotificationCubit extends Cubit<NotificationState> {
     final revision = ++_revision;
     return _enqueue(() async {
       final result = await switch (action) {
-        NotificationAction.notificationPermission =>
-          repository.requestNotificationPermission(),
+        NotificationAction.notificationPermission => _allowNotifications(),
         NotificationAction.exactPermission =>
           repository.requestExactAlarmPermission(),
         _ => repository.openNotificationSettings(),
@@ -360,6 +400,16 @@ final class NotificationCubit extends Cubit<NotificationState> {
         }
       }
     });
+  }
+
+  Future<Result<NotificationPermissionStatus>> _allowNotifications() async {
+    final requested = await repository.requestNotificationPermission();
+    if (_stopped) return requested;
+    if (requested case Success(:final data) when !data.canShowNotifications) {
+      final opened = await repository.openNotificationSettings();
+      if (opened case Error(:final failure)) return Error(failure);
+    }
+    return requested;
   }
 
   Future<void> retry() {

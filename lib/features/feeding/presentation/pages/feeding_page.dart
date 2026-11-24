@@ -26,6 +26,8 @@ import 'package:patilog/core/widgets/care_record_card.dart';
 import 'package:patilog/features/pet/domain/entities/pet.dart';
 import 'package:patilog/core/widgets/app_pet_picker.dart';
 import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/presentation/widgets/reminder_blocked_notice.dart';
 
 /// Embedded in either retained navigation root; names come from that root.
 class FeedingPage extends StatefulWidget {
@@ -976,6 +978,22 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
             bottom: false,
             child: Column(
               children: [
+                if (state is FeedingLoaded &&
+                    ReminderBlockedNotice.shows(
+                      context,
+                      ReminderCategory.feeding,
+                      hasReminders: state.plans.any(
+                        (p) =>
+                            (_filter == null || p.petId == _filter) &&
+                            (p.endDate == null ||
+                                !DateUtils.dateOnly(p.endDate!).isBefore(
+                                  DateUtils.dateOnly(state.currentTime),
+                                )),
+                      ),
+                    ))
+                  const ReminderBlockedNotice(
+                    category: ReminderCategory.feeding,
+                  ),
                 if (state is FeedingLoaded && state.refreshFailure != null)
                   Flexible(
                     child: AppErrorFeedback(

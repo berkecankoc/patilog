@@ -1,4 +1,5 @@
 import '../../../../helpers/pet_care_test_harness.dart';
+import '../../../../helpers/notification_test_harness.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,10 @@ import 'package:patilog/core/result/result.dart';
 import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/widgets/app_form_scroll_view.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/medication/presentation/widgets/medication_list_content.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
 import 'package:patilog/core/widgets/app_date_field.dart';
 import 'package:patilog/core/widgets/app_multi_step_form.dart';
 import 'package:patilog/features/medication/domain/entities/medication.dart';
@@ -1483,4 +1488,119 @@ void main() {
       });
     }
   }
+
+  testWidgets(
+    'a saved schedule offers disabled medication reminders; a failed save does not',
+    (tester) async {
+      final notifications = NotificationTestHarness()..clock = DateTime.now();
+      addTearDown(notifications.dispose);
+      final cubit = notifications.createCubit();
+      await cubit.initialize();
+      await app.pump(
+        tester,
+        location: AppRoutes.addEditMedication('pet'),
+        notifications: cubit,
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Medication name'),
+        'Offered medication',
+      );
+      await tap(tester, 'Continue');
+      await tap(tester, 'Continue');
+      app.pendingCreate = Completer()
+        ..complete(const Error(LocalDatabaseFailure('Save failed')));
+      await tap(tester, 'Add medication');
+      expect(find.text('Failed to save medication'), findsOneWidget);
+      expect(cubit.state.reminderOffer, isNull);
+      app.pendingCreate = null;
+      await tap(tester, 'Add medication');
+      expect(app.medications.single.name, 'Offered medication');
+      expect(cubit.state.reminderOffer, ReminderCategory.medication);
+    },
+  );
+
+  testWidgets(
+    'blocked enabled reminders are explained only while a schedule can remind',
+    (tester) async {
+      final notifications = NotificationTestHarness()
+        ..clock = DateTime.now()
+        ..preferences = NotificationPreferences(
+          medicationRemindersEnabled: true,
+        )
+        ..permission = const NotificationPermissionStatus(
+          canShowNotifications: false,
+          canScheduleExactAlarms: true,
+          requiresExactAlarmPermission: true,
+        );
+      addTearDown(notifications.dispose);
+      final cubit = notifications.createCubit();
+      await cubit.initialize();
+      final notice = find.text(
+        "Medication reminders can't arrive: notifications are turned off in device settings.",
+      );
+      final ended = app.sample(
+        periods: [
+          MedicationPeriod(
+            id: 'period',
+            medicationId: 'med',
+            startDate: DateTime(
+              app.today.year,
+              app.today.month,
+              app.today.day - 5,
+            ),
+            endDate: DateTime(
+              app.today.year,
+              app.today.month,
+              app.today.day - 1,
+            ),
+            intervalDays: 1,
+            doseTimes: [480],
+          ),
+        ],
+      );
+      app.medications = [ended];
+      // A fresh tree loads each route instead of reusing the previous page.
+      await tester.pumpWidget(const SizedBox());
+      await app.pump(
+        tester,
+        location: AppRoutes.medications('pet'),
+        notifications: cubit,
+      );
+      expect(notice, findsNothing);
+      final listBottom = tester
+          .getRect(find.byType(MedicationDoseListContent))
+          .bottom;
+      // A fresh tree loads each route instead of reusing the previous page.
+      await tester.pumpWidget(const SizedBox());
+      await app.pump(
+        tester,
+        location: AppRoutes.medicationDetail('pet', 'med'),
+        notifications: cubit,
+      );
+      expect(notice, findsNothing);
+
+      app.medications = [app.sample()];
+      // A fresh tree loads each route instead of reusing the previous page.
+      await tester.pumpWidget(const SizedBox());
+      await app.pump(
+        tester,
+        location: AppRoutes.medications('pet'),
+        notifications: cubit,
+      );
+      expect(notice, findsOneWidget);
+      // The notice must not shrink the list below it.
+      expect(
+        tester.getRect(find.byType(MedicationDoseListContent)).bottom,
+        listBottom,
+      );
+      // A fresh tree loads each route instead of reusing the previous page.
+      await tester.pumpWidget(const SizedBox());
+      await app.pump(
+        tester,
+        location: AppRoutes.medicationDetail('pet', 'med'),
+        notifications: cubit,
+      );
+      expect(notice, findsOneWidget);
+    },
+  );
 }

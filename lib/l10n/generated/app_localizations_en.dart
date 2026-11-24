@@ -1887,4 +1887,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String feedingEntrySummary(String date, String amount) {
     return '$date · $amount g';
   }
+
+  @override
+  String get reminderOfferMedicationTitle => 'Turn on medication reminders?';
+
+  @override
+  String get reminderOfferMedicationMessage =>
+      'Patilog can notify you at each scheduled dose time. You can change this anytime in Settings → Notifications.';
+
+  @override
+  String get reminderOfferVaccinationTitle => 'Turn on vaccination reminders?';
+
+  @override
+  String get reminderOfferVaccinationMessage =>
+      'Patilog can notify you before planned vaccinations. Choose the days and time in Settings → Notifications.';
+
+  @override
+  String get reminderOfferFeedingTitle => 'Turn on feeding reminders?';
+
+  @override
+  String get reminderOfferFeedingMessage =>
+      'Patilog can notify you at each meal time in the daily plan. You can change this anytime in Settings → Notifications.';
+
+  @override
+  String get reminderOfferNotNow => 'Not now';
+
+  @override
+  String get reminderOfferTurnOn => 'Turn on';
+
+  @override
+  String get medicationRemindersBlockedNotice =>
+      'Medication reminders can\'t arrive: notifications are turned off in device settings.';
+
+  @override
+  String get vaccinationRemindersBlockedNotice =>
+      'Vaccination reminders can\'t arrive: notifications are turned off in device settings.';
+
+  @override
+  String get feedingRemindersBlockedNotice =>
+      'Feeding reminders can\'t arrive: notifications are turned off in device settings.';
 }

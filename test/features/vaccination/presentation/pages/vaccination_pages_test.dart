@@ -9,6 +9,7 @@ import '../../../../helpers/all_pets_care_dependencies.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../../../helpers/multi_step_form_helpers.dart';
+import '../../../../helpers/notification_test_harness.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:patilog/core/di/injection.dart';
@@ -30,6 +31,10 @@ import 'package:patilog/features/pet/domain/use_cases/delete_pet.dart';
 import 'package:patilog/features/pet/presentation/cubit/pet_cubit.dart';
 import 'package:patilog/features/vaccination/data/models/vaccination_model.dart';
 import 'package:patilog/features/vaccination/domain/entities/vaccination.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:patilog/features/vaccination/domain/entities/vaccination_suggestions.dart';
 import 'package:patilog/features/vaccination/domain/repositories/vaccination_repository.dart';
 import 'package:patilog/features/vaccination/domain/use_cases/save_vaccination.dart';
@@ -273,6 +278,7 @@ void main() {
     double scale = 1,
     Brightness brightness = Brightness.light,
     bool keyboard = false,
+    NotificationCubit? notifications,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -297,7 +303,12 @@ void main() {
           ),
           child: RepositoryProvider<ImageStorage>.value(
             value: MockImages(),
-            child: child!,
+            child: notifications == null
+                ? child!
+                : BlocProvider<NotificationCubit>.value(
+                    value: notifications,
+                    child: child!,
+                  ),
           ),
         ),
       ),
@@ -2305,4 +2316,102 @@ void main() {
       );
     }
   }
+
+  group('reminder offer after saving', () {
+    // Created inside each test body so the cubit's work runs in fake time.
+    Future<NotificationCubit> initializedNotifications() async {
+      final harness = NotificationTestHarness()..clock = DateTime.now();
+      addTearDown(harness.dispose);
+      final cubit = harness.createCubit();
+      await cubit.initialize();
+      return cubit;
+    }
+
+    testWidgets('a future planned vaccination is offered', (tester) async {
+      final notifications = await initializedNotifications();
+      await pumpRouter(tester, notifications: notifications);
+      await add(tester);
+      await fill(tester, name, 'Planned vaccine');
+      await chooseStatus(tester, 'Planned');
+      await pickDate(
+        tester,
+        'Planned date',
+        DateTime(DateTime.now().year + 1, 2, 3),
+      );
+      await submit(tester);
+      expect(notifications.state.reminderOffer, ReminderCategory.vaccination);
+    });
+
+    testWidgets('an administration with a next dose is offered', (
+      tester,
+    ) async {
+      final notifications = await initializedNotifications();
+      await pumpRouter(tester, notifications: notifications);
+      await add(tester);
+      await fill(tester, name, 'Given vaccine');
+      await pickDate(
+        tester,
+        'Next dose date (optional)',
+        DateTime(DateTime.now().year + 1, 1, 2),
+      );
+      await submit(tester);
+      expect(notifications.state.reminderOffer, ReminderCategory.vaccination);
+    });
+
+    testWidgets('an administration without a next dose is not offered', (
+      tester,
+    ) async {
+      final notifications = await initializedNotifications();
+      await pumpRouter(tester, notifications: notifications);
+      await add(tester);
+      await fill(tester, name, 'Given only');
+      await submit(tester);
+      expect(records.where((v) => v.vaccineName == 'Given only'), hasLength(1));
+      expect(notifications.state.reminderOffer, isNull);
+    });
+  });
+
+  testWidgets(
+    'blocked enabled reminders are explained only for upcoming planned vaccinations',
+    (tester) async {
+      final harness = NotificationTestHarness()
+        ..clock = DateTime.now()
+        ..preferences = NotificationPreferences(
+          vaccinationRemindersEnabled: true,
+        )
+        ..permission = const NotificationPermissionStatus(
+          canShowNotifications: false,
+          canScheduleExactAlarms: true,
+          requiresExactAlarmPermission: true,
+        );
+      addTearDown(harness.dispose);
+      final notifications = harness.createCubit();
+      await notifications.initialize();
+      final notice = find.text(
+        "Vaccination reminders can't arrive: notifications are turned off in device settings.",
+      );
+      records = [administered];
+      await pumpRouter(tester, notifications: notifications);
+      expect(notice, findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await pumpRouter(
+        tester,
+        location: AppRoutes.vaccinationDetail(pet.id, administered.id),
+        notifications: notifications,
+      );
+      expect(notice, findsNothing);
+
+      records = [planned, administered];
+      await tester.pumpWidget(const SizedBox());
+      await pumpRouter(tester, notifications: notifications);
+      expect(notice, findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      await pumpRouter(
+        tester,
+        location: AppRoutes.vaccinationDetail(pet.id, planned.id),
+        notifications: notifications,
+      );
+      expect(notice, findsOneWidget);
+    },
+  );
 }

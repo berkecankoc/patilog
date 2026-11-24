@@ -26,6 +26,8 @@ import 'package:patilog/features/medication/presentation/widgets/medication_dose
 import 'package:patilog/features/medication/presentation/widgets/medication_list_content.dart';
 import 'package:patilog/features/pet/domain/entities/pet.dart';
 import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/presentation/widgets/reminder_blocked_notice.dart';
 
 class MedicationListPage extends StatefulWidget {
   final String? petId;
@@ -387,6 +389,21 @@ class _MedicationListPageState extends State<MedicationListPage> {
                               : const Center(child: CircularProgressIndicator())
                         : Column(
                             children: [
+                              if (ReminderBlockedNotice.shows(
+                                context,
+                                ReminderCategory.medication,
+                                hasReminders: loaded.medications.any(
+                                  (m) =>
+                                      (!_global ||
+                                          _filterId == null ||
+                                          m.petId == _filterId) &&
+                                      m.statusOn(loaded.currentTime) !=
+                                          MedicationStatus.completed,
+                                ),
+                              ))
+                                const ReminderBlockedNotice(
+                                  category: ReminderCategory.medication,
+                                ),
                               if (loaded.actionError != null ||
                                   loaded.refreshError != null)
                                 Flexible(

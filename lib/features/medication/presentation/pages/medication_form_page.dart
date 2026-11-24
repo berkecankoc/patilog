@@ -18,6 +18,8 @@ import 'package:patilog/features/medication/presentation/cubit/medication_form_c
 import 'package:patilog/features/medication/presentation/cubit/medication_form_state.dart';
 import 'package:patilog/features/medication/presentation/utils/medication_display.dart';
 import 'package:patilog/core/utils/time_input_formatter.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 
 class MedicationFormPage extends StatefulWidget {
   final String petId;
@@ -187,6 +189,10 @@ class _MedicationFormPageState extends State<MedicationFormPage> {
         context,
         widget.petId,
         PetCareTab.medications,
+      );
+      context.read<NotificationCubit?>()?.offerReminders(
+        ReminderCategory.medication,
+        lastDay: _end,
       );
     }
     setState(() => _allowPop = true);

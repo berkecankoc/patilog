@@ -15,10 +15,14 @@ import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
 import 'package:patilog/features/feeding/domain/entities/feeding_plan.dart';
 import 'package:patilog/features/feeding/presentation/pages/feeding_page.dart';
 import 'package:patilog/features/feeding/presentation/widgets/feeding_chart.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
+import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
 import 'package:patilog/features/pet/domain/entities/pet.dart';
 import 'package:patilog/l10n/generated/app_localizations.dart';
 import '../../../../helpers/feeding_test_harness.dart';
 import '../../../../helpers/multi_step_form_helpers.dart';
+import '../../../../helpers/notification_test_harness.dart';
 
 void main() {
   late FeedingTestHarness app;
@@ -808,4 +812,69 @@ void main() {
       },
     );
   }
+
+  testWidgets('a saved plan offers disabled feeding reminders', (tester) async {
+    final notifications = NotificationTestHarness()..clock = DateTime.now();
+    addTearDown(notifications.dispose);
+    final cubit = notifications.createCubit();
+    await cubit.initialize();
+    await app.pump(
+      tester,
+      location: AppRoutes.addEditFeedingPlan('pet'),
+      notifications: cubit,
+    );
+    await enterFormText(tester, field('Amount').first, '25');
+    await submitForm(tester);
+    expect(app.plans, hasLength(1));
+    expect(cubit.state.reminderOffer, ReminderCategory.feeding);
+  });
+
+  testWidgets(
+    'blocked enabled reminders are explained only while a plan can remind',
+    (tester) async {
+      final notifications = NotificationTestHarness()
+        ..clock = DateTime.now()
+        ..preferences = NotificationPreferences(feedingRemindersEnabled: true)
+        ..permission = const NotificationPermissionStatus(
+          canShowNotifications: false,
+          canScheduleExactAlarms: true,
+          requiresExactAlarmPermission: true,
+        );
+      addTearDown(notifications.dispose);
+      final cubit = notifications.createCubit();
+      await cubit.initialize();
+      final notice = find.text(
+        "Feeding reminders can't arrive: notifications are turned off in device settings.",
+      );
+      final yesterday = DateTime(
+        app.today.year,
+        app.today.month,
+        app.today.day - 1,
+      );
+      app.plans = [
+        FeedingPlan(
+          id: 'ended',
+          petId: 'pet',
+          startDate: yesterday,
+          endDate: yesterday,
+          meals: plan(id: 'ended').meals,
+        ),
+      ];
+      await app.pump(
+        tester,
+        location: AppRoutes.feeding('pet'),
+        notifications: cubit,
+      );
+      expect(notice, findsNothing);
+
+      app.plans = [plan()];
+      await tester.pumpWidget(const SizedBox());
+      await app.pump(
+        tester,
+        location: AppRoutes.feeding('pet'),
+        notifications: cubit,
+      );
+      expect(notice, findsOneWidget);
+    },
+  );
 }

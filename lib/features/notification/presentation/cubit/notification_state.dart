@@ -3,10 +3,15 @@ import 'package:patilog/features/notification/domain/entities/notification_permi
 import 'package:patilog/features/notification/domain/entities/notification_plan.dart';
 import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
 import 'package:patilog/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
 
 enum NotificationAction {
   initialize,
   synchronize,
+
+  /// Asks for permission, then opens device settings if it stays blocked: a
+  /// decided permission never prompts again on iOS (or after repeated Android
+  /// denials), while an undecided one has no settings entry yet.
   notificationPermission,
   exactPermission,
   openSettings,
@@ -32,6 +37,9 @@ final class NotificationState extends Equatable {
   final String? saveError;
   final NotificationPreferences? failedPreferences;
 
+  /// A disabled category to offer after a saved record; shown app-wide.
+  final ReminderCategory? reminderOffer;
+
   const NotificationState({
     this.preferences,
     this.permissions,
@@ -43,6 +51,7 @@ final class NotificationState extends Equatable {
     this.issue,
     this.saveError,
     this.failedPreferences,
+    this.reminderOffer,
   }) : isBusy = isBusy || isSaving;
 
   NotificationState copyWith({
@@ -59,6 +68,8 @@ final class NotificationState extends Equatable {
     String? saveError,
     NotificationPreferences? failedPreferences,
     bool clearSaveError = false,
+    ReminderCategory? reminderOffer,
+    bool clearReminderOffer = false,
   }) => NotificationState(
     preferences: preferences ?? this.preferences,
     permissions: permissions ?? this.permissions,
@@ -74,6 +85,9 @@ final class NotificationState extends Equatable {
     failedPreferences: clearSaveError
         ? null
         : failedPreferences ?? this.failedPreferences,
+    reminderOffer: clearReminderOffer
+        ? null
+        : reminderOffer ?? this.reminderOffer,
   );
 
   @override
@@ -88,5 +102,6 @@ final class NotificationState extends Equatable {
     issue,
     saveError,
     failedPreferences,
+    reminderOffer,
   ];
 }
