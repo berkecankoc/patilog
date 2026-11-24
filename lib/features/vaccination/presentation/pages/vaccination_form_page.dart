@@ -17,6 +17,8 @@ import 'package:patilog/features/vaccination/domain/use_cases/save_vaccination.d
 import 'package:patilog/features/vaccination/presentation/cubit/vaccination_form_cubit.dart';
 import 'package:patilog/features/vaccination/presentation/cubit/vaccination_form_state.dart';
 import 'package:patilog/features/vet_visit/domain/entities/vet_visit.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 
 class VaccinationFormPage extends StatefulWidget {
   final String petId;
@@ -166,6 +168,17 @@ class _VaccinationFormPageState extends State<VaccinationFormPage> {
         widget.petId,
         PetCareTab.vaccinations,
       );
+      final plannedDate = _status == VaccinationStatus.planned
+          ? _date
+          : _canPlanNextDose
+          ? _nextDoseDate
+          : null;
+      if (plannedDate != null) {
+        context.read<NotificationCubit?>()?.offerReminders(
+          ReminderCategory.vaccination,
+          lastDay: plannedDate,
+        );
+      }
     }
     setState(() => _allowPop = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {

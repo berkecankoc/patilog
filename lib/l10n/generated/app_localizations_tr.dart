@@ -1836,4 +1836,43 @@ class AppLocalizationsTr extends AppLocalizations {
   String feedingEntrySummary(String date, String amount) {
     return '$date · $amount g';
   }
+
+  @override
+  String get reminderOfferMedicationTitle => 'İlaç hatırlatmaları açılsın mı?';
+
+  @override
+  String get reminderOfferMedicationMessage =>
+      'Patilog, planlanan her doz saatinde size bildirim gönderebilir. Bunu istediğiniz zaman Ayarlar → Bildirimler bölümünden değiştirebilirsiniz.';
+
+  @override
+  String get reminderOfferVaccinationTitle => 'Aşı hatırlatmaları açılsın mı?';
+
+  @override
+  String get reminderOfferVaccinationMessage =>
+      'Patilog, planlanan aşılardan önce size bildirim gönderebilir. Gün ve saati Ayarlar → Bildirimler bölümünden seçebilirsiniz.';
+
+  @override
+  String get reminderOfferFeedingTitle => 'Beslenme hatırlatmaları açılsın mı?';
+
+  @override
+  String get reminderOfferFeedingMessage =>
+      'Patilog, günlük plandaki her öğün saatinde size bildirim gönderebilir. Bunu istediğiniz zaman Ayarlar → Bildirimler bölümünden değiştirebilirsiniz.';
+
+  @override
+  String get reminderOfferNotNow => 'Şimdi değil';
+
+  @override
+  String get reminderOfferTurnOn => 'Aç';
+
+  @override
+  String get medicationRemindersBlockedNotice =>
+      'İlaç hatırlatmaları gelemez: bildirimler cihaz ayarlarında kapalı.';
+
+  @override
+  String get vaccinationRemindersBlockedNotice =>
+      'Aşı hatırlatmaları gelemez: bildirimler cihaz ayarlarında kapalı.';
+
+  @override
+  String get feedingRemindersBlockedNotice =>
+      'Beslenme hatırlatmaları gelemez: bildirimler cihaz ayarlarında kapalı.';
 }

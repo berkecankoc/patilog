@@ -24,6 +24,8 @@ import 'package:patilog/features/vaccination/presentation/utils/confirm_vaccinat
 import 'package:patilog/features/vaccination/presentation/widgets/vaccination_status_badge.dart';
 import 'package:patilog/features/vaccination/presentation/widgets/linked_vet_visit_section.dart';
 import 'package:patilog/features/vet_visit/presentation/cubit/vet_visit_cubit.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/presentation/widgets/reminder_blocked_notice.dart';
 
 class VaccinationDetailPage extends StatelessWidget {
   final String petId;
@@ -255,6 +257,19 @@ class VaccinationDetailPage extends StatelessWidget {
                     LayoutBuilder(
                       builder: (context, constraints) => Column(
                         children: [
+                          if (ReminderBlockedNotice.shows(
+                            context,
+                            ReminderCategory.vaccination,
+                            hasReminders:
+                                vaccination.status ==
+                                    VaccinationStatus.planned &&
+                                !DateUtils.dateOnly(vaccination.date).isBefore(
+                                  DateUtils.dateOnly(DateTime.now()),
+                                ),
+                          ))
+                            const ReminderBlockedNotice(
+                              category: ReminderCategory.vaccination,
+                            ),
                           if (deleteError != null || refreshError != null)
                             ConstrainedBox(
                               constraints: BoxConstraints(

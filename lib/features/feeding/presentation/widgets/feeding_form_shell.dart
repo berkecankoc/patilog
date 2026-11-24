@@ -9,6 +9,8 @@ import 'package:patilog/core/widgets/app_multi_step_form.dart';
 import 'package:patilog/core/widgets/pet_care_title.dart';
 import 'package:patilog/features/feeding/presentation/cubit/feeding_form_cubit.dart';
 import 'package:patilog/features/feeding/presentation/cubit/feeding_form_state.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:patilog/l10n/generated/app_localizations.dart';
 
 /// Shared draft exit/save behavior for the record and plan forms.
@@ -51,6 +53,13 @@ class _FeedingFormShellState extends State<FeedingFormShell> {
     if (_allowPop) return;
     if (result == true) {
       PetCareChanges.recordChanged(context, widget.petId, PetCareTab.feeding);
+      final plan = context.read<FeedingFormCubit>().state.savedPlan;
+      if (plan != null) {
+        context.read<NotificationCubit?>()?.offerReminders(
+          ReminderCategory.feeding,
+          lastDay: plan.endDate,
+        );
+      }
     }
     setState(() => _allowPop = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {

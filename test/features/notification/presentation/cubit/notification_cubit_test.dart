@@ -11,6 +11,7 @@ import 'package:patilog/features/medication/domain/entities/medication_dose_log.
 import 'package:patilog/features/notification/domain/entities/notification_permission_status.dart';
 import 'package:patilog/features/notification/domain/entities/notification_preferences.dart';
 import 'package:patilog/features/notification/domain/entities/notification_target.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
 import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:patilog/features/notification/presentation/cubit/notification_state.dart';
 import '../../../../helpers/notification_test_harness.dart';
@@ -156,6 +157,45 @@ void main() {
       },
     );
   }
+
+  test(
+    'allowing notifications opens device settings only when they stay blocked',
+    () async {
+      h.preferences = NotificationPreferences(medicationRemindersEnabled: true);
+      h.permission = const NotificationPermissionStatus(
+        canShowNotifications: false,
+        canScheduleExactAlarms: true,
+        requiresExactAlarmPermission: true,
+      );
+      await cubit.initialize();
+      await cubit.perform(NotificationAction.notificationPermission);
+      verify(h.repository.requestNotificationPermission).called(1);
+      verify(h.repository.openNotificationSettings).called(1);
+      expect(cubit.state.issue, isNull);
+
+      when(h.repository.openNotificationSettings).thenAnswer(
+        (_) async => const Error(NotificationFailure('Settings failed')),
+      );
+      await cubit.perform(NotificationAction.notificationPermission);
+      expect(
+        cubit.state.issue?.action,
+        NotificationAction.notificationPermission,
+      );
+
+      // An undecided permission answered with Allow needs no settings.
+      h.permission = const NotificationPermissionStatus(
+        canShowNotifications: true,
+        canScheduleExactAlarms: true,
+        requiresExactAlarmPermission: true,
+      );
+      clearInteractions(h.repository);
+      await cubit.retry();
+      verify(h.repository.requestNotificationPermission).called(1);
+      verifyNever(h.repository.openNotificationSettings);
+      expect(cubit.state.issue, isNull);
+      expect(cubit.state.permissions?.canShowNotifications, isTrue);
+    },
+  );
 
   test(
     'an earlier refresh failure does not unlock a pending save or allow a duplicate',
@@ -653,4 +693,122 @@ void main() {
       expect(h.submissions, isEmpty);
     },
   );
+
+  group('reminder offer after a saved record', () {
+    const denied = NotificationPermissionStatus(
+      canShowNotifications: false,
+      canScheduleExactAlarms: false,
+      requiresExactAlarmPermission: true,
+    );
+
+    test(
+      'offers a disabled, unoffered category for a current record',
+      () async {
+        await cubit.initialize();
+        await cubit.offerReminders(ReminderCategory.medication);
+        expect(cubit.state.reminderOffer, ReminderCategory.medication);
+        verifyNever(h.repository.requestNotificationPermission);
+      },
+    );
+
+    test('a record ending today still reminds and is offered', () async {
+      await cubit.initialize();
+      await cubit.offerReminders(
+        ReminderCategory.feeding,
+        lastDay: DateTime(2030, 1, 1),
+      );
+      expect(cubit.state.reminderOffer, ReminderCategory.feeding);
+    });
+
+    test(
+      'enabled, already offered or ended categories are not offered',
+      () async {
+        h.preferences = NotificationPreferences(
+          medicationRemindersEnabled: true,
+          offeredCategories: {ReminderCategory.vaccination},
+        );
+        await cubit.initialize();
+        await cubit.offerReminders(ReminderCategory.medication);
+        await cubit.offerReminders(ReminderCategory.vaccination);
+        await cubit.offerReminders(
+          ReminderCategory.feeding,
+          lastDay: DateTime(2029, 12, 31),
+        );
+        expect(cubit.state.reminderOffer, isNull);
+      },
+    );
+
+    test('no offer appears when preferences could not be read', () async {
+      when(h.repository.getPreferences).thenAnswer(
+        (_) async => const Error(PreferencesStorageFailure('Read failed')),
+      );
+      await cubit.initialize();
+      await cubit.offerReminders(ReminderCategory.medication);
+      expect(cubit.state.reminderOffer, isNull);
+    });
+
+    test('accepting enables the category and asks only for notification permission', () async {
+      h.permission = denied;
+      when(h.repository.requestNotificationPermission).thenAnswer(
+        (_) async => const Success(
+          NotificationPermissionStatus(
+            canShowNotifications: true,
+            canScheduleExactAlarms: false,
+            requiresExactAlarmPermission: true,
+          ),
+        ),
+      );
+      h.medicines.add(h.medication(start: DateTime(2030, 1, 2)));
+      await cubit.initialize();
+      await cubit.offerReminders(ReminderCategory.medication);
+      await cubit.answerReminderOffer(accepted: true);
+      expect(cubit.state.reminderOffer, isNull);
+      expect(h.preferences.medicationRemindersEnabled, isTrue);
+      expect(h.preferences.offeredCategories, {ReminderCategory.medication});
+      expect(cubit.state.preferences, h.preferences);
+      verify(h.repository.requestNotificationPermission).called(1);
+      verifyNever(h.repository.requestExactAlarmPermission);
+    });
+
+    test('accepting while the system blocks notifications keeps the choice and reports it', () async {
+      h.permission = denied;
+      await cubit.initialize();
+      await cubit.offerReminders(ReminderCategory.vaccination);
+      await cubit.answerReminderOffer(accepted: true);
+      expect(h.preferences.vaccinationRemindersEnabled, isTrue);
+      expect(cubit.state.permissions?.canShowNotifications, isFalse);
+      expect(cubit.state.saveError, isNull);
+    });
+
+    test('declining records the offer without permission prompts', () async {
+      h.permission = denied;
+      await cubit.initialize();
+      await cubit.offerReminders(ReminderCategory.feeding);
+      await cubit.answerReminderOffer(accepted: false);
+      expect(h.preferences.feedingRemindersEnabled, isFalse);
+      expect(h.preferences.offeredCategories, {ReminderCategory.feeding});
+      verifyNever(h.repository.requestNotificationPermission);
+      await cubit.offerReminders(ReminderCategory.feeding);
+      expect(cubit.state.reminderOffer, isNull);
+    });
+
+    test('a failed save keeps the accepted choice for a retry without precise timing', () async {
+      h.permission = const NotificationPermissionStatus(
+        canShowNotifications: true,
+        canScheduleExactAlarms: false,
+        requiresExactAlarmPermission: true,
+      );
+      h.failSave = true;
+      await cubit.initialize();
+      await cubit.offerReminders(ReminderCategory.feeding);
+      await cubit.answerReminderOffer(accepted: true);
+      expect(cubit.state.saveError, 'Save failed');
+      expect(cubit.state.preferences!.feedingRemindersEnabled, isFalse);
+      h.failSave = false;
+      await cubit.retrySave();
+      expect(cubit.state.saveError, isNull);
+      expect(cubit.state.preferences!.feedingRemindersEnabled, isTrue);
+      verifyNever(h.repository.requestExactAlarmPermission);
+    });
+  });
 }

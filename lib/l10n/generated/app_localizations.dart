@@ -3377,6 +3377,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{date} · {amount} g'**
   String feedingEntrySummary(String date, String amount);
+
+  /// Shown after saving a medication schedule while medication reminders are off.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on medication reminders?'**
+  String get reminderOfferMedicationTitle;
+
+  /// No description provided for @reminderOfferMedicationMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Patilog can notify you at each scheduled dose time. You can change this anytime in Settings → Notifications.'**
+  String get reminderOfferMedicationMessage;
+
+  /// Shown after saving a planned vaccination while vaccination reminders are off.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on vaccination reminders?'**
+  String get reminderOfferVaccinationTitle;
+
+  /// No description provided for @reminderOfferVaccinationMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Patilog can notify you before planned vaccinations. Choose the days and time in Settings → Notifications.'**
+  String get reminderOfferVaccinationMessage;
+
+  /// Shown after saving a feeding plan while feeding reminders are off.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on feeding reminders?'**
+  String get reminderOfferFeedingTitle;
+
+  /// No description provided for @reminderOfferFeedingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Patilog can notify you at each meal time in the daily plan. You can change this anytime in Settings → Notifications.'**
+  String get reminderOfferFeedingMessage;
+
+  /// Declines the reminder offer; it is not shown again for that category.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get reminderOfferNotNow;
+
+  /// Accepts the reminder offer and asks for notification permission.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on'**
+  String get reminderOfferTurnOn;
+
+  /// Shown above care records while this enabled reminder category is blocked by the device (app-wide or per category on Android).
+  ///
+  /// In en, this message translates to:
+  /// **'Medication reminders can\'t arrive: notifications are turned off in device settings.'**
+  String get medicationRemindersBlockedNotice;
+
+  /// Shown above care records while this enabled reminder category is blocked by the device (app-wide or per category on Android).
+  ///
+  /// In en, this message translates to:
+  /// **'Vaccination reminders can\'t arrive: notifications are turned off in device settings.'**
+  String get vaccinationRemindersBlockedNotice;
+
+  /// Shown above care records while this enabled reminder category is blocked by the device (app-wide or per category on Android).
+  ///
+  /// In en, this message translates to:
+  /// **'Feeding reminders can\'t arrive: notifications are turned off in device settings.'**
+  String get feedingRemindersBlockedNotice;
 }
 
 class _AppLocalizationsDelegate

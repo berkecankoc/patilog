@@ -171,7 +171,7 @@ void main() {
     );
   });
   testWidgets(
-    'denial stays visible and explicit actions retry permissions or open device settings',
+    'denial stays visible and Allow notifications asks again or opens device settings',
     (tester) async {
       app.notifications.permission = const NotificationPermissionStatus(
         canShowNotifications: false,
@@ -182,11 +182,13 @@ void main() {
       await tester.tap(toggle('Vaccination reminders'));
       await tester.pumpAndSettle();
       expect(app.notifications.preferences.vaccinationRemindersEnabled, isTrue);
-      await tester.ensureVisible(find.text('Open device settings'));
+      await tester.ensureVisible(find.text('Allow notifications'));
       await tester.pumpAndSettle();
       expect(find.text('Notifications are blocked'), findsOneWidget);
-      await tester.tap(find.text('Open device settings'));
+      expect(find.text('Open device settings'), findsNothing);
+      await tester.tap(find.text('Allow notifications'));
       await tester.pumpAndSettle();
+      // A decided denial opens device settings instead of doing nothing.
       verify(app.notifications.repository.openNotificationSettings).called(1);
       app.notifications.permission = const NotificationPermissionStatus(
         canShowNotifications: true,
@@ -199,7 +201,8 @@ void main() {
       expect(find.text('Notifications are blocked'), findsNothing);
       verify(
         app.notifications.repository.requestNotificationPermission,
-      ).called(2);
+      ).called(3);
+      verifyNever(app.notifications.repository.openNotificationSettings);
     },
   );
   testWidgets(

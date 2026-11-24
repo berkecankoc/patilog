@@ -14,6 +14,7 @@ import 'package:patilog/features/notification/domain/entities/notification_prefe
 import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:patilog/features/notification/presentation/cubit/notification_state.dart';
 import 'package:patilog/features/notification/presentation/widgets/reminder_schedule_fields.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
 import 'package:patilog/features/notification/domain/entities/vaccination_reminder_schedule.dart';
 
 class NotificationSettingsPage extends StatelessWidget {
@@ -34,6 +35,13 @@ class NotificationSettingsPage extends StatelessWidget {
           vaccination ?? current.vaccinationRemindersEnabled,
       feedingRemindersEnabled: feeding ?? current.feedingRemindersEnabled,
       vaccinationSchedule: schedule ?? current.vaccinationSchedule,
+      // A category chosen here is never offered again after saving a record.
+      offeredCategories: {
+        ...current.offeredCategories,
+        if (medication != null) ReminderCategory.medication,
+        if (vaccination != null) ReminderCategory.vaccination,
+        if (feeding != null) ReminderCategory.feeding,
+      },
     );
   }
 
@@ -466,20 +474,6 @@ class NotificationSettingsPage extends StatelessWidget {
                                                 ).allowPreciseReminders,
                                         ),
                                       ),
-                                      if (blocked)
-                                        TextButton(
-                                          onPressed: state.isBusy
-                                              ? null
-                                              : () => cubit.perform(
-                                                  NotificationAction
-                                                      .openSettings,
-                                                ),
-                                          child: Text(
-                                            AppLocalizations.of(
-                                              context,
-                                            ).openDeviceSettings,
-                                          ),
-                                        ),
                                     ],
                                   ),
                                 ),

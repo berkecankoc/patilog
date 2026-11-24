@@ -5,6 +5,7 @@ import 'package:patilog/core/l10n/app_locale.dart';
 import 'package:patilog/l10n/generated/app_localizations.dart';
 import 'package:patilog/features/notification/presentation/cubit/notification_cubit.dart';
 import 'package:patilog/features/notification/presentation/widgets/notification_runtime.dart';
+import 'package:patilog/features/notification/presentation/widgets/reminder_offer_prompt.dart';
 import 'package:patilog/features/notification/presentation/widgets/notification_navigation.dart';
 import 'package:patilog/features/notification/domain/use_cases/resolve_notification_target.dart';
 import 'package:patilog/core/di/injection.dart';
@@ -86,7 +87,12 @@ class MyApp extends StatelessWidget {
                         observers: appNavigationObservers,
                         routeChanges: appNavigationChanges,
                         resolve: getIt<ResolveNotificationTarget>(),
-                        child: AppKeyboard(child: child!),
+                        child: ReminderOfferPrompt(
+                          router: appRouter,
+                          observers: appNavigationObservers,
+                          routeChanges: appNavigationChanges,
+                          child: AppKeyboard(child: child!),
+                        ),
                       ),
                     ),
                   ),

@@ -22,6 +22,8 @@ import 'package:patilog/features/vaccination/presentation/utils/confirm_vaccinat
 import 'package:patilog/features/vaccination/presentation/widgets/vaccination_list_content.dart';
 import 'package:patilog/features/medication/domain/utils/medication_calendar.dart';
 import 'package:patilog/l10n/generated/app_localizations.dart';
+import 'package:patilog/features/notification/domain/entities/reminder_category.dart';
+import 'package:patilog/features/notification/presentation/widgets/reminder_blocked_notice.dart';
 
 class VaccinationListPage extends StatefulWidget {
   final String? petId;
@@ -213,7 +215,8 @@ class _VaccinationListPageState extends State<VaccinationListPage> {
     ];
   }
 
-  Widget _loaded(VaccinationsLoaded state) {
+  // The building context lets the notice subscribe to notification state.
+  Widget _loaded(BuildContext context, VaccinationsLoaded state) {
     final busy = _busy;
     final strings = AppLocalizations.of(context);
     final records = state.vaccinations
@@ -222,8 +225,21 @@ class _VaccinationListPageState extends State<VaccinationListPage> {
               !_global || _filterId == null || record.petId == _filterId,
         )
         .toList();
+    final today = DateUtils.dateOnly(DateTime.now());
     return Column(
       children: [
+        if (ReminderBlockedNotice.shows(
+          context,
+          ReminderCategory.vaccination,
+          hasReminders: records.any(
+            (v) =>
+                v.status == VaccinationStatus.planned &&
+                !DateUtils.dateOnly(v.date).isBefore(today),
+          ),
+        ))
+          const ReminderBlockedNotice(
+            category: ReminderCategory.vaccination,
+          ),
         if (state.deleteError != null && state.deletionVaccination != null)
           Flexible(
             child: AppErrorFeedback(
@@ -316,7 +332,7 @@ class _VaccinationListPageState extends State<VaccinationListPage> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 640),
                   child: switch (state) {
-                    VaccinationsLoaded() => _loaded(state),
+                    VaccinationsLoaded() => _loaded(context, state),
                     VaccinationError(:final failure) => ErrorView(
                       message: failure is NotFoundFailure
                           ? strings.vaccinationNotFound
