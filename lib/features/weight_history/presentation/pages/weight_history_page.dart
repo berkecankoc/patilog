@@ -11,6 +11,7 @@ import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
 import 'package:patilog/core/theme/app_spacing.dart';
 import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_gap.dart';
 import 'package:patilog/core/widgets/app_pet_filter.dart';
@@ -254,23 +255,23 @@ class _WeightHistoryPageState extends State<WeightHistoryPage> {
         : state.entries;
     return Column(
       children: [
-        if (state.deleteError != null && state.deletionEntry != null)
-          Flexible(
-            child: AppErrorFeedback(
-              message: strings.measurementDeleteFailed,
-              retryLabel: strings.retryDeletion,
-              onRetry: state.isDeleting
-                  ? null
-                  : () => _delete(state.deletionEntry!),
-            ),
-          )
-        else if (state.refreshError != null)
-          Flexible(
-            child: AppErrorFeedback(
-              message: strings.weightLoadFailed,
-              onRetry: state.isDeleting ? null : _reload,
-            ),
-          ),
+        AppFeedbackArea(
+          children: [
+            if (state.deleteError != null && state.deletionEntry != null)
+              AppErrorFeedback(
+                message: strings.measurementDeleteFailed,
+                retryLabel: strings.retryDeletion,
+                onRetry: state.isDeleting
+                    ? null
+                    : () => _delete(state.deletionEntry!),
+              )
+            else if (state.refreshError != null)
+              AppErrorFeedback(
+                message: strings.weightLoadFailed,
+                onRetry: state.isDeleting ? null : _reload,
+              ),
+          ],
+        ),
         Expanded(
           child: AbsorbPointer(
             absorbing: state.isDeleting,

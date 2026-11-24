@@ -1092,11 +1092,20 @@ void main() {
       });
       await pumpRouter(tester);
       await scrollToMeasurement(tester, '4.5 kg');
+      final list = find
+          .ancestor(
+            of: find.widgetWithText(ListTile, '4.5 kg'),
+            matching: find.byType(AbsorbPointer),
+          )
+          .first;
+      final listBottom = tester.getRect(list).bottom;
       await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
       expect(find.text('Failed to delete measurement'), findsOneWidget);
+      // The error strip must not shrink the list below it.
+      expect(tester.getRect(list).bottom, listBottom);
       await scrollToMeasurement(tester, '4.5 kg');
       expect(find.widgetWithText(ListTile, '4.5 kg'), findsOneWidget);
       await tester.tap(find.text('Retry deletion'));

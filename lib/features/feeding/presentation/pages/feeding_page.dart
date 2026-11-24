@@ -12,6 +12,7 @@ import 'package:patilog/core/router/pet_care_changes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
 import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_section_heading.dart';
 import 'package:patilog/core/widgets/error_view.dart';
@@ -990,47 +991,49 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
             bottom: false,
             child: Column(
               children: [
-                if (state is FeedingLoaded &&
-                    ReminderBlockedNotice.shows(
-                      context,
-                      ReminderCategory.feeding,
-                      hasReminders: state.plans.any(
-                        (p) =>
-                            (_filter == null || p.petId == _filter) &&
-                            (p.endDate == null ||
-                                !DateUtils.dateOnly(p.endDate!).isBefore(
-                                  DateUtils.dateOnly(state.currentTime),
-                                )),
+                AppFeedbackArea(
+                  children: [
+                    if (state is FeedingLoaded &&
+                        ReminderBlockedNotice.shows(
+                          context,
+                          ReminderCategory.feeding,
+                          hasReminders: state.plans.any(
+                            (p) =>
+                                (_filter == null || p.petId == _filter) &&
+                                (p.endDate == null ||
+                                    !DateUtils.dateOnly(p.endDate!).isBefore(
+                                      DateUtils.dateOnly(state.currentTime),
+                                    )),
+                          ),
+                        ))
+                      const ReminderBlockedNotice(
+                        category: ReminderCategory.feeding,
                       ),
-                    ))
-                  const ReminderBlockedNotice(
-                    category: ReminderCategory.feeding,
-                  ),
-                if (state is FeedingLoaded && state.refreshFailure != null)
-                  Flexible(
-                    child: AppErrorFeedback(
-                      message: s.feedingLoadFailed,
-                      onRetry: _busy ? null : _cubit.retryLoad,
-                    ),
-                  ),
-                if (state is FeedingLoaded && state.actionFailure != null)
-                  Flexible(
-                    child: AppErrorFeedback(
-                      message: switch (state.failedAction) {
-                        DeleteFeedingEntryAction() => s.feedingDeleteFailed,
-                        CancelFeedingPlanAction() => s.feedingPlanCancelFailed,
-                        DeleteFeedingPlansAction() => s.feedingPlanDeleteFailed,
-                        _ => s.feedingSaveFailed,
-                      },
-                      onRetry: _busy || state.isRefreshing
-                          ? null
-                          : () {
-                              final action =
-                                  (_cubit.state as FeedingLoaded).failedAction;
-                              if (action != null) _perform(action);
-                            },
-                    ),
-                  ),
+                    if (state is FeedingLoaded && state.refreshFailure != null)
+                      AppErrorFeedback(
+                        message: s.feedingLoadFailed,
+                        onRetry: _busy ? null : _cubit.retryLoad,
+                      ),
+                    if (state is FeedingLoaded && state.actionFailure != null)
+                      AppErrorFeedback(
+                        message: switch (state.failedAction) {
+                          DeleteFeedingEntryAction() => s.feedingDeleteFailed,
+                          CancelFeedingPlanAction() =>
+                            s.feedingPlanCancelFailed,
+                          DeleteFeedingPlansAction() =>
+                            s.feedingPlanDeleteFailed,
+                          _ => s.feedingSaveFailed,
+                        },
+                        onRetry: _busy || state.isRefreshing
+                            ? null
+                            : () {
+                                final action = (_cubit.state as FeedingLoaded)
+                                    .failedAction;
+                                if (action != null) _perform(action);
+                              },
+                      ),
+                  ],
+                ),
                 if (state is FeedingLoaded && !_global)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),

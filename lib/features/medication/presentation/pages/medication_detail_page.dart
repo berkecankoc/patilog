@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/widgets/app_detail_field.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_related_records_section.dart';
 import 'package:patilog/core/widgets/app_related_clinical_details.dart';
@@ -681,48 +682,50 @@ class _MedicationDetailPageState extends State<MedicationDetailPage> {
                             : const Center(child: CircularProgressIndicator())
                       : Column(
                           children: [
-                            if (ReminderBlockedNotice.shows(
-                              context,
-                              ReminderCategory.medication,
-                              hasReminders: loaded.medications.any(
-                                (m) =>
-                                    m.id == widget.medicationId &&
-                                    m.statusOn(loaded.currentTime) !=
-                                        MedicationStatus.completed,
-                              ),
-                            ))
-                              const ReminderBlockedNotice(
-                                category: ReminderCategory.medication,
-                              ),
-                            if (loaded.actionError != null ||
-                                loaded.refreshError != null)
-                              Flexible(
-                                child: AppErrorFeedback(
-                                  message: loaded.actionError != null
-                                      ? medicationActionError(
-                                          AppLocalizations.of(context),
-                                          loaded.failedAction,
-                                        )
-                                      : AppLocalizations.of(
+                            AppFeedbackArea(
+                              children: [
+                                if (ReminderBlockedNotice.shows(
+                                  context,
+                                  ReminderCategory.medication,
+                                  hasReminders: loaded.medications.any(
+                                    (m) =>
+                                        m.id == widget.medicationId &&
+                                        m.statusOn(loaded.currentTime) !=
+                                            MedicationStatus.completed,
+                                  ),
+                                ))
+                                  const ReminderBlockedNotice(
+                                    category: ReminderCategory.medication,
+                                  ),
+                                if (loaded.actionError != null ||
+                                    loaded.refreshError != null)
+                                  AppErrorFeedback(
+                                    message: loaded.actionError != null
+                                        ? medicationActionError(
+                                            AppLocalizations.of(context),
+                                            loaded.failedAction,
+                                          )
+                                        : AppLocalizations.of(context)
+                                              .medicationsLoadFailed,
+                                    retryLabel: loaded.failedAction != null
+                                        ? AppLocalizations.of(context)
+                                              .retryAction
+                                        : AppLocalizations.of(context).retry,
+                                    onRetry: () {
+                                      final action = loaded.failedAction;
+                                      if (action != null) {
+                                        performMedicationAction(
                                           context,
-                                        ).medicationsLoadFailed,
-                                  retryLabel: loaded.failedAction != null
-                                      ? AppLocalizations.of(context).retryAction
-                                      : AppLocalizations.of(context).retry,
-                                  onRetry: () {
-                                    final action = loaded.failedAction;
-                                    if (action != null) {
-                                      performMedicationAction(
-                                        context,
-                                        context.read<MedicationCubit>(),
-                                        action,
-                                      );
-                                    } else {
-                                      _reload();
-                                    }
-                                  },
-                                ),
-                              ),
+                                          context.read<MedicationCubit>(),
+                                          action,
+                                        );
+                                      } else {
+                                        _reload();
+                                      }
+                                    },
+                                  ),
+                              ],
+                            ),
                             Expanded(child: _content(loaded)),
                           ],
                         ),

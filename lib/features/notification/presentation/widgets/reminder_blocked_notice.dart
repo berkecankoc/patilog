@@ -7,10 +7,8 @@ import 'package:patilog/features/notification/presentation/cubit/notification_st
 import 'package:patilog/l10n/generated/app_localizations.dart';
 
 /// Explains that an enabled reminder category cannot be delivered because the
-/// device blocks notifications. Add it directly above Expanded content when
-/// [shows] is true. It caps its own height and scrolls, so it must not be
-/// wrapped in Flexible: a Flex splits free space by flex, which would leave the
-/// Expanded content only half of the remaining height.
+/// device blocks notifications. Add it to the screen's AppFeedbackArea when
+/// [shows] is true.
 class ReminderBlockedNotice extends StatelessWidget {
   final ReminderCategory category;
   const ReminderBlockedNotice({super.key, required this.category});
@@ -43,10 +41,6 @@ class ReminderBlockedNotice extends StatelessWidget {
         };
   }
 
-  /// Leaves at least half of a short or large-text screen to the records
-  /// below while the action stays visible and the message scrolls.
-  static const maxHeightFraction = 0.5;
-
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context);
@@ -55,22 +49,17 @@ class ReminderBlockedNotice extends StatelessWidget {
     final appWide = context.select<NotificationCubit, bool>(
       (cubit) => cubit.state.permissions?.canShowNotifications == false,
     );
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * maxHeightFraction,
-      ),
-      child: AppErrorFeedback(
-        message: switch (category) {
-          ReminderCategory.medication => s.medicationRemindersBlockedNotice,
-          ReminderCategory.vaccination => s.vaccinationRemindersBlockedNotice,
-          ReminderCategory.feeding => s.feedingRemindersBlockedNotice,
-        },
-        retryLabel: appWide ? s.allowNotifications : s.openDeviceSettings,
-        onRetry: () => cubit.perform(
-          appWide
-              ? NotificationAction.notificationPermission
-              : NotificationAction.openSettings,
-        ),
+    return AppErrorFeedback(
+      message: switch (category) {
+        ReminderCategory.medication => s.medicationRemindersBlockedNotice,
+        ReminderCategory.vaccination => s.vaccinationRemindersBlockedNotice,
+        ReminderCategory.feeding => s.feedingRemindersBlockedNotice,
+      },
+      retryLabel: appWide ? s.allowNotifications : s.openDeviceSettings,
+      onRetry: () => cubit.perform(
+        appWide
+            ? NotificationAction.notificationPermission
+            : NotificationAction.openSettings,
       ),
     );
   }

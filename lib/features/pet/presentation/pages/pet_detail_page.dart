@@ -11,6 +11,7 @@ import 'package:patilog/core/theme/app_spacing.dart';
 import 'package:patilog/core/l10n/app_number_formats.dart';
 import 'package:patilog/core/widgets/app_weight_unit.dart';
 import 'package:patilog/core/widgets/app_gap.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/error_view.dart';
 import 'package:patilog/core/widgets/pet_care_tabs.dart';
@@ -81,22 +82,24 @@ class PetDetailPage extends StatelessWidget {
               PetLoaded(:final pet, :final deleteError, :final refreshError) =>
                 Column(
                   children: [
-                    if (deleteError != null || refreshError != null)
-                      Flexible(
-                        child: AppErrorFeedback(
-                          message: deleteError != null
-                              ? strings.petDeleteFailed
-                              : refreshError is NotFoundFailure
-                              ? strings.petNotFound
-                              : strings.petRefreshFailed,
-                          retryLabel: deleteError != null
-                              ? strings.retryDeletion
-                              : strings.retryProfile,
-                          onRetry: () => deleteError != null
-                              ? deletePetWithConfirmation(context, pet)
-                              : context.read<PetCubit>().refreshPet(petId),
-                        ),
-                      ),
+                    AppFeedbackArea(
+                      children: [
+                        if (deleteError != null || refreshError != null)
+                          AppErrorFeedback(
+                            message: deleteError != null
+                                ? strings.petDeleteFailed
+                                : refreshError is NotFoundFailure
+                                ? strings.petNotFound
+                                : strings.petRefreshFailed,
+                            retryLabel: deleteError != null
+                                ? strings.retryDeletion
+                                : strings.retryProfile,
+                            onRetry: () => deleteError != null
+                                ? deletePetWithConfirmation(context, pet)
+                                : context.read<PetCubit>().refreshPet(petId),
+                          ),
+                      ],
+                    ),
                     Expanded(
                       child: _PetView(
                         pet: pet,

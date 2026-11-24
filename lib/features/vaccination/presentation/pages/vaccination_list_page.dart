@@ -7,6 +7,7 @@ import 'package:patilog/core/router/care_record_changes.dart';
 import 'package:patilog/core/router/pet_care_changes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_pet_filter.dart';
 import 'package:patilog/core/widgets/app_pet_picker.dart';
@@ -228,34 +229,36 @@ class _VaccinationListPageState extends State<VaccinationListPage> {
     final today = DateUtils.dateOnly(DateTime.now());
     return Column(
       children: [
-        if (ReminderBlockedNotice.shows(
-          context,
-          ReminderCategory.vaccination,
-          hasReminders: records.any(
-            (v) =>
-                v.status == VaccinationStatus.planned &&
-                !DateUtils.dateOnly(v.date).isBefore(today),
-          ),
-        ))
-          const ReminderBlockedNotice(
-            category: ReminderCategory.vaccination,
-          ),
-        if (state.deleteError != null && state.deletionVaccination != null)
-          Flexible(
-            child: AppErrorFeedback(
-              message: strings.vaccinationDeleteFailed,
-              retryLabel: strings.retryDeletion,
-              onRetry: busy ? null : () => _delete(state.deletionVaccination!),
-            ),
-          )
-        else if (state.refreshError != null)
-          Flexible(
-            child: AppErrorFeedback(
-              message: strings.vaccinationsLoadFailed,
-              retryLabel: strings.retry,
-              onRetry: busy ? null : _reload,
-            ),
-          ),
+        AppFeedbackArea(
+          children: [
+            if (ReminderBlockedNotice.shows(
+              context,
+              ReminderCategory.vaccination,
+              hasReminders: records.any(
+                (v) =>
+                    v.status == VaccinationStatus.planned &&
+                    !DateUtils.dateOnly(v.date).isBefore(today),
+              ),
+            ))
+              const ReminderBlockedNotice(
+                category: ReminderCategory.vaccination,
+              ),
+            if (state.deleteError != null && state.deletionVaccination != null)
+              AppErrorFeedback(
+                message: strings.vaccinationDeleteFailed,
+                retryLabel: strings.retryDeletion,
+                onRetry: busy
+                    ? null
+                    : () => _delete(state.deletionVaccination!),
+              )
+            else if (state.refreshError != null)
+              AppErrorFeedback(
+                message: strings.vaccinationsLoadFailed,
+                retryLabel: strings.retry,
+                onRetry: busy ? null : _reload,
+              ),
+          ],
+        ),
         Expanded(
           child: _global && widget.petsLoaded && widget.pets.isEmpty
               ? CareEmptyView(

@@ -9,6 +9,7 @@ import 'package:patilog/core/router/care_record_changes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
 import 'package:patilog/core/router/pet_care_tab.dart';
 import 'package:patilog/core/widgets/app_confirmation_dialog.dart';
+import 'package:patilog/core/widgets/app_feedback_area.dart';
 import 'package:patilog/core/widgets/app_error_feedback.dart';
 import 'package:patilog/core/widgets/app_feeding_icon.dart';
 import 'package:patilog/core/widgets/app_health_records_icon.dart';
@@ -647,18 +648,20 @@ class _AllPetsCarePageState extends State<AllPetsCarePage>
                       constraints: const BoxConstraints(maxWidth: 640),
                       child: Column(
                         children: [
-                          if (state.pets.error != null &&
-                              (section != AllPetsCareSection.pets ||
-                                  state.pets.hasLoaded))
-                            Flexible(
-                              child: AppErrorFeedback(
-                                message: section == AllPetsCareSection.pets
-                                    ? strings.petsLoadFailed
-                                    : strings.petNamesRefreshFailed,
-                                retryLabel: strings.retryPets,
-                                onRetry: _busy ? null : _cubit.loadPets,
-                              ),
-                            ),
+                          AppFeedbackArea(
+                            children: [
+                              if (state.pets.error != null &&
+                                  (section != AllPetsCareSection.pets ||
+                                      state.pets.hasLoaded))
+                                AppErrorFeedback(
+                                  message: section == AllPetsCareSection.pets
+                                      ? strings.petsLoadFailed
+                                      : strings.petNamesRefreshFailed,
+                                  retryLabel: strings.retryPets,
+                                  onRetry: _busy ? null : _cubit.loadPets,
+                                ),
+                            ],
+                          ),
                           Expanded(
                             child: IndexedStack(
                               index: section.index,
