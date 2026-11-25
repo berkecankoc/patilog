@@ -106,22 +106,16 @@ final class FeedingLocalDataSourceImpl implements FeedingLocalDataSource {
         final today = calendarDateKey(now());
         _validatePlan(plan);
         await _requirePet(txn, plan.petId);
-        final existing = await txn.query(
-          DatabaseTables.feedingPlans,
-          columns: ['id'],
-          where: 'pet_id = ?',
-          whereArgs: [plan.petId],
-          limit: 1,
-        );
-        final start = calendarDateKey(plan.startDate);
-        if (start.compareTo(today) < 0 ||
-            existing.isNotEmpty && start.compareTo(today) <= 0) {
+        // A start shared with another version fails the unique constraint.
+        if (calendarDateKey(plan.startDate).compareTo(today) < 0) {
           throw const LocalDataSourceException();
         }
+        final detached = await _detachToday(txn, plan.petId, today);
         await txn.insert(DatabaseTables.feedingPlans, plan.toJson());
         for (final meal in plan.meals) {
           await txn.insert(DatabaseTables.feedingMeals, meal.toJson());
         }
+        await _attachToday(txn, plan.petId, today, detached);
         await _validatePreservedEntries(txn, plan.petId);
       });
 
@@ -136,9 +130,11 @@ final class FeedingLocalDataSourceImpl implements FeedingLocalDataSource {
     if (index < 0) throw const LocalDataNotFoundException();
     final previous = plans[index];
     _validatePlan(plan);
-    final recorded = await _hasEntries(txn, plan.id);
+    final started = calendarDateKey(previous.startDate).compareTo(today);
+    // A version that started today stays editable; recorded meals follow it by
+    // time. Entries on an unstarted version mean the clock moved backwards.
     final locked =
-        calendarDateKey(previous.startDate).compareTo(today) <= 0 || recorded;
+        started < 0 || started > 0 && await _hasEntries(txn, plan.id);
     if (locked) {
       if (calendarDateKey(previous.startDate) !=
               calendarDateKey(plan.startDate) ||
@@ -159,16 +155,11 @@ final class FeedingLocalDataSourceImpl implements FeedingLocalDataSource {
       }
     } else {
       final start = calendarDateKey(plan.startDate);
-      final startedOther = plans.any(
-        (value) =>
-            value.id != plan.id &&
-            calendarDateKey(value.startDate).compareTo(today) <= 0,
-      );
-      if (start.compareTo(today) < 0 ||
-          startedOther && start.compareTo(today) <= 0) {
+      if (start.compareTo(today) < 0 || started == 0 && start != today) {
         throw const LocalDataSourceException();
       }
     }
+    final detached = await _detachToday(txn, plan.petId, today);
     await txn.update(
       DatabaseTables.feedingPlans,
       plan.toJson(),
@@ -185,6 +176,7 @@ final class FeedingLocalDataSourceImpl implements FeedingLocalDataSource {
         await txn.insert(DatabaseTables.feedingMeals, meal.toJson());
       }
     }
+    await _attachToday(txn, plan.petId, today, detached);
     await _validatePreservedEntries(txn, plan.petId);
   });
 
@@ -461,6 +453,62 @@ final class FeedingLocalDataSourceImpl implements FeedingLocalDataSource {
             day.compareTo(plan['end_date'] as String) > 0 ||
         plan['superseded'] == 1) {
       throw const LocalDataSourceException();
+    }
+  }
+
+  /// Unlinks today's recorded planned meals before a plan write, returning
+  /// each entry with its meal time so [_attachToday] can relink it.
+  Future<List<(String, int)>> _detachToday(
+    DatabaseExecutor txn,
+    String petId,
+    String today,
+  ) async {
+    final rows = await txn.rawQuery(
+      '''
+      SELECT e.id, m.scheduled_minute FROM ${DatabaseTables.feedingEntries} e
+      JOIN ${DatabaseTables.feedingMeals} m ON m.id = e.meal_id
+      WHERE e.pet_id = ? AND e.scheduled_date = ?
+    ''',
+      [petId, today],
+    );
+    await txn.update(
+      DatabaseTables.feedingEntries,
+      {'meal_id': null, 'scheduled_date': null},
+      where: 'pet_id = ? AND scheduled_date = ?',
+      whereArgs: [petId, today],
+    );
+    return [
+      for (final row in rows)
+        (row['id'] as String, row['scheduled_minute'] as int),
+    ];
+  }
+
+  /// Links detached entries to the meal at the same time in the version in
+  /// effect today; the rest remain manual entries with their recorded values.
+  Future<void> _attachToday(
+    DatabaseExecutor txn,
+    String petId,
+    String today,
+    List<(String, int)> detached,
+  ) async {
+    if (detached.isEmpty) return;
+    final current = (await _readPlans(txn, petId: petId))
+        .where((p) => calendarDateKey(p.startDate).compareTo(today) <= 0)
+        .lastOrNull;
+    if (current == null || (_endKey(current)?.compareTo(today) ?? 0) < 0) {
+      return;
+    }
+    for (final (id, minute) in detached) {
+      final meal = current.meals
+          .where((meal) => meal.scheduledMinute == minute)
+          .firstOrNull;
+      if (meal == null) continue;
+      await txn.update(
+        DatabaseTables.feedingEntries,
+        {'meal_id': meal.id, 'scheduled_date': today},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
     }
   }
 
