@@ -1741,6 +1741,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'These meals will be removed from the plan. Recorded feedings stay unchanged.';
 
   @override
+  String get cancelFeedingPlan => 'Cancel plan';
+
+  @override
   String get feedingDeletePlanTitle => 'Delete feeding plan?';
 
   @override
@@ -1754,12 +1757,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteFeedingPlan => 'Delete feeding plan';
 
   @override
-  String get feedingFirstPlanHint =>
-      'Your first plan can start today or later.';
+  String get feedingPlanStartHint => 'This plan can start today or later.';
 
   @override
-  String get feedingChangesHint =>
-      'Changes start tomorrow or later. Earlier feeding records stay unchanged.';
+  String get feedingPlanStartTomorrowHint =>
+      'Another plan started today, so this one can start tomorrow or later.';
+
+  @override
+  String get feedingTodayPlanHint =>
+      'This plan started today, so changes apply right away.';
+
+  @override
+  String get feedingTodayMealsHint =>
+      'Meals already given today move to the meal at the same time; if there is none, they stay under “Other feedings”.';
+
+  @override
+  String get feedingStartTodayMealsHint =>
+      'If it starts today, meals already given today move to the meal at the same time; if there is none, they stay under “Other feedings”.';
 
   @override
   String get feedingPlanEmptyMessage =>

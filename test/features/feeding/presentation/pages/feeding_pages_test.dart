@@ -9,6 +9,7 @@ import 'package:patilog/core/l10n/app_locale.dart';
 import 'package:patilog/core/result/result.dart';
 import 'package:patilog/core/router/app_routes.dart';
 import 'package:patilog/core/router/pet_care_route_extra.dart';
+import 'package:patilog/core/widgets/app_date_field.dart';
 import 'package:patilog/core/widgets/app_multi_step_form.dart';
 import 'package:patilog/features/feeding/domain/entities/feeding_entry.dart';
 import 'package:patilog/features/feeding/domain/entities/feeding_meal.dart';
@@ -446,6 +447,181 @@ void main() {
     verify(() => app.feeding.updateFeedingPlan(any())).called(1);
     verifyNever(() => app.feeding.createFeedingPlan(any()));
   });
+
+  testWidgets('changing an earlier plan starts a new version today', (
+    tester,
+  ) async {
+    final yesterday = DateTime(
+      app.today.year,
+      app.today.month,
+      app.today.day - 1,
+    );
+    app.plans = [plan(start: yesterday)];
+    await app.pump(tester, location: AppRoutes.feeding('pet'));
+    await switchView(tester, 1);
+    await reveal(tester, find.byTooltip('Edit plan'));
+    await tester.tap(find.byTooltip('Edit plan'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'This plan can start today or later. If it starts today, meals already given today move to the meal at the same time; if there is none, they stay under “Other feedings”.',
+      ),
+      findsOneWidget,
+    );
+    await enterFormText(tester, field('Amount'), '40');
+    await submitForm(tester);
+    expect(app.plans, hasLength(2));
+    expect(app.plans.first.meals.single.amountGrams, 30.5);
+    expect(app.plans.last.startDate, app.today);
+    expect(app.plans.last.meals.single.amountGrams, 40);
+    verifyNever(() => app.feeding.updateFeedingPlan(any()));
+  });
+
+  testWidgets('a plan that started today is edited in place', (tester) async {
+    app.plans = [plan()];
+    app.entries = [entry(mealId: 'plan-meal')];
+    await app.pump(tester, location: AppRoutes.feeding('pet'));
+    await switchView(tester, 1);
+    await reveal(tester, find.byTooltip('Edit plan'));
+    await tester.tap(find.byTooltip('Edit plan'));
+    await tester.pumpAndSettle();
+    await enterFormText(tester, field('Amount'), '40');
+    final start = tester.widget<AppDateField>(
+      find.widgetWithText(AppDateField, 'Start date'),
+    );
+    expect(start.readOnly, isTrue);
+    await submitForm(tester);
+    expect(app.plans.single.id, 'plan');
+    expect(app.plans.single.startDate, app.today);
+    expect(app.plans.single.meals.single.id, 'plan-meal');
+    expect(app.plans.single.meals.single.amountGrams, 40);
+    verify(() => app.feeding.updateFeedingPlan(any())).called(1);
+    verifyNever(() => app.feeding.createFeedingPlan(any()));
+  });
+
+  group('the plan form hint matches what the start date allows', () {
+    DateTime offset(int days) =>
+        DateTime(app.today.year, app.today.month, app.today.day + days);
+    const start = 'This plan can start today or later.';
+    const startToday =
+        '$start If it starts today, meals already given today move to the meal at the same time; if there is none, they stay under “Other feedings”.';
+    const inPlace =
+        'This plan started today, so changes apply right away. Meals already given today move to the meal at the same time; if there is none, they stay under “Other feedings”.';
+    const tomorrow =
+        'Another plan started today, so this one can start tomorrow or later.';
+    final cases =
+        <(String, List<FeedingPlan> Function(), String? editedId, String)>[
+          ('without plans', () => [], null, start),
+          (
+            'after an ended plan',
+            () => [
+              FeedingPlan(
+                id: 'ended',
+                petId: 'pet',
+                startDate: offset(-2),
+                endDate: offset(-1),
+                meals: plan(id: 'ended').meals,
+              ),
+            ],
+            null,
+            start,
+          ),
+          (
+            'for a new version of a plan in effect',
+            () => [plan(start: offset(-1))],
+            null,
+            startToday,
+          ),
+          ('for a plan that started today', () => [plan()], 'plan', inPlace),
+          (
+            'for a scheduled plan after one that started today',
+            () => [plan(), plan(id: 'next', start: offset(1))],
+            'next',
+            tomorrow,
+          ),
+        ];
+    for (final (name, plans, editedId, hint) in cases) {
+      testWidgets(name, (tester) async {
+        app.plans = plans();
+        final router = await app.pump(
+          tester,
+          location: AppRoutes.feeding('pet'),
+        );
+        unawaited(
+          router.push(
+            AppRoutes.addEditFeedingPlan('pet'),
+            extra: FeedingPlanFormExtra(
+              petId: 'pet',
+              plan: app.plans.where((p) => p.id == editedId).firstOrNull,
+              template: app.plans.lastOrNull,
+              plans: app.plans,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await editForm(tester);
+        expect(find.text(hint), findsOneWidget);
+      });
+    }
+  });
+
+  testWidgets(
+    'a sole scheduled plan is only deleted; after an ended plan it is canceled as a plan, beside a plan in effect as changes',
+    (tester) async {
+      DateTime offset(int days) =>
+          DateTime(app.today.year, app.today.month, app.today.day + days);
+      final tomorrow = offset(1);
+      app.plans = [plan(id: 'next', start: tomorrow)];
+      await app.pump(tester, location: AppRoutes.feeding('pet'));
+      await switchView(tester, 1);
+      expect(find.byTooltip('Delete feeding plan'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Cancel plan'), findsNothing);
+      expect(find.widgetWithText(TextButton, 'Cancel changes'), findsNothing);
+
+      app.plans = [
+        FeedingPlan(
+          id: 'ended',
+          petId: 'pet',
+          startDate: offset(-2),
+          endDate: offset(-1),
+          meals: plan(id: 'ended').meals,
+        ),
+        plan(id: 'next', start: tomorrow),
+      ];
+      await tester.pumpWidget(const SizedBox());
+      await app.pump(tester, location: AppRoutes.feeding('pet'));
+      await switchView(tester, 1);
+      expect(find.widgetWithText(TextButton, 'Cancel changes'), findsNothing);
+      final cancelPlan = find.widgetWithText(TextButton, 'Cancel plan');
+      await reveal(tester, cancelPlan);
+      await tester.tap(cancelPlan);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'These meals will be removed from the plan. Recorded feedings stay unchanged.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      app.plans = [plan(), plan(id: 'next', start: tomorrow)];
+      await tester.pumpWidget(const SizedBox());
+      await app.pump(tester, location: AppRoutes.feeding('pet'));
+      await switchView(tester, 1);
+      expect(find.widgetWithText(TextButton, 'Cancel plan'), findsNothing);
+      final cancelChanges = find.widgetWithText(TextButton, 'Cancel changes');
+      await reveal(tester, cancelChanges);
+      await tester.tap(cancelChanges);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'The previous plan may continue until its end date. Recorded feedings stay unchanged.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets(
     'deleting the plan asks first, keeps recorded meals and re-asks on Retry',

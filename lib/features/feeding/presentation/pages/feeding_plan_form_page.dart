@@ -58,14 +58,45 @@ class _FeedingPlanFormPageState extends State<FeedingPlanFormPage> {
   late DateTime _initialStart;
   DateTime? _initialEnd;
   late List<(String?, String, String, String)> _baseline;
-  bool get _locked =>
+  DateTime get _today => DateUtils.dateOnly(widget.now());
+
+  /// Started versions keep their start; one that started today keeps
+  /// editable meals, while earlier versions can only change their end.
+  bool get _started =>
       widget.plan != null &&
-      !DateUtils.dateOnly(
-        widget.plan!.startDate,
-      ).isAfter(DateUtils.dateOnly(widget.now()));
-  DateTime get _minimum => _plans!.isEmpty
-      ? DateUtils.dateOnly(widget.now())
-      : DateTime(widget.now().year, widget.now().month, widget.now().day + 1);
+      !DateUtils.dateOnly(widget.plan!.startDate).isAfter(_today);
+  bool get _locked =>
+      _started && DateUtils.dateOnly(widget.plan!.startDate).isBefore(_today);
+  DateTime get _minimum =>
+      _plans!.any(
+        (plan) =>
+            plan.id != widget.plan?.id &&
+            DateUtils.isSameDay(plan.startDate, _today),
+      )
+      ? DateTime(_today.year, _today.month, _today.day + 1)
+      : _today;
+
+  /// The version in effect today, which a plan starting today replaces.
+  bool get _otherInEffect {
+    final started = _plans!
+        .where(
+          (plan) =>
+              plan.id != widget.plan?.id &&
+              !DateUtils.dateOnly(plan.startDate).isAfter(_today),
+        )
+        .lastOrNull;
+    return started != null && started.isActiveOn(_today);
+  }
+
+  String _hint(AppLocalizations s) {
+    if (_locked) return s.feedingPlanEndHint;
+    if (_started) return '${s.feedingTodayPlanHint} ${s.feedingTodayMealsHint}';
+    if (_minimum != _today) return s.feedingPlanStartTomorrowHint;
+    return _otherInEffect
+        ? '${s.feedingPlanStartHint} ${s.feedingStartTodayMealsHint}'
+        : s.feedingPlanStartHint;
+  }
+
   bool get _changed =>
       _start != _initialStart ||
       _end != _initialEnd ||
@@ -261,24 +292,18 @@ class _FeedingPlanFormPageState extends State<FeedingPlanFormPage> {
             builder: (_, _) => Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  _locked
-                      ? s.feedingPlanEndHint
-                      : _plans!.isEmpty
-                      ? s.feedingFirstPlanHint
-                      : s.feedingChangesHint,
-                ),
+                Text(_hint(s)),
                 const SizedBox(height: 16),
                 FormField<DateTime>(
-                  validator: (_) => !_locked && _start.isBefore(_minimum)
+                  validator: (_) => !_started && _start.isBefore(_minimum)
                       ? s.feedingPlanDateRequired
                       : null,
                   builder: (field) => AppDateField(
                     labelText: s.startDate,
                     value: _start,
-                    firstDate: _locked ? _start : _minimum,
+                    firstDate: _started ? _start : _minimum,
                     lastDate: DateTime(2100),
-                    readOnly: _locked,
+                    readOnly: _started,
                     errorText: field.errorText,
                     onChanged: (date) {
                       if (date != null) {
@@ -334,7 +359,7 @@ class _FeedingPlanFormPageState extends State<FeedingPlanFormPage> {
                 AppFormOptionalSection(
                   title: s.endDateOptional,
                   icon: Icons.event_outlined,
-                  initiallyExpanded: _locked || _end != null,
+                  initiallyExpanded: _started || _end != null,
                   child: FormField<DateTime>(
                     validator: (_) =>
                         _end != null &&

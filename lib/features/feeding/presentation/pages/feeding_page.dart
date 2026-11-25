@@ -249,9 +249,7 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
           final previous =
               state is FeedingLoaded &&
               action is CancelFeedingPlanAction &&
-              state.plans.any(
-                (p) => p.petId == action.petId && p.id != action.planId,
-              );
+              _currentPlan(state, action.petId) != null;
           return AppConfirmationDialog(
             title: switch (action) {
               DeleteFeedingEntryAction() => s.feedingDeleteTitle,
@@ -485,17 +483,23 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
     }
   }
 
+  /// The version in effect today; a successor ends earlier versions for good.
+  FeedingPlan? _currentPlan(FeedingLoaded state, String petId) {
+    final today = DateUtils.dateOnly(state.currentTime);
+    final started =
+        (state.plans.where((p) => p.petId == petId).toList()
+              ..sort((a, b) => a.startDate.compareTo(b.startDate)))
+            .where((p) => !DateUtils.dateOnly(p.startDate).isAfter(today))
+            .lastOrNull;
+    return started != null && started.isActiveOn(today) ? started : null;
+  }
+
   Widget _planCard(FeedingLoaded state, String owner, bool busy) {
     final s = AppLocalizations.of(context);
     final plans = state.plans.where((p) => p.petId == owner).toList()
       ..sort((a, b) => a.startDate.compareTo(b.startDate));
     final today = DateUtils.dateOnly(state.currentTime);
-    final started = plans
-        .where((p) => !DateUtils.dateOnly(p.startDate).isAfter(today))
-        .lastOrNull;
-    final current = started != null && started.isActiveOn(today)
-        ? started
-        : null;
+    final current = _currentPlan(state, owner);
     final pending = plans
         .where((p) => DateUtils.dateOnly(p.startDate).isAfter(today))
         .firstOrNull;
@@ -526,7 +530,16 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
                         : () => _plan(
                             state,
                             owner,
-                            plan: pending,
+                            // A version that started today is edited in place.
+                            plan:
+                                pending ??
+                                (current != null &&
+                                        DateUtils.isSameDay(
+                                          current.startDate,
+                                          today,
+                                        )
+                                    ? current
+                                    : null),
                             template: visible,
                           ),
                     icon: const Icon(Icons.edit_outlined),
@@ -608,15 +621,20 @@ class _FeedingPageState extends State<FeedingPage> with WidgetsBindingObserver {
                       ),
                     ),
                 ],
-                TextButton.icon(
-                  onPressed: busy
-                      ? null
-                      : () => _perform(
-                          CancelFeedingPlanAction(owner, pending.id),
-                        ),
-                  icon: const Icon(Icons.close, size: 20),
-                  label: Text(s.cancelChanges),
-                ),
+                // A sole scheduled plan is removed with Delete instead.
+                if (plans.length > 1)
+                  TextButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _perform(
+                            CancelFeedingPlanAction(owner, pending.id),
+                          ),
+                    icon: const Icon(Icons.close, size: 20),
+                    // Nothing to change back to without a plan in effect.
+                    label: Text(
+                      current != null ? s.cancelChanges : s.cancelFeedingPlan,
+                    ),
+                  ),
               ],
               if (current != null)
                 TextButton(

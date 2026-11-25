@@ -155,26 +155,17 @@ void main() {
     },
   );
 
-  test(
-    'initial plans cannot backdate and successors must start after today',
-    () async {
-      await expectLater(
-        source.createFeedingPlan(plan(start: day(-1))),
-        invalid,
-      );
-      await source.createFeedingPlan(plan());
-      await expectLater(
-        source.createFeedingPlan(plan(id: 'same-day')),
-        invalid,
-      );
-      await source.createFeedingPlan(plan(id: 'next', start: day(1)));
-      await expectLater(
-        source.createFeedingPlan(plan(id: 'duplicate-start', start: day(1))),
-        invalid,
-      );
-      expect((await source.getFeedingPlans('pet-1')).length, 2);
-    },
-  );
+  test('plans cannot backdate and each version needs its own start', () async {
+    await expectLater(source.createFeedingPlan(plan(start: day(-1))), invalid);
+    await source.createFeedingPlan(plan());
+    await expectLater(source.createFeedingPlan(plan(id: 'same-day')), invalid);
+    await source.createFeedingPlan(plan(id: 'next', start: day(1)));
+    await expectLater(
+      source.createFeedingPlan(plan(id: 'duplicate-start', start: day(1))),
+      invalid,
+    );
+    expect((await source.getFeedingPlans('pet-1')).length, 2);
+  });
 
   test(
     'plans reject empty/duplicate meals, invalid times and mismatched ownership',
@@ -256,9 +247,10 @@ void main() {
   );
 
   test(
-    'started schedules retain start and meals but may end today or later',
+    'earlier versions retain start and meals but may end today or later',
     () async {
       await source.createFeedingPlan(plan());
+      clock = day(1);
       await expectLater(source.updateFeedingPlan(plan(start: day(1))), invalid);
       await expectLater(
         source.updateFeedingPlan(
@@ -280,16 +272,152 @@ void main() {
         ),
         invalid,
       );
-      await expectLater(source.updateFeedingPlan(plan(end: day(-1))), invalid);
-      await source.updateFeedingPlan(plan(end: day(2)));
+      await expectLater(source.updateFeedingPlan(plan(end: day())), invalid);
+      await source.updateFeedingPlan(plan(end: day(3)));
       await source.updateFeedingPlan(plan());
-      await source.updateFeedingPlan(plan(end: day()));
-      expect((await source.getFeedingPlanById('pet-1', 'plan')).endDate, day());
+      await source.updateFeedingPlan(plan(end: day(1)));
+      expect(
+        (await source.getFeedingPlanById('pet-1', 'plan')).endDate,
+        day(1),
+      );
       await expectLater(source.deleteFeedingPlan('pet-1', 'plan'), invalid);
-      clock = day(1);
+      clock = day(2);
       await expectLater(source.updateFeedingPlan(plan()), invalid);
     },
   );
+
+  test(
+    'today\'s version changes meals in place; records follow by time',
+    () async {
+      await source.createFeedingPlan(
+        plan(
+          meals: [
+            meal(id: 'a', minute: 540),
+            meal(id: 'b', minute: 720),
+            meal(id: 'c', minute: 1080),
+          ],
+        ),
+      );
+      for (final (id, mealId) in [('e-a', 'a'), ('e-b', 'b'), ('e-c', 'c')]) {
+        await source.createFeedingEntry(
+          entry(id: id, mealId: mealId, scheduledDate: day()),
+        );
+      }
+      await expectLater(
+        source.updateFeedingPlan(
+          plan(
+            start: day(1),
+            meals: [meal(id: 'a')],
+          ),
+        ),
+        invalid,
+      );
+      await expectLater(source.deleteFeedingPlan('pet-1', 'plan'), invalid);
+
+      // Swapped times and a removed meal: records follow the time, not the ID.
+      await source.updateFeedingPlan(
+        plan(
+          meals: [
+            meal(id: 'a', minute: 720, amount: 40),
+            meal(id: 'b', minute: 540),
+            meal(id: 'd', minute: 1200),
+          ],
+        ),
+      );
+
+      final saved = await source.getFeedingPlanById('pet-1', 'plan');
+      expect(saved.startDate, day());
+      expect(saved.meals.map((value) => value.id), ['b', 'a', 'd']);
+      final links = {
+        for (final value in await entries())
+          value.id: (value.mealId, value.scheduledDate),
+      };
+      expect(links, {
+        'e-a': ('b', day()),
+        'e-b': ('a', day()),
+        'e-c': (null, null),
+      });
+      expect((await entries()).map((value) => value.id), ['e-c', 'e-b', 'e-a']);
+    },
+  );
+
+  test('a successor can start today and take over records by time', () async {
+    await source.createFeedingPlan(
+      plan(
+        meals: [
+          meal(id: 'old-morning', minute: 540),
+          meal(id: 'old-evening', minute: 1080),
+        ],
+      ),
+    );
+    await source.createFeedingEntry(
+      entry(id: 'yesterday', mealId: 'old-morning', scheduledDate: day()),
+    );
+    clock = day(1).add(const Duration(hours: 20));
+    for (final (id, mealId) in [
+      ('morning', 'old-morning'),
+      ('evening', 'old-evening'),
+    ]) {
+      await source.createFeedingEntry(
+        entry(id: id, mealId: mealId, scheduledDate: day(1)),
+      );
+    }
+
+    await source.createFeedingPlan(
+      plan(
+        id: 'next',
+        start: day(1),
+        meals: [meal(id: 'new-morning', planId: 'next', minute: 540)],
+      ),
+    );
+
+    final links = {
+      for (final value in await entries())
+        value.id: (value.mealId, value.scheduledDate),
+    };
+    expect(links, {
+      'yesterday': ('old-morning', day()),
+      'morning': ('new-morning', day(1)),
+      'evening': (null, null),
+    });
+    await expectLater(
+      source.createFeedingPlan(plan(id: 'again', start: day(1))),
+      invalid,
+    );
+    await expectLater(
+      source.updateFeedingPlan(plan(meals: [meal(id: 'old-morning')])),
+      invalid,
+    );
+  });
+
+  test('an unstarted successor can move to today', () async {
+    await source.createFeedingPlan(plan());
+    clock = day(1).add(const Duration(hours: 12));
+    await source.createFeedingEntry(
+      entry(mealId: 'plan-meal', scheduledDate: day(1)),
+    );
+    await source.createFeedingPlan(
+      plan(
+        id: 'next',
+        start: day(3),
+        meals: [meal(id: 'next-meal', planId: 'next')],
+      ),
+    );
+    await source.updateFeedingPlan(
+      plan(
+        id: 'next',
+        start: day(1),
+        meals: [meal(id: 'next-meal', planId: 'next')],
+      ),
+    );
+    expect((await entries()).single.mealId, 'next-meal');
+    expect(
+      (await source.getFeedingPlans('pet-1')).last
+          .toEntity()
+          .isActiveOn(day(1)),
+      isTrue,
+    );
+  });
 
   test(
     'unstarted plan replacement/cancellation retains older plans and entries',

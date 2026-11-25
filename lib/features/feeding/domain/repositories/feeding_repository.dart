@@ -16,15 +16,20 @@ abstract interface class FeedingRepository {
 
   Future<Result<FeedingPlan>> getFeedingPlanById(String petId, String planId);
 
-  /// Atomically saves the plan and its matching meals. The first plan starts
-  /// today or later; successors start after today, with a unique start per pet.
-  /// Meals require unique IDs/minutes, at least one meal and minutes in 0–1439.
-  /// A successor ends the preceding version's effective window permanently.
+  /// Atomically saves the plan and its matching meals. Versions start today or
+  /// later with a unique start per pet. Meals require unique IDs/minutes, at
+  /// least one meal and minutes in 0–1439. A successor ends the preceding
+  /// version's effective window permanently. Meals recorded for today move to
+  /// the meal at the same time in the version in effect today, or otherwise
+  /// remain as manual entries with their actual time, amount and text.
   Future<Result<void>> createFeedingPlan(FeedingPlan plan);
 
-  /// Unstarted plans can be edited; started versions retain their start/meals.
-  /// The current plan can end today or later, retaining every recorded meal.
-  /// An explicit end must be on/after the start. Insertion order is preserved.
+  /// Unstarted plans can be edited and may start today. A version that started
+  /// today keeps its start but its meals can change; today's recorded meals
+  /// follow as in [createFeedingPlan]. Earlier versions retain their
+  /// start/meals. The current plan can end today or later, retaining every
+  /// recorded meal. An explicit end must be on/after the start. Insertion
+  /// order is preserved.
   Future<Result<void>> updateFeedingPlan(FeedingPlan plan);
 
   /// Cancels only an unstarted version; earlier versions and all entries remain.

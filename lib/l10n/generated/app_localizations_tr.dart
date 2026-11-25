@@ -1703,6 +1703,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu öğünler plandan kaldırılacak. Beslenme kayıtları değişmez.';
 
   @override
+  String get cancelFeedingPlan => 'Planı iptal et';
+
+  @override
   String get feedingDeletePlanTitle => 'Beslenme planı silinsin mi?';
 
   @override
@@ -1716,12 +1719,24 @@ class AppLocalizationsTr extends AppLocalizations {
   String get deleteFeedingPlan => 'Beslenme planını sil';
 
   @override
-  String get feedingFirstPlanHint =>
-      'İlk planın bugün veya sonrasında başlayabilir.';
+  String get feedingPlanStartHint =>
+      'Bu plan bugün veya ileri bir tarihte başlayabilir.';
 
   @override
-  String get feedingChangesHint =>
-      'Değişiklikler en erken yarın başlar. Önceki beslenme kayıtları değişmez.';
+  String get feedingPlanStartTomorrowHint =>
+      'Bugün başlayan başka bir plan olduğu için bu plan en erken yarın başlayabilir.';
+
+  @override
+  String get feedingTodayPlanHint =>
+      'Bu plan bugün başladı; değişiklikler hemen geçerli olur.';
+
+  @override
+  String get feedingTodayMealsHint =>
+      'Bugün verdiğin öğünler aynı saatteki öğüne aktarılır; o saatte öğün yoksa “Diğer beslenme kayıtları” bölümünde kalır.';
+
+  @override
+  String get feedingStartTodayMealsHint =>
+      'Bugün başlarsa, bugün verdiğin öğünler aynı saatteki öğüne aktarılır; o saatte öğün yoksa “Diğer beslenme kayıtları” bölümünde kalır.';
 
   @override
   String get feedingPlanEmptyMessage =>

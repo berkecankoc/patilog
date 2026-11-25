@@ -3156,6 +3156,12 @@ abstract class AppLocalizations {
   /// **'These meals will be removed from the plan. Recorded feedings stay unchanged.'**
   String get feedingCancelFirstPlanMessage;
 
+  /// No description provided for @cancelFeedingPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel plan'**
+  String get cancelFeedingPlan;
+
   /// No description provided for @feedingDeletePlanTitle.
   ///
   /// In en, this message translates to:
@@ -3180,17 +3186,35 @@ abstract class AppLocalizations {
   /// **'Delete feeding plan'**
   String get deleteFeedingPlan;
 
-  /// No description provided for @feedingFirstPlanHint.
+  /// No description provided for @feedingPlanStartHint.
   ///
   /// In en, this message translates to:
-  /// **'Your first plan can start today or later.'**
-  String get feedingFirstPlanHint;
+  /// **'This plan can start today or later.'**
+  String get feedingPlanStartHint;
 
-  /// No description provided for @feedingChangesHint.
+  /// No description provided for @feedingPlanStartTomorrowHint.
   ///
   /// In en, this message translates to:
-  /// **'Changes start tomorrow or later. Earlier feeding records stay unchanged.'**
-  String get feedingChangesHint;
+  /// **'Another plan started today, so this one can start tomorrow or later.'**
+  String get feedingPlanStartTomorrowHint;
+
+  /// No description provided for @feedingTodayPlanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This plan started today, so changes apply right away.'**
+  String get feedingTodayPlanHint;
+
+  /// No description provided for @feedingTodayMealsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Meals already given today move to the meal at the same time; if there is none, they stay under “Other feedings”.'**
+  String get feedingTodayMealsHint;
+
+  /// No description provided for @feedingStartTodayMealsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'If it starts today, meals already given today move to the meal at the same time; if there is none, they stay under “Other feedings”.'**
+  String get feedingStartTodayMealsHint;
 
   /// No description provided for @feedingPlanEmptyMessage.
   ///
